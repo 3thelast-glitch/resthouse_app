@@ -293,6 +293,32 @@ void main() {
     );
   });
 
+  test('يلغي الدفعة دون احتسابها ضمن الرصيد', () async {
+    await helper.insertRenter(renter('0511111111', 'مستأجر أول'));
+    final bookingId = await helper.insertBooking(
+      booking(
+        phone: '0511111111',
+        startDate: '2026-11-01',
+        endDate: '2026-11-02',
+      ),
+    );
+    final paymentId = await helper.insertPayment({
+      'booking_id': bookingId,
+      'amount': 300.0,
+      'paid_at': '2026-10-20',
+      'method': 'cash',
+    });
+
+    expect(
+      await helper.voidPayment(paymentId, reason: 'أدخلت القيمة مرتين'),
+      1,
+    );
+    final summary = await helper.queryPaymentSummary(bookingId);
+    expect(summary['paid'], 0.0);
+    expect(summary['remaining'], 1000.0);
+    expect(await helper.queryPaymentsForBooking(bookingId), isEmpty);
+  });
+
   test(
     'يرقي قاعدة الإصدار السابق ويحافظ على الحجوزات اليتيمة كسجلات قابلة للإدارة',
     () async {
