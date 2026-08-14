@@ -1,0 +1,28 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [main, fix/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: استنساخ المستودع
+        uses: actions/checkout@v4
+
+      - name: إعداد Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: تثبيت الاعتمادات
+        run: flutter pub get
+
+      - name: التحليل الساكن
+        run: flutter analyze
+
+      - name: الاختبارات
+        run: flutter test

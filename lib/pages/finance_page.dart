@@ -19,14 +19,43 @@ class _FinancePageState extends State<FinancePage> {
   List<Map<String, dynamic>> _filteredBookings = []; // Filtered bookings
   List<Map<String, dynamic>> _allBookings = [];
   List<Map<String, dynamic>> _allExpenses = [];
+  List<int> _availableYears = [DateTime.now().year];
 
-  // Dynamic year range
-  List<int> _getYearRange() {
-    int currentYear = DateTime.now().year;
-    if (currentYear > 2050) {
-      return [currentYear];
+  List<int> _getYearRange() => _availableYears;
+
+  bool _isConfirmedBooking(Map<String, dynamic> booking) {
+    return booking['status'] == DatabaseHelper.statusConfirmed;
+  }
+
+  bool _hasPendingDeposit(Map<String, dynamic> booking) {
+    return _isConfirmedBooking(booking) &&
+        booking['deposit_status'] == DatabaseHelper.depositPending;
+  }
+
+  List<int> _collectAvailableYears(
+    List<Map<String, dynamic>> bookings,
+    List<Map<String, dynamic>> expenses,
+  ) {
+    final years = <int>{DateTime.now().year};
+    for (final booking in bookings) {
+      final date = DateTime.tryParse(booking['start_date']?.toString() ?? '');
+      if (date != null) years.add(date.year);
     }
-    return List.generate(2050 - currentYear + 1, (i) => currentYear + i);
+    for (final expense in expenses) {
+      final date = DateTime.tryParse(expense['date']?.toString() ?? '');
+      if (date != null) years.add(date.year);
+    }
+    final sortedYears = years.toList()..sort((a, b) => b.compareTo(a));
+    return sortedYears;
+  }
+
+  void _normalizeSelectedYears() {
+    final fallback = _availableYears.first;
+    if (!_availableYears.contains(_selectedYear)) _selectedYear = fallback;
+    if (!_availableYears.contains(_comparisonYear)) _comparisonYear = fallback;
+    if (!_availableYears.contains(_compMonthYear)) _compMonthYear = fallback;
+    if (!_availableYears.contains(_compYear1)) _compYear1 = fallback;
+    if (!_availableYears.contains(_compYear2)) _compYear2 = fallback;
   }
 
   // Advanced filter state
@@ -68,8 +97,8 @@ class _FinancePageState extends State<FinancePage> {
   @override
   void initState() {
     super.initState();
-    _comparisonYear = DateTime.now().year < 2050 ? DateTime.now().year + 1 : DateTime.now().year;
-    _compYear2 = DateTime.now().year < 2050 ? DateTime.now().year + 1 : DateTime.now().year;
+    _comparisonYear = DateTime.now().year;
+    _compYear2 = DateTime.now().year;
     _loadFinance();
   }
 
@@ -83,44 +112,52 @@ class _FinancePageState extends State<FinancePage> {
       _allBookings = bookings;
       _allExpenses = expenses;
       _distinctDescriptions = distinctDescs;
+      _availableYears = _collectAvailableYears(bookings, expenses);
+      _normalizeSelectedYears();
       _applyFilter();
     });
   }
 
   void _applyFilter() {
-    List<Map<String, dynamic>> fBookings = [];
-    List<Map<String, dynamic>> fExpenses = [];
-
-    final Set<int> months = _fullYearSelected
-        ? {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+    final months = _fullYearSelected
+        ? <int>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
         : _selectedMonths;
 
-    fBookings = _allBookings.where((b) {
-      final date = DateTime.tryParse(b['start_date'] ?? '') ?? DateTime(1970);
-      return date.year == _selectedYear && months.contains(date.month);
+    final filteredBookings = _allBookings.where((booking) {
+      final date = DateTime.tryParse(booking['start_date']?.toString() ?? '');
+      return date != null &&
+          date.year == _selectedYear &&
+          months.contains(date.month) &&
+          _isConfirmedBooking(booking);
     }).toList();
-    fExpenses = _allExpenses.where((e) {
-      final date = DateTime.tryParse(e['date'] ?? '') ?? DateTime(1970);
-      return date.year == _selectedYear && months.contains(date.month);
+    final filteredExpenses = _allExpenses.where((expense) {
+      final date = DateTime.tryParse(expense['date']?.toString() ?? '');
+      return date != null &&
+          date.year == _selectedYear &&
+          months.contains(date.month);
     }).toList();
 
-    double revenue = 0.0;
-    double securitySum = 0.0;
-    double expenseSum = 0.0;
+    final revenue = filteredBookings.fold<double>(
+      0.0,
+      (sum, booking) => sum + (booking['total_price'] as num).toDouble(),
+    );
+    final pendingDeposits = filteredBookings
+        .where(_hasPendingDeposit)
+        .fold<double>(
+          0.0,
+          (sum, booking) =>
+              sum + ((booking['security_deposit'] as num?)?.toDouble() ?? 0.0),
+        );
+    final expenses = filteredExpenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + (expense['amount'] as num).toDouble(),
+    );
 
-    for (var b in fBookings) {
-      revenue += (b['total_price'] as num).toDouble();
-      securitySum += (b['security_deposit'] as num?)?.toDouble() ?? 0.0;
-    }
-    for (var e in fExpenses) {
-      expenseSum += (e['amount'] as num).toDouble();
-    }
-
-    _filteredBookings = fBookings;
-    _expenses = fExpenses;
+    _filteredBookings = filteredBookings;
+    _expenses = filteredExpenses;
     _totalRevenue = revenue;
-    _totalSecurityDeposit = securitySum;
-    _totalExpenses = expenseSum;
+    _totalSecurityDeposit = pendingDeposits;
+    _totalExpenses = expenses;
   }
 
   void _showAddExpenseDialog() {
@@ -133,7 +170,10 @@ class _FinancePageState extends State<FinancePage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('تسجيل مصروف جديد', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'تسجيل مصروف جديد',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -143,34 +183,45 @@ class _FinancePageState extends State<FinancePage> {
                     return const Iterable<String>.empty();
                   }
                   return _distinctDescriptions.where((String option) {
-                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                    return option.toLowerCase().contains(
+                      textEditingValue.text.toLowerCase(),
+                    );
                   });
                 },
                 onSelected: (String selection) {
                   descController.text = selection;
                 },
-                fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                  if (textEditingController.text.isEmpty && descController.text.isNotEmpty) {
-                    textEditingController.text = descController.text;
-                  }
-                  return TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    onChanged: (value) {
-                      descController.text = value;
+                fieldViewBuilder:
+                    (
+                      context,
+                      textEditingController,
+                      focusNode,
+                      onFieldSubmitted,
+                    ) {
+                      if (textEditingController.text.isEmpty &&
+                          descController.text.isNotEmpty) {
+                        textEditingController.text = descController.text;
+                      }
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        onChanged: (value) {
+                          descController.text = value;
+                        },
+                        onSubmitted: (value) => onFieldSubmitted(),
+                        decoration: const InputDecoration(
+                          labelText: 'وصف المصروف',
+                          icon: Icon(Icons.description_outlined),
+                        ),
+                      );
                     },
-                    onSubmitted: (value) => onFieldSubmitted(),
-                    decoration: const InputDecoration(
-                      labelText: 'وصف المصروف',
-                      icon: Icon(Icons.description_outlined),
-                    ),
-                  );
-                },
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'المبلغ (ر.س)',
                   icon: Icon(Icons.attach_money),
@@ -185,17 +236,20 @@ class _FinancePageState extends State<FinancePage> {
                 ),
                 initialValue: selectedCategory,
                 items: _categories.map((cat) {
-                  return DropdownMenuItem<String>(
-                    value: cat,
-                    child: Text(cat),
-                  );
+                  return DropdownMenuItem<String>(value: cat, child: Text(cat));
                 }).toList(),
-                onChanged: (value) => setDialogState(() => selectedCategory = value ?? 'مصاريف تشغيلية أخرى'),
+                onChanged: (value) => setDialogState(
+                  () => selectedCategory = value ?? 'مصاريف تشغيلية أخرى',
+                ),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 20,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton(
@@ -211,7 +265,9 @@ class _FinancePageState extends State<FinancePage> {
                           setDialogState(() => selectedDate = date);
                         }
                       },
-                      child: Text('التاريخ: ${selectedDate.toString().split(' ')[0]}'),
+                      child: Text(
+                        'التاريخ: ${selectedDate.toString().split(' ')[0]}',
+                      ),
                     ),
                   ),
                 ],
@@ -219,7 +275,10 @@ class _FinancePageState extends State<FinancePage> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final desc = descController.text.trim();
@@ -248,7 +307,9 @@ class _FinancePageState extends State<FinancePage> {
                 if (amount == null) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
-                      content: Text('الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!'),
+                      content: Text(
+                        'الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -279,7 +340,10 @@ class _FinancePageState extends State<FinancePage> {
                   const SnackBar(content: Text('تم تسجيل المصروف بنجاح')),
                 );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F766E), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
               child: const Text('إضافة'),
             ),
           ],
@@ -290,9 +354,13 @@ class _FinancePageState extends State<FinancePage> {
 
   void _showEditExpenseDialog(Map<String, dynamic> expense) {
     final descController = TextEditingController(text: expense['description']);
-    final amountController = TextEditingController(text: expense['amount'].toString());
-    DateTime selectedDate = DateTime.tryParse(expense['date']) ?? DateTime.now();
-    String selectedCategory = expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى';
+    final amountController = TextEditingController(
+      text: expense['amount'].toString(),
+    );
+    DateTime selectedDate =
+        DateTime.tryParse(expense['date']) ?? DateTime.now();
+    String selectedCategory =
+        expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى';
 
     if (!_categories.contains(selectedCategory)) {
       selectedCategory = 'مصاريف تشغيلية أخرى';
@@ -302,7 +370,10 @@ class _FinancePageState extends State<FinancePage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('تعديل المصروف', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'تعديل المصروف',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -312,34 +383,45 @@ class _FinancePageState extends State<FinancePage> {
                     return const Iterable<String>.empty();
                   }
                   return _distinctDescriptions.where((String option) {
-                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                    return option.toLowerCase().contains(
+                      textEditingValue.text.toLowerCase(),
+                    );
                   });
                 },
                 onSelected: (String selection) {
                   descController.text = selection;
                 },
-                fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                  if (textEditingController.text.isEmpty && descController.text.isNotEmpty) {
-                    textEditingController.text = descController.text;
-                  }
-                  return TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    onChanged: (value) {
-                      descController.text = value;
+                fieldViewBuilder:
+                    (
+                      context,
+                      textEditingController,
+                      focusNode,
+                      onFieldSubmitted,
+                    ) {
+                      if (textEditingController.text.isEmpty &&
+                          descController.text.isNotEmpty) {
+                        textEditingController.text = descController.text;
+                      }
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        onChanged: (value) {
+                          descController.text = value;
+                        },
+                        onSubmitted: (value) => onFieldSubmitted(),
+                        decoration: const InputDecoration(
+                          labelText: 'وصف المصروف',
+                          icon: Icon(Icons.description_outlined),
+                        ),
+                      );
                     },
-                    onSubmitted: (value) => onFieldSubmitted(),
-                    decoration: const InputDecoration(
-                      labelText: 'وصف المصروف',
-                      icon: Icon(Icons.description_outlined),
-                    ),
-                  );
-                },
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'المبلغ (ر.س)',
                   icon: Icon(Icons.attach_money),
@@ -354,17 +436,20 @@ class _FinancePageState extends State<FinancePage> {
                 ),
                 initialValue: selectedCategory,
                 items: _categories.map((cat) {
-                  return DropdownMenuItem<String>(
-                    value: cat,
-                    child: Text(cat),
-                  );
+                  return DropdownMenuItem<String>(value: cat, child: Text(cat));
                 }).toList(),
-                onChanged: (value) => setDialogState(() => selectedCategory = value ?? 'مصاريف تشغيلية أخرى'),
+                onChanged: (value) => setDialogState(
+                  () => selectedCategory = value ?? 'مصاريف تشغيلية أخرى',
+                ),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 20,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton(
@@ -380,7 +465,9 @@ class _FinancePageState extends State<FinancePage> {
                           setDialogState(() => selectedDate = date);
                         }
                       },
-                      child: Text('التاريخ: ${selectedDate.toString().split(' ')[0]}'),
+                      child: Text(
+                        'التاريخ: ${selectedDate.toString().split(' ')[0]}',
+                      ),
                     ),
                   ),
                 ],
@@ -388,7 +475,10 @@ class _FinancePageState extends State<FinancePage> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final desc = descController.text.trim();
@@ -417,7 +507,9 @@ class _FinancePageState extends State<FinancePage> {
                 if (amount == null) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
-                      content: Text('الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!'),
+                      content: Text(
+                        'الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -449,7 +541,10 @@ class _FinancePageState extends State<FinancePage> {
                   const SnackBar(content: Text('تم تحديث المصروف بنجاح')),
                 );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F766E), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
               child: const Text('حفظ التعديلات'),
             ),
           ],
@@ -465,7 +560,10 @@ class _FinancePageState extends State<FinancePage> {
         title: const Text('تأكيد حذف المصروف'),
         content: const Text('هل أنت متأكد من رغبتك في حذف هذا المصروف؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
           TextButton(
             onPressed: () async {
               await dbHelper.deleteExpense(id);
@@ -508,7 +606,11 @@ class _FinancePageState extends State<FinancePage> {
         value: entry.value,
         title: '${percentage.toStringAsFixed(0)}%',
         radius: 35,
-        titleStyle: TextStyle(fontSize: 10.sp(context), fontWeight: FontWeight.bold, color: Colors.white),
+        titleStyle: TextStyle(
+          fontSize: 10.sp(context),
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       );
     }).toList();
   }
@@ -536,7 +638,11 @@ class _FinancePageState extends State<FinancePage> {
               Expanded(
                 child: Text(
                   '${entry.key}: ${entry.value.toStringAsFixed(0)} ر.س',
-                  style: TextStyle(fontSize: 11.sp(context), fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
+                  style: TextStyle(
+                    fontSize: 11.sp(context),
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF475569),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -558,14 +664,21 @@ class _FinancePageState extends State<FinancePage> {
 
     for (var b in _filteredBookings) {
       final date = DateTime.tryParse(b['start_date'] ?? '');
-      if (date != null && date.year == _selectedYear && activeMonths.contains(date.month)) {
-        mRevenue[date.month] = (mRevenue[date.month] ?? 0.0) + (b['total_price'] as num).toDouble();
+      if (date != null &&
+          date.year == _selectedYear &&
+          activeMonths.contains(date.month)) {
+        mRevenue[date.month] =
+            (mRevenue[date.month] ?? 0.0) +
+            (b['total_price'] as num).toDouble();
       }
     }
     for (var e in _expenses) {
       final date = DateTime.tryParse(e['date'] ?? '');
-      if (date != null && date.year == _selectedYear && activeMonths.contains(date.month)) {
-        mExpenses[date.month] = (mExpenses[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
+      if (date != null &&
+          date.year == _selectedYear &&
+          activeMonths.contains(date.month)) {
+        mExpenses[date.month] =
+            (mExpenses[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
       }
     }
 
@@ -606,13 +719,19 @@ class _FinancePageState extends State<FinancePage> {
     final Map<int, double> rev2 = {};
     final Map<int, double> exp2 = {};
 
-    for (var b in _allBookings) {
-      final date = DateTime.tryParse(b['start_date'] ?? '');
-      if (date != null && activeMonths.contains(date.month)) {
+    for (final booking in _allBookings) {
+      final date = DateTime.tryParse(booking['start_date']?.toString() ?? '');
+      if (date != null &&
+          activeMonths.contains(date.month) &&
+          _isConfirmedBooking(booking)) {
         if (date.year == _selectedYear) {
-          rev1[date.month] = (rev1[date.month] ?? 0.0) + (b['total_price'] as num).toDouble();
+          rev1[date.month] =
+              (rev1[date.month] ?? 0.0) +
+              (booking['total_price'] as num).toDouble();
         } else if (date.year == _comparisonYear) {
-          rev2[date.month] = (rev2[date.month] ?? 0.0) + (b['total_price'] as num).toDouble();
+          rev2[date.month] =
+              (rev2[date.month] ?? 0.0) +
+              (booking['total_price'] as num).toDouble();
         }
       }
     }
@@ -620,9 +739,11 @@ class _FinancePageState extends State<FinancePage> {
       final date = DateTime.tryParse(e['date'] ?? '');
       if (date != null && activeMonths.contains(date.month)) {
         if (date.year == _selectedYear) {
-          exp1[date.month] = (exp1[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
+          exp1[date.month] =
+              (exp1[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
         } else if (date.year == _comparisonYear) {
-          exp2[date.month] = (exp2[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
+          exp2[date.month] =
+              (exp2[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
         }
       }
     }
@@ -632,22 +753,62 @@ class _FinancePageState extends State<FinancePage> {
       return BarChartGroupData(
         x: m,
         barRods: [
-          BarChartRodData(toY: rev1[m] ?? 0.0, color: const Color(0xFF10B981), width: 5, borderRadius: BorderRadius.circular(1)),
-          BarChartRodData(toY: exp1[m] ?? 0.0, color: const Color(0xFFEF4444), width: 5, borderRadius: BorderRadius.circular(1)),
-          BarChartRodData(toY: rev2[m] ?? 0.0, color: const Color(0xFF60A5FA), width: 5, borderRadius: BorderRadius.circular(1)),
-          BarChartRodData(toY: exp2[m] ?? 0.0, color: const Color(0xFFFBBF24), width: 5, borderRadius: BorderRadius.circular(1)),
+          BarChartRodData(
+            toY: rev1[m] ?? 0.0,
+            color: const Color(0xFF10B981),
+            width: 5,
+            borderRadius: BorderRadius.circular(1),
+          ),
+          BarChartRodData(
+            toY: exp1[m] ?? 0.0,
+            color: const Color(0xFFEF4444),
+            width: 5,
+            borderRadius: BorderRadius.circular(1),
+          ),
+          BarChartRodData(
+            toY: rev2[m] ?? 0.0,
+            color: const Color(0xFF60A5FA),
+            width: 5,
+            borderRadius: BorderRadius.circular(1),
+          ),
+          BarChartRodData(
+            toY: exp2[m] ?? 0.0,
+            color: const Color(0xFFFBBF24),
+            width: 5,
+            borderRadius: BorderRadius.circular(1),
+          ),
         ],
       );
     });
   }
 
   Widget _getBarBottomTitles(double value, TitleMeta meta) {
-    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
     int monthNum = value.toInt(); // 1-indexed month number
     if (monthNum >= 1 && monthNum <= 12) {
       return SideTitleWidget(
         meta: meta,
-        child: Text(months[monthNum - 1], style: TextStyle(fontSize: 9.sp(context), fontWeight: FontWeight.bold, color: Colors.grey)),
+        child: Text(
+          months[monthNum - 1],
+          style: TextStyle(
+            fontSize: 9.sp(context),
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
       );
     }
     return SideTitleWidget(meta: meta, child: const Text(''));
@@ -655,7 +816,20 @@ class _FinancePageState extends State<FinancePage> {
 
   // Build the advanced filter UI widget
   Widget _buildAdvancedFilterPanel() {
-    const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const monthNames = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -665,7 +839,11 @@ class _FinancePageState extends State<FinancePage> {
             Expanded(
               child: Text(
                 'التقرير المالي للعمليات',
-                style: TextStyle(fontSize: 18.sp(context), fontWeight: FontWeight.bold, color: const Color(0xFF1E293B)),
+                style: TextStyle(
+                  fontSize: 18.sp(context),
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
               ),
             ),
             // Year dropdown
@@ -674,15 +852,28 @@ class _FinancePageState extends State<FinancePage> {
               decoration: BoxDecoration(
                 color: const Color(0xFF0F766E).withAlpha(20),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF0F766E).withAlpha(60)),
+                border: Border.all(
+                  color: const Color(0xFF0F766E).withAlpha(60),
+                ),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<int>(
                   value: _selectedYear,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF0F766E), size: 20),
-                  style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF0F766E), fontSize: 14.sp(context)),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF0F766E),
+                    size: 20,
+                  ),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F766E),
+                    fontSize: 14.sp(context),
+                  ),
                   items: _getYearRange().map((year) {
-                    return DropdownMenuItem<int>(value: year, child: Text('$year'));
+                    return DropdownMenuItem<int>(
+                      value: year,
+                      child: Text('$year'),
+                    );
                   }).toList(),
                   onChanged: (value) {
                     if (value != null) {
@@ -703,7 +894,9 @@ class _FinancePageState extends State<FinancePage> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12.sp(context),
-                  color: _showComparison ? Colors.white : const Color(0xFF6366F1),
+                  color: _showComparison
+                      ? Colors.white
+                      : const Color(0xFF6366F1),
                 ),
               ),
               avatar: Icon(
@@ -723,22 +916,45 @@ class _FinancePageState extends State<FinancePage> {
             ),
             if (_showComparison) ...[
               const SizedBox(width: 8),
-              Text('مقابل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12.sp(context))),
+              Text(
+                'مقابل',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                  fontSize: 12.sp(context),
+                ),
+              ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF6366F1).withAlpha(20),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF6366F1).withAlpha(60)),
+                  border: Border.all(
+                    color: const Color(0xFF6366F1).withAlpha(60),
+                  ),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     value: _comparisonYear,
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6366F1), size: 20),
-                    style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF6366F1), fontSize: 14.sp(context)),
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF6366F1),
+                      size: 20,
+                    ),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF6366F1),
+                      fontSize: 14.sp(context),
+                    ),
                     items: _getYearRange().map((year) {
-                      return DropdownMenuItem<int>(value: year, child: Text('$year'));
+                      return DropdownMenuItem<int>(
+                        value: year,
+                        child: Text('$year'),
+                      );
                     }).toList(),
                     onChanged: (value) {
                       if (value != null) {
@@ -769,7 +985,9 @@ class _FinancePageState extends State<FinancePage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12.sp(context),
-                      color: _fullYearSelected ? Colors.white : const Color(0xFF0F766E),
+                      color: _fullYearSelected
+                          ? Colors.white
+                          : const Color(0xFF0F766E),
                     ),
                   ),
                   selected: _fullYearSelected,
@@ -780,7 +998,20 @@ class _FinancePageState extends State<FinancePage> {
                     setState(() {
                       _fullYearSelected = val;
                       if (val) {
-                        _selectedMonths = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+                        _selectedMonths = {
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7,
+                          8,
+                          9,
+                          10,
+                          11,
+                          12,
+                        };
                       } else {
                         _selectedMonths = {DateTime.now().month};
                       }
@@ -790,7 +1021,12 @@ class _FinancePageState extends State<FinancePage> {
                 ),
               ),
               const SizedBox(width: 6),
-              const VerticalDivider(width: 16, thickness: 1, indent: 6, endIndent: 6),
+              const VerticalDivider(
+                width: 16,
+                thickness: 1,
+                indent: 6,
+                endIndent: 6,
+              ),
               // Month chips
               ...List.generate(12, (i) {
                 final monthNum = i + 1;
@@ -812,18 +1048,20 @@ class _FinancePageState extends State<FinancePage> {
                     checkmarkColor: Colors.white,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
-                    onSelected: _fullYearSelected ? null : (val) {
-                      setState(() {
-                        if (val) {
-                          _selectedMonths.add(monthNum);
-                        } else {
-                          if (_selectedMonths.length > 1) {
-                            _selectedMonths.remove(monthNum);
-                          }
-                        }
-                        _applyFilter();
-                      });
-                    },
+                    onSelected: _fullYearSelected
+                        ? null
+                        : (val) {
+                            setState(() {
+                              if (val) {
+                                _selectedMonths.add(monthNum);
+                              } else {
+                                if (_selectedMonths.length > 1) {
+                                  _selectedMonths.remove(monthNum);
+                                }
+                              }
+                              _applyFilter();
+                            });
+                          },
                   ),
                 );
               }),
@@ -884,14 +1122,18 @@ class _FinancePageState extends State<FinancePage> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _activeTab == 0 ? const Color(0xFF0F766E) : Colors.transparent,
+                  color: _activeTab == 0
+                      ? const Color(0xFF0F766E)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'التقرير والتحليل المالي العام',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: _activeTab == 0 ? Colors.white : Colors.grey.shade700,
+                    color: _activeTab == 0
+                        ? Colors.white
+                        : Colors.grey.shade700,
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp(context),
                   ),
@@ -906,14 +1148,18 @@ class _FinancePageState extends State<FinancePage> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _activeTab == 1 ? const Color(0xFF0F766E) : Colors.transparent,
+                  color: _activeTab == 1
+                      ? const Color(0xFF0F766E)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'المقارنة المالية المتقدمة',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: _activeTab == 1 ? Colors.white : Colors.grey.shade700,
+                    color: _activeTab == 1
+                        ? Colors.white
+                        : Colors.grey.shade700,
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp(context),
                   ),
@@ -937,17 +1183,40 @@ class _FinancePageState extends State<FinancePage> {
         if (isWide)
           Row(
             children: [
-              Expanded(child: _buildCard('إجمالي مبالغ الإيجار', _totalRevenue, const Color(0xFF10B981), Icons.monetization_on_outlined)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildCard('إجمالي مبالغ التأمين', _totalSecurityDeposit, const Color(0xFF0284C7), Icons.security_outlined)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildCard('إجمالي المصروفات', _totalExpenses, const Color(0xFFEF4444), Icons.arrow_downward)),
+              Expanded(
+                child: _buildCard(
+                  'إجمالي مبالغ الإيجار',
+                  _totalRevenue,
+                  const Color(0xFF10B981),
+                  Icons.monetization_on_outlined,
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildCard(
-                  'صافي الأرباح', 
-                  netIncome, 
-                  netIncome >= 0 ? const Color(0xFF0D9488) : const Color(0xFFDC2626), 
+                  'التأمينات المعلقة',
+                  _totalSecurityDeposit,
+                  const Color(0xFF0284C7),
+                  Icons.security_outlined,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildCard(
+                  'إجمالي المصروفات',
+                  _totalExpenses,
+                  const Color(0xFFEF4444),
+                  Icons.arrow_downward,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildCard(
+                  'صافي الأرباح',
+                  netIncome,
+                  netIncome >= 0
+                      ? const Color(0xFF0D9488)
+                      : const Color(0xFFDC2626),
                   Icons.account_balance,
                 ),
               ),
@@ -958,21 +1227,44 @@ class _FinancePageState extends State<FinancePage> {
             children: [
               Row(
                 children: [
-                  Expanded(child: _buildCard('إجمالي مبالغ الإيجار', _totalRevenue, const Color(0xFF10B981), Icons.monetization_on_outlined)),
+                  Expanded(
+                    child: _buildCard(
+                      'إجمالي مبالغ الإيجار',
+                      _totalRevenue,
+                      const Color(0xFF10B981),
+                      Icons.monetization_on_outlined,
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildCard('إجمالي مبالغ التأمين', _totalSecurityDeposit, const Color(0xFF0284C7), Icons.security_outlined)),
+                  Expanded(
+                    child: _buildCard(
+                      'التأمينات المعلقة',
+                      _totalSecurityDeposit,
+                      const Color(0xFF0284C7),
+                      Icons.security_outlined,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildCard('إجمالي المصروفات', _totalExpenses, const Color(0xFFEF4444), Icons.arrow_downward)),
+                  Expanded(
+                    child: _buildCard(
+                      'إجمالي المصروفات',
+                      _totalExpenses,
+                      const Color(0xFFEF4444),
+                      Icons.arrow_downward,
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildCard(
-                      'صافي الأرباح', 
-                      netIncome, 
-                      netIncome >= 0 ? const Color(0xFF0D9488) : const Color(0xFFDC2626), 
+                      'صافي الأرباح',
+                      netIncome,
+                      netIncome >= 0
+                          ? const Color(0xFF0D9488)
+                          : const Color(0xFFDC2626),
                       Icons.account_balance,
                     ),
                   ),
@@ -992,10 +1284,7 @@ class _FinancePageState extends State<FinancePage> {
                 child: _buildExpensesSection(isScrollable: true),
               ),
               const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: _buildChartsSection(isScrollable: true),
-              ),
+              Expanded(flex: 2, child: _buildChartsSection(isScrollable: true)),
             ],
           )
         else
@@ -1017,11 +1306,16 @@ class _FinancePageState extends State<FinancePage> {
     double expenses = 0.0;
     int bookingsCount = 0;
 
-    for (var b in _allBookings) {
-      final date = DateTime.tryParse(b['start_date'] ?? '');
-      if (date != null && date.year == year && date.month == month) {
-        revenue += (b['total_price'] as num).toDouble();
-        security += (b['security_deposit'] as num?)?.toDouble() ?? 0.0;
+    for (final booking in _allBookings) {
+      final date = DateTime.tryParse(booking['start_date']?.toString() ?? '');
+      if (date != null &&
+          date.year == year &&
+          date.month == month &&
+          _isConfirmedBooking(booking)) {
+        revenue += (booking['total_price'] as num).toDouble();
+        if (_hasPendingDeposit(booking)) {
+          security += (booking['security_deposit'] as num?)?.toDouble() ?? 0.0;
+        }
         bookingsCount++;
       }
     }
@@ -1048,11 +1342,13 @@ class _FinancePageState extends State<FinancePage> {
     double expenses = 0.0;
     int bookingsCount = 0;
 
-    for (var b in _allBookings) {
-      final date = DateTime.tryParse(b['start_date'] ?? '');
-      if (date != null && date.year == year) {
-        revenue += (b['total_price'] as num).toDouble();
-        security += (b['security_deposit'] as num?)?.toDouble() ?? 0.0;
+    for (final booking in _allBookings) {
+      final date = DateTime.tryParse(booking['start_date']?.toString() ?? '');
+      if (date != null && date.year == year && _isConfirmedBooking(booking)) {
+        revenue += (booking['total_price'] as num).toDouble();
+        if (_hasPendingDeposit(booking)) {
+          security += (booking['security_deposit'] as num?)?.toDouble() ?? 0.0;
+        }
         bookingsCount++;
       }
     }
@@ -1074,7 +1370,20 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   Widget _buildComparisonControls() {
-    const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const monthNames = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
     return Card(
       color: Colors.white,
       elevation: 2,
@@ -1091,7 +1400,11 @@ class _FinancePageState extends State<FinancePage> {
                 const SizedBox(width: 8),
                 Text(
                   'تحديد خيارات المقارنة',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp(context), color: const Color(0xFF1E293B)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.sp(context),
+                    color: const Color(0xFF1E293B),
+                  ),
                 ),
                 const Spacer(),
                 Container(
@@ -1115,7 +1428,13 @@ class _FinancePageState extends State<FinancePage> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    const Text('السنة: ', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                    const Text(
+                      'السنة: ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     _buildDropdown<int>(
                       value: _compMonthYear,
@@ -1125,7 +1444,13 @@ class _FinancePageState extends State<FinancePage> {
                       },
                     ),
                     const SizedBox(width: 24),
-                    const Text('الشهر الأول: ', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                    const Text(
+                      'الشهر الأول: ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     _buildDropdown<int>(
                       value: _compMonth1,
@@ -1136,7 +1461,13 @@ class _FinancePageState extends State<FinancePage> {
                       },
                     ),
                     const SizedBox(width: 24),
-                    const Text('الشهر الثاني: ', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                    const Text(
+                      'الشهر الثاني: ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     _buildDropdown<int>(
                       value: _compMonth2,
@@ -1152,7 +1483,13 @@ class _FinancePageState extends State<FinancePage> {
             ] else ...[
               Row(
                 children: [
-                  const Text('السنة الأولى: ', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                  const Text(
+                    'السنة الأولى: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   _buildDropdown<int>(
                     value: _compYear1,
@@ -1162,7 +1499,13 @@ class _FinancePageState extends State<FinancePage> {
                     },
                   ),
                   const SizedBox(width: 32),
-                  const Text('السنة الثانية: ', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                  const Text(
+                    'السنة الثانية: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   _buildDropdown<int>(
                     value: _compYear2,
@@ -1220,11 +1563,17 @@ class _FinancePageState extends State<FinancePage> {
         child: DropdownButton<T>(
           value: value,
           icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0F766E)),
-          style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF0F766E), fontSize: 13.sp(context)),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF0F766E),
+            fontSize: 13.sp(context),
+          ),
           items: items.map((item) {
             return DropdownMenuItem<T>(
               value: item,
-              child: Text(itemToString != null ? itemToString(item) : item.toString()),
+              child: Text(
+                itemToString != null ? itemToString(item) : item.toString(),
+              ),
             );
           }).toList(),
           onChanged: onChanged,
@@ -1233,12 +1582,17 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
-  Widget _buildComparisonChart(Map<String, double> dataA, Map<String, double> dataB, String labelA, String labelB) {
+  Widget _buildComparisonChart(
+    Map<String, double> dataA,
+    Map<String, double> dataB,
+    String labelA,
+    String labelB,
+  ) {
     final double maxVal = [
       dataA['revenue']!,
       dataA['expenses']!,
       dataB['revenue']!,
-      dataB['expenses']!
+      dataB['expenses']!,
     ].reduce((curr, next) => curr > next ? curr : next);
 
     final double maxBarHeight = maxVal > 0 ? maxVal * 1.25 : 100.0;
@@ -1287,22 +1641,41 @@ class _FinancePageState extends State<FinancePage> {
         barTouchData: const BarTouchData(enabled: true),
         titlesData: FlTitlesData(
           show: true,
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           leftTitles: const AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 45,
-            ),
+            sideTitles: SideTitles(showTitles: true, reservedSize: 45),
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (val, meta) {
                 if (val.toInt() == 0) {
-                  return SideTitleWidget(meta: meta, child: Text(labelA, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10.sp(context))));
+                  return SideTitleWidget(
+                    meta: meta,
+                    child: Text(
+                      labelA,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10.sp(context),
+                      ),
+                    ),
+                  );
                 } else if (val.toInt() == 1) {
-                  return SideTitleWidget(meta: meta, child: Text(labelB, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10.sp(context))));
+                  return SideTitleWidget(
+                    meta: meta,
+                    child: Text(
+                      labelB,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10.sp(context),
+                      ),
+                    ),
+                  );
                 }
                 return SideTitleWidget(meta: meta, child: const Text(''));
               },
@@ -1316,36 +1689,81 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
-  Widget _buildComparisonStats(Map<String, double> dataA, Map<String, double> dataB, String labelA, String labelB) {
+  Widget _buildComparisonStats(
+    Map<String, double> dataA,
+    Map<String, double> dataB,
+    String labelA,
+    String labelB,
+  ) {
     return Column(
       children: [
-        _buildComparisonRow('إجمالي مبالغ الإيجار', dataA['revenue']!, dataB['revenue']!, Colors.green, Icons.monetization_on_outlined),
+        _buildComparisonRow(
+          'إجمالي مبالغ الإيجار',
+          dataA['revenue']!,
+          dataB['revenue']!,
+          Colors.green,
+          Icons.monetization_on_outlined,
+        ),
         const SizedBox(height: 12),
-        _buildComparisonRow('إجمالي مبالغ التأمين', dataA['security'] ?? 0.0, dataB['security'] ?? 0.0, Colors.blue, Icons.security_outlined),
+        _buildComparisonRow(
+          'إجمالي مبالغ التأمين',
+          dataA['security'] ?? 0.0,
+          dataB['security'] ?? 0.0,
+          Colors.blue,
+          Icons.security_outlined,
+        ),
         const SizedBox(height: 12),
-        _buildComparisonRow('إجمالي المصروفات', dataA['expenses']!, dataB['expenses']!, Colors.red, Icons.arrow_downward),
+        _buildComparisonRow(
+          'إجمالي المصروفات',
+          dataA['expenses']!,
+          dataB['expenses']!,
+          Colors.red,
+          Icons.arrow_downward,
+        ),
         const SizedBox(height: 12),
-        _buildComparisonRow('صافي الأرباح', dataA['net']!, dataB['net']!, const Color(0xFF0F766E), Icons.account_balance),
+        _buildComparisonRow(
+          'صافي الأرباح',
+          dataA['net']!,
+          dataB['net']!,
+          const Color(0xFF0F766E),
+          Icons.account_balance,
+        ),
         const SizedBox(height: 12),
-        _buildComparisonRow('عدد الحجوزات', dataA['bookings']!, dataB['bookings']!, Colors.indigo, Icons.calendar_month, isCurrency: false),
+        _buildComparisonRow(
+          'عدد الحجوزات',
+          dataA['bookings']!,
+          dataB['bookings']!,
+          Colors.indigo,
+          Icons.calendar_month,
+          isCurrency: false,
+        ),
       ],
     );
   }
 
-  Widget _buildComparisonRow(String title, double valA, double valB, Color color, IconData icon, {bool isCurrency = true}) {
+  Widget _buildComparisonRow(
+    String title,
+    double valA,
+    double valB,
+    Color color,
+    IconData icon, {
+    bool isCurrency = true,
+  }) {
     final diff = valB - valA;
     final percentDiff = valA > 0 ? (diff / valA) * 100 : 0.0;
-    
+
     String diffText = '';
     Color diffColor = Colors.grey;
     IconData diffIcon = Icons.remove;
 
     if (diff > 0) {
-      diffText = '+${diff.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""} (${percentDiff.toStringAsFixed(1)}%)';
+      diffText =
+          '+${diff.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""} (${percentDiff.toStringAsFixed(1)}%)';
       diffColor = Colors.green.shade700;
       diffIcon = Icons.trending_up;
     } else if (diff < 0) {
-      diffText = '${diff.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""} (${percentDiff.toStringAsFixed(1)}%)';
+      diffText =
+          '${diff.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""} (${percentDiff.toStringAsFixed(1)}%)';
       diffColor = Colors.red.shade700;
       diffIcon = Icons.trending_down;
     } else {
@@ -1374,20 +1792,33 @@ class _FinancePageState extends State<FinancePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(color: Colors.grey.shade500, fontSize: 11.sp(context), fontWeight: FontWeight.bold)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 11.sp(context),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
                       Text(
                         '${valA.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""}',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp(context)),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.sp(context),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text('➔', style: TextStyle(color: Colors.grey)),
                       const SizedBox(width: 8),
                       Text(
                         '${valB.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""}',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp(context)),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.sp(context),
+                        ),
                       ),
                     ],
                   ),
@@ -1411,7 +1842,11 @@ class _FinancePageState extends State<FinancePage> {
                     Expanded(
                       child: Text(
                         diffText,
-                        style: TextStyle(color: diffColor, fontWeight: FontWeight.bold, fontSize: 11.sp(context)),
+                        style: TextStyle(
+                          color: diffColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11.sp(context),
+                        ),
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1426,7 +1861,12 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
-  Widget _buildComparisonInsights(Map<String, double> dataA, Map<String, double> dataB, String labelA, String labelB) {
+  Widget _buildComparisonInsights(
+    Map<String, double> dataA,
+    Map<String, double> dataB,
+    String labelA,
+    String labelB,
+  ) {
     final netDiff = dataB['net']! - dataA['net']!;
     final revDiff = dataB['revenue']! - dataA['revenue']!;
     final expDiff = dataB['expenses']! - dataA['expenses']!;
@@ -1437,22 +1877,28 @@ class _FinancePageState extends State<FinancePage> {
 
     if (netDiff > 0) {
       title = 'أداء مالي أفضل لـ $labelB';
-      description = 'حقق $labelB صافي أرباح أعلى بقيمة ${netDiff.toStringAsFixed(0)} ر.س مقارنة بـ $labelA. ';
+      description =
+          'حقق $labelB صافي أرباح أعلى بقيمة ${netDiff.toStringAsFixed(0)} ر.س مقارنة بـ $labelA. ';
       if (revDiff > 0) {
-        description += 'وكان هذا الارتفاع مدفوعاً بزيادة الإيرادات بقيمة ${revDiff.toStringAsFixed(0)} ر.س. ';
+        description +=
+            'وكان هذا الارتفاع مدفوعاً بزيادة الإيرادات بقيمة ${revDiff.toStringAsFixed(0)} ر.س. ';
       }
       if (expDiff < 0) {
-        description += 'بالإضافة إلى نجاحك في خفض المصروفات التشغيلية بقيمة ${(-expDiff).toStringAsFixed(0)} ر.س. ';
+        description +=
+            'بالإضافة إلى نجاحك في خفض المصروفات التشغيلية بقيمة ${(-expDiff).toStringAsFixed(0)} ر.س. ';
       }
       highlightColor = const Color(0xFF0F766E);
     } else if (netDiff < 0) {
       title = 'أداء مالي أفضل لـ $labelA';
-      description = 'حقق $labelA صافي أرباح أعلى بقيمة ${(-netDiff).toStringAsFixed(0)} ر.س مقارنة بـ $labelB. ';
+      description =
+          'حقق $labelA صافي أرباح أعلى بقيمة ${(-netDiff).toStringAsFixed(0)} ر.س مقارنة بـ $labelB. ';
       if (revDiff < 0) {
-        description += 'حيث انخفضت الإيرادات في $labelB بقيمة ${(-revDiff).toStringAsFixed(0)} ر.س. ';
+        description +=
+            'حيث انخفضت الإيرادات في $labelB بقيمة ${(-revDiff).toStringAsFixed(0)} ر.س. ';
       }
       if (expDiff > 0) {
-        description += 'بالإضافة إلى ارتفاع المصاريف التشغيلية في $labelB بقيمة ${expDiff.toStringAsFixed(0)} ر.س. ';
+        description +=
+            'بالإضافة إلى ارتفاع المصاريف التشغيلية في $labelB بقيمة ${expDiff.toStringAsFixed(0)} ر.س. ';
       }
       highlightColor = const Color(0xFFB91C1C);
     } else {
@@ -1478,14 +1924,22 @@ class _FinancePageState extends State<FinancePage> {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp(context), color: highlightColor),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15.sp(context),
+                    color: highlightColor,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               description,
-              style: TextStyle(fontSize: 13.sp(context), color: Colors.grey.shade800, height: 1.5),
+              style: TextStyle(
+                fontSize: 13.sp(context),
+                color: Colors.grey.shade800,
+                height: 1.5,
+              ),
             ),
           ],
         ),
@@ -1494,8 +1948,21 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   Widget _buildComparisonTabContent(bool isWide) {
-    const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-    
+    const monthNames = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+
     String labelA = '';
     String labelB = '';
     Map<String, double> dataA = {};
@@ -1531,7 +1998,11 @@ class _FinancePageState extends State<FinancePage> {
           children: [
             Text(
               'التحليل المقارن للمبيعات والمصاريف',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp(context), color: const Color(0xFF1E293B)),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15.sp(context),
+                color: const Color(0xFF1E293B),
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
@@ -1577,10 +2048,7 @@ class _FinancePageState extends State<FinancePage> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: stats,
-                ),
+                Expanded(flex: 2, child: stats),
               ],
             )
           else
@@ -1621,7 +2089,11 @@ class _FinancePageState extends State<FinancePage> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13.sp(context), fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 13.sp(context),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -1655,7 +2127,11 @@ class _FinancePageState extends State<FinancePage> {
                 const SizedBox(width: 8),
                 Text(
                   'سجل المصروفات التشغيلية',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp(context), color: const Color(0xFF1E293B)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.sp(context),
+                    color: const Color(0xFF1E293B),
+                  ),
                 ),
               ],
             ),
@@ -1666,16 +2142,15 @@ class _FinancePageState extends State<FinancePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0F766E),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 400,
-          child: _buildExpensesList(),
-        ),
+        SizedBox(height: 400, child: _buildExpensesList()),
       ],
     );
     return listWidget;
@@ -1693,11 +2168,18 @@ class _FinancePageState extends State<FinancePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.pie_chart_outline, size: 48, color: Colors.grey),
+                const Icon(
+                  Icons.pie_chart_outline,
+                  size: 48,
+                  color: Colors.grey,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'لا توجد عمليات مالية مسجلة للفترة المحددة',
-                  style: TextStyle(color: Colors.grey, fontSize: 13.sp(context)),
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 13.sp(context),
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1708,7 +2190,9 @@ class _FinancePageState extends State<FinancePage> {
     }
 
     double maxRod = 0.0;
-    final groups = _showComparison ? _buildComparisonBarGroups() : _buildComparativeBarGroups();
+    final groups = _showComparison
+        ? _buildComparisonBarGroups()
+        : _buildComparativeBarGroups();
     for (var g in groups) {
       for (var r in g.barRods) {
         if (r.toY > maxRod) {
@@ -1727,7 +2211,11 @@ class _FinancePageState extends State<FinancePage> {
             const SizedBox(width: 8),
             Text(
               'التحليل البياني المالي',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp(context), color: const Color(0xFF1E293B)),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16.sp(context),
+                color: const Color(0xFF1E293B),
+              ),
             ),
           ],
         ),
@@ -1735,7 +2223,9 @@ class _FinancePageState extends State<FinancePage> {
         Card(
           color: Colors.white,
           elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -1745,7 +2235,11 @@ class _FinancePageState extends State<FinancePage> {
                   _showComparison
                       ? 'مقارنة مالية: $_selectedYear مقابل $_comparisonYear'
                       : 'مقارنة الإيرادات والمصروفات',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp(context), color: const Color(0xFF475569)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp(context),
+                    color: const Color(0xFF475569),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -1758,9 +2252,15 @@ class _FinancePageState extends State<FinancePage> {
                       barTouchData: const BarTouchData(enabled: true),
                       titlesData: FlTitlesData(
                         show: true,
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
@@ -1781,10 +2281,22 @@ class _FinancePageState extends State<FinancePage> {
                     spacing: 16,
                     runSpacing: 4,
                     children: [
-                      _buildLegendItem(const Color(0xFF10B981), 'إيرادات $_selectedYear'),
-                      _buildLegendItem(const Color(0xFFEF4444), 'مصروفات $_selectedYear'),
-                      _buildLegendItem(const Color(0xFF60A5FA), 'إيرادات $_comparisonYear'),
-                      _buildLegendItem(const Color(0xFFFBBF24), 'مصروفات $_comparisonYear'),
+                      _buildLegendItem(
+                        const Color(0xFF10B981),
+                        'إيرادات $_selectedYear',
+                      ),
+                      _buildLegendItem(
+                        const Color(0xFFEF4444),
+                        'مصروفات $_selectedYear',
+                      ),
+                      _buildLegendItem(
+                        const Color(0xFF60A5FA),
+                        'إيرادات $_comparisonYear',
+                      ),
+                      _buildLegendItem(
+                        const Color(0xFFFBBF24),
+                        'مصروفات $_comparisonYear',
+                      ),
                     ],
                   )
                 else
@@ -1801,7 +2313,11 @@ class _FinancePageState extends State<FinancePage> {
                 const SizedBox(height: 12),
                 Text(
                   'توزيع المصاريف حسب التصنيف',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp(context), color: const Color(0xFF475569)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp(context),
+                    color: const Color(0xFF475569),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -1811,7 +2327,10 @@ class _FinancePageState extends State<FinancePage> {
                     child: Center(
                       child: Text(
                         'لا توجد مصروفات مسجلة لعرض تصنيفاتها للفترة المحددة',
-                        style: TextStyle(color: Colors.grey, fontSize: 12.sp(context)),
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12.sp(context),
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -1833,10 +2352,7 @@ class _FinancePageState extends State<FinancePage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        flex: 6,
-                        child: _buildPieLegend(),
-                      ),
+                      Expanded(flex: 6, child: _buildPieLegend()),
                     ],
                   ),
               ],
@@ -1854,9 +2370,20 @@ class _FinancePageState extends State<FinancePage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 11.sp(context), fontWeight: FontWeight.bold, color: const Color(0xFF475569))),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.sp(context),
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF475569),
+          ),
+        ),
       ],
     );
   }
@@ -1888,10 +2415,12 @@ class _FinancePageState extends State<FinancePage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListView.separated(
         itemCount: sorted.length,
-        separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+        separatorBuilder: (context, index) =>
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
         itemBuilder: (context, index) {
           final expense = sorted[index];
-          final category = expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى';
+          final category =
+              expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى';
           final categoryColor = colorsMap[category] ?? const Color(0xFF64748B);
 
           return ListTile(
@@ -1905,12 +2434,19 @@ class _FinancePageState extends State<FinancePage> {
                 Expanded(
                   child: Text(
                     expense['description'].toString(),
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp(context), color: const Color(0xFF1E293B)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14.sp(context),
+                      color: const Color(0xFF1E293B),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: categoryColor.withAlpha(26),
                     borderRadius: BorderRadius.circular(4),
@@ -1918,7 +2454,11 @@ class _FinancePageState extends State<FinancePage> {
                   ),
                   child: Text(
                     category,
-                    style: TextStyle(fontSize: 10.sp(context), color: categoryColor, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 10.sp(context),
+                      color: categoryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -1940,11 +2480,19 @@ class _FinancePageState extends State<FinancePage> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
                   onPressed: () => _showEditExpenseDialog(expense),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 20,
+                  ),
                   onPressed: () => _confirmDeleteExpense(expense['id']),
                 ),
               ],

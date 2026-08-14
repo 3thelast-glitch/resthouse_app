@@ -1,19 +1,19 @@
-import 'package:flutter/material.dart';
-import '../utils/responsive.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart' as pp;
-import 'package:path/path.dart' as p;
+import 'dart:convert';
 import 'dart:io' as io;
-import 'package:sqflite/sqflite.dart';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart' as pp;
+
 import '../database_helper.dart';
+import '../utils/responsive.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback onDatabaseRestored;
 
-  const SettingsPage({
-    super.key,
-    required this.onDatabaseRestored,
-  });
+  const SettingsPage({super.key, required this.onDatabaseRestored});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -22,142 +22,118 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _isLoading = false;
 
-  Future<bool> _validateAndImportBackup(String sourcePath) async {
-    final dbPath = await DatabaseHelper.instance.getDatabasePath();
-    final tempPath = '$dbPath.temp';
+  String _timestamp() {
+    final now = DateTime.now();
+    return '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+  }
 
-    // 1. نسخ الملف مؤقتاً للتحقق من صحته
-    final sourceFile = io.File(sourcePath);
-    final tempFile = await sourceFile.copy(tempPath);
+  Future<void> _writeStructuredBackup(String outputPath) async {
+    final backup = await DatabaseHelper.instance.exportBackupData();
+    final encoded = const JsonEncoder.withIndent('  ').convert(backup);
+    await io.File(outputPath).writeAsString(encoded, flush: true);
+  }
 
-    Database? testDb;
-    bool isValid = false;
-    try {
-      testDb = await openDatabase(tempPath);
-      // الاستعلام عن وجود الجداول المطلوبة لإدارة الاستراحة
-      final tables = await testDb.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
-      final tableNames = tables.map((t) => t['name'] as String).toList();
-      if (tableNames.contains('bookings') && tableNames.contains('renters')) {
-        isValid = true;
-      }
-    } catch (e) {
-      isValid = false;
-    } finally {
-      if (testDb != null) {
-        await testDb.close();
-      }
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
+  Future<String> _createRecoveryBackup() async {
+    final databasePath = await DatabaseHelper.instance.getDatabasePath();
+    final recoveryPath = p.join(
+      p.dirname(databasePath),
+      'resthouse_recovery_${_timestamp()}.json',
+    );
+    await _writeStructuredBackup(recoveryPath);
+    return recoveryPath;
+  }
+
+  Future<Map<String, dynamic>> _readStructuredBackup(String sourcePath) async {
+    final source = io.File(sourcePath);
+    if (!await source.exists()) {
+      throw const FormatException('تعذر الوصول إلى ملف النسخة الاحتياطية.');
     }
-
-    if (!isValid) {
-      throw Exception('الملف المختار ليس قاعدة بيانات صالحة لتطبيق إدارة الاستراحات.');
+    final decoded = jsonDecode(await source.readAsString());
+    if (decoded is! Map) {
+      throw const FormatException('صيغة ملف النسخة الاحتياطية غير صالحة.');
     }
-
-    // 2. إذا كان الملف سليماً، نقوم باستبدال قاعدة البيانات الحالية
-    await DatabaseHelper.instance.closeDatabase();
-    await sourceFile.copy(dbPath);
-    await DatabaseHelper.instance.resetDatabase();
-    return true;
+    return Map<String, dynamic>.from(decoded);
   }
 
   Future<void> _exportBackup() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final dbPath = await DatabaseHelper.instance.getDatabasePath();
-      final dbFile = io.File(dbPath);
-      if (!await dbFile.exists()) {
-        throw Exception('ملف قاعدة البيانات غير موجود في المسار الافتراضي.');
-      }
-
-      final now = DateTime.now();
-      final timestamp = "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
-      final fileName = 'resthouse_backup_$timestamp.db';
-
+      final fileName = 'resthouse_backup_${_timestamp()}.json';
       String? outputPath;
 
       if (io.Platform.isWindows || io.Platform.isMacOS || io.Platform.isLinux) {
-        // أنظمة التشغيل لسطح المكتب (ويندوز)
         outputPath = await FilePicker.platform.saveFile(
           dialogTitle: 'اختر موقع حفظ النسخة الاحتياطية',
           fileName: fileName,
-          type: FileType.any,
+          type: FileType.custom,
+          allowedExtensions: ['json'],
         );
-        if (outputPath != null) {
-          await dbFile.copy(outputPath);
-        }
       } else if (io.Platform.isIOS) {
-        // iOS لا يسمح باختيار مجلد حفظ عام؛ نستخدم مستندات التطبيق.
-        // تم تفعيل File Sharing في Info.plist للوصول إلى النسخ عبر Finder أو تطبيق الملفات.
+        // iOS لا يقدم اختيار مجلد موثوقًا للحفظ؛ نستخدم مستندات التطبيق
+        // ونفعّل File Sharing في Info.plist للوصول إليها عبر تطبيق الملفات أو Finder.
         final documentsDirectory = await pp.getApplicationDocumentsDirectory();
         outputPath = p.join(documentsDirectory.path, fileName);
-        await dbFile.copy(outputPath);
       } else {
-        // Android: محاولة اختيار مجلد مخصص باستخدام SAF.
         final selectedDir = await FilePicker.platform.getDirectoryPath(
           dialogTitle: 'اختر مجلد حفظ النسخة الاحتياطية',
         );
-        if (selectedDir != null) {
-          outputPath = p.join(selectedDir, fileName);
-          await dbFile.copy(outputPath);
-        } else {
-          final externalDir = await pp.getExternalStorageDirectory() ?? await pp.getApplicationDocumentsDirectory();
-          outputPath = p.join(externalDir.path, fileName);
-          await dbFile.copy(outputPath);
-        }
+        if (selectedDir == null) return;
+        outputPath = p.join(selectedDir, fileName);
       }
 
-      if (outputPath != null) {
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Row(
-                children: [
-                  Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-                  SizedBox(width: 8),
-                  Text('تم التصدير بنجاح'),
-                ],
-              ),
-              content: Text(
-                io.Platform.isIOS
-                    ? 'تم حفظ النسخة الاحتياطية في مستندات التطبيق. يمكنك الوصول إليها عبر Finder أو تطبيق الملفات عند توصيل iPhone.\n\n$outputPath'
-                    : 'تم حفظ نسخة من البيانات بأمان في المسار التالي:\n\n$outputPath',
-                style: const TextStyle(height: 1.4),
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F766E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: const Text('حسناً'),
+      if (outputPath == null) return;
+      final normalizedPath = outputPath.endsWith('.json')
+          ? outputPath
+          : '$outputPath.json';
+      await _writeStructuredBackup(normalizedPath);
+
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
+              SizedBox(width: 8),
+              Text('تم التصدير بنجاح'),
+            ],
+          ),
+          content: Text(
+            io.Platform.isIOS
+                ? 'تم حفظ نسخة JSON في مجلد مستندات التطبيق. يمكنك الوصول إليها من تطبيق الملفات أو Finder عند توصيل iPhone.\n\n$normalizedPath'
+                : 'تم حفظ نسخة JSON مهيكلة من البيانات في المسار التالي:\n\n$normalizedPath',
+            style: const TextStyle(height: 1.4),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+              ),
+              child: const Text('حسناً'),
             ),
-          );
-        }
-      }
-    } catch (e) {
+          ],
+        ),
+      );
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ أثناء تصدير البيانات: $e'),
+            content: Text('خطأ أثناء تصدير البيانات: $error'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -174,7 +150,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
         content: const Text(
-          'تحذير: استيراد نسخة احتياطية سيقوم باستبدال كافة البيانات الحالية ولا يمكن التراجع عن هذا الإجراء. هل تريد الاستمرار بالفعل؟',
+          'سيتم التحقق من ملف JSON واستبدال البيانات داخل معاملة آمنة. قبل الاستبدال ستُنشأ نسخة استرجاع تلقائية من بياناتك الحالية.',
           style: TextStyle(height: 1.5),
         ),
         actions: [
@@ -187,69 +163,73 @@ class _SettingsPageState extends State<SettingsPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber.shade800,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('استمرار واستبدال'),
+            child: const Text('اختيار النسخة والاستعادة'),
           ),
         ],
       ),
     );
-
     if (confirm != true) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (result == null || result.files.single.path == null) return;
 
+    setState(() => _isLoading = true);
     try {
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-      );
+      final backup = await _readStructuredBackup(result.files.single.path!);
+      final recoveryPath = await _createRecoveryBackup();
+      await DatabaseHelper.instance.restoreBackupData(backup);
 
-      if (result != null && result.files.single.path != null) {
-        final sourcePath = result.files.single.path!;
-        await _validateAndImportBackup(sourcePath);
-
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Row(
-                children: [
-                  Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-                  SizedBox(width: 8),
-                  Text('تمت الاستعادة بنجاح'),
-                ],
-              ),
-              content: const Text(
-                'تمت استعادة قاعدة البيانات بنجاح وسنقوم بتحديث جميع واجهات التطبيق في الخلفية فوراً.',
-                style: TextStyle(height: 1.4),
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    widget.onDatabaseRestored();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F766E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: const Text('موافق'),
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
+              SizedBox(width: 8),
+              Text('تمت الاستعادة بنجاح'),
+            ],
+          ),
+          content: Text(
+            'تمت استعادة البيانات وتحديث واجهات التطبيق. احتُفظ بنسخة استرجاع تلقائية من بياناتك السابقة في:\n\n$recoveryPath',
+            style: const TextStyle(height: 1.4),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                widget.onDatabaseRestored();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+              ),
+              child: const Text('موافق'),
             ),
-          );
-        }
-      }
-    } catch (e) {
+          ],
+        ),
+      );
+    } catch (error) {
       if (mounted) {
-        showDialog(
+        await showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: const Row(
               children: [
                 Icon(Icons.error_outline, color: Colors.red, size: 28),
@@ -258,7 +238,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
             content: Text(
-              'تعذر قراءة قاعدة البيانات المحددة.\n\nالسبب: ${e.toString().replaceAll('Exception: ', '')}',
+              'تعذر التحقق من النسخة أو استعادتها. لم تُستبدل البيانات عند فشل المعاملة.\n\nالسبب: $error',
               style: const TextStyle(height: 1.4),
             ),
             actions: [
@@ -271,9 +251,7 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -288,7 +266,9 @@ class _SettingsPageState extends State<SettingsPage> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: const Row(
               children: [
                 Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
@@ -309,7 +289,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0F766E),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text('موافق'),
               ),
@@ -344,7 +326,9 @@ class _SettingsPageState extends State<SettingsPage> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: const Row(
               children: [
                 Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
@@ -365,7 +349,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0F766E),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text('موافق'),
               ),
@@ -401,7 +387,9 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Card(
               color: Colors.white,
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
@@ -451,7 +439,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Padding(
                           padding: EdgeInsets.all(16.0),
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F766E)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Color(0xFF0F766E),
+                            ),
                           ),
                         ),
                       )
@@ -461,7 +451,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         onPressed: _exportBackup,
                         icon: const Icon(Icons.cloud_upload_outlined, size: 22),
                         label: const Text(
-                          'تصدير نسخة احتياطية (Export)',
+                          'تصدير نسخة احتياطية JSON',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -478,56 +468,71 @@ class _SettingsPageState extends State<SettingsPage> {
                       // زر استيراد البيانات
                       OutlinedButton.icon(
                         onPressed: _importBackup,
-                        icon: const Icon(Icons.cloud_download_outlined, size: 22),
+                        icon: const Icon(
+                          Icons.cloud_download_outlined,
+                          size: 22,
+                        ),
                         label: const Text(
-                          'استيراد نسخة احتياطية (Import)',
+                          'استيراد نسخة احتياطية JSON',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF0D9488),
-                          side: const BorderSide(color: Color(0xFF0D9488), width: 1.5),
+                          side: const BorderSide(
+                            color: Color(0xFF0D9488),
+                            width: 1.5,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      // زر بذر البيانات الأولية
-                      OutlinedButton.icon(
-                        onPressed: _seedData,
-                        icon: const Icon(Icons.playlist_add_check_rounded, size: 22),
-                        label: const Text(
-                          'بذر بيانات تجريبية (Seed Initial Data)',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0F766E),
-                          side: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      if (kDebugMode) ...[
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: _seedData,
+                          icon: const Icon(
+                            Icons.playlist_add_check_rounded,
+                            size: 22,
+                          ),
+                          label: const Text(
+                            'بذر بيانات تجريبية',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0F766E),
+                            side: const BorderSide(
+                              color: Color(0xFF0F766E),
+                              width: 1.5,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      // زر بذر المستأجرين فقط
-                      OutlinedButton.icon(
-                        onPressed: _seedTenantsOnlyData,
-                        icon: const Icon(Icons.people_outline, size: 22),
-                        label: const Text(
-                          'بذر المستأجرين فقط (Seed Tenants Only)',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0F766E),
-                          side: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: _seedTenantsOnlyData,
+                          icon: const Icon(Icons.people_outline, size: 22),
+                          label: const Text(
+                            'بذر المستأجرين فقط',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0F766E),
+                            side: const BorderSide(
+                              color: Color(0xFF0F766E),
+                              width: 1.5,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                     const SizedBox(height: 32),
                     // ملاحظة تحذيرية في الأسفل
@@ -540,7 +545,11 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.amber.shade800, size: 20),
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.amber.shade800,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(

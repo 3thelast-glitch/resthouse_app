@@ -7,10 +7,14 @@ import '../database_helper.dart';
 
 String toArabicDigits(int number) {
   const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-  return number.toString().split('').map((char) {
-    int? val = int.tryParse(char);
-    return val != null ? arabicDigits[val] : char;
-  }).join('');
+  return number
+      .toString()
+      .split('')
+      .map((char) {
+        int? val = int.tryParse(char);
+        return val != null ? arabicDigits[val] : char;
+      })
+      .join('');
 }
 
 String getArabicHijriMonthName(int hMonth) {
@@ -26,7 +30,7 @@ String getArabicHijriMonthName(int hMonth) {
     'رمضان',
     'شوال',
     'ذو القعدة',
-    'ذو الحجة'
+    'ذو الحجة',
   ];
   if (hMonth >= 1 && hMonth <= 12) {
     return months[hMonth - 1];
@@ -77,7 +81,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     if (date == null) return label;
     final gregorian = date.toString().split(' ')[0];
     final hijri = HijriCalendar.fromDate(date);
-    final hijriStr = '${toArabicDigits(hijri.hDay)} ${getArabicHijriMonthName(hijri.hMonth)} ${toArabicDigits(hijri.hYear)}';
+    final hijriStr =
+        '${toArabicDigits(hijri.hDay)} ${getArabicHijriMonthName(hijri.hMonth)} ${toArabicDigits(hijri.hYear)}';
     return '$label: $gregorian\n$hijriStr';
   }
 
@@ -87,13 +92,32 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     if (parsed == null) return dateStr;
 
     const gMonths = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     const hMonths = [
-      'Muharram', 'Safar', 'Rabi\' al-Awwal', 'Rabi\' al-Thani',
-      'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', 'Sha\'ban',
-      'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'
+      'Muharram',
+      'Safar',
+      'Rabi\' al-Awwal',
+      'Rabi\' al-Thani',
+      'Jumada al-Awwal',
+      'Jumada al-Thani',
+      'Rajab',
+      'Sha\'ban',
+      'Ramadan',
+      'Shawwal',
+      'Dhu al-Qi\'dah',
+      'Dhu al-Hijjah',
     ];
 
     final gDay = parsed.day;
@@ -121,14 +145,20 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     return '$hDay $hMonthName $hYear';
   }
 
-  Future<DateTime?> _selectDateDual(BuildContext context, DateTime initialDate) async {
+  Future<DateTime?> _selectDateDual(
+    BuildContext context,
+    DateTime initialDate,
+  ) async {
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'اختر نوع التقويم',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp(context)),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16.sp(context),
+          ),
           textAlign: TextAlign.center,
         ),
         content: Text(
@@ -149,7 +179,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F766E),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -163,7 +195,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF991B1B),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -199,7 +233,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   /// Feature 3: Checks for ended bookings whose deposit is still pending
   /// and shows sequential alert dialogs to the admin.
   Future<void> _checkPendingDeposits() async {
-    final pendingBookings = await dbHelper.queryEndedBookingsWithPendingDeposit();
+    final pendingBookings = await dbHelper
+        .queryEndedBookingsWithPendingDeposit();
     if (pendingBookings.isEmpty || !mounted) return;
 
     for (final booking in pendingBookings) {
@@ -215,7 +250,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           backgroundColor: Colors.white,
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
           title: Column(
@@ -227,12 +264,19 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   shape: BoxShape.circle,
                   border: Border.all(color: const Color(0xFFFBBF24), width: 2),
                 ),
-                child: const Icon(Icons.account_balance_wallet, color: Color(0xFFD97706), size: 32),
+                child: const Icon(
+                  Icons.account_balance_wallet,
+                  color: Color(0xFFD97706),
+                  size: 32,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
                 'انتهت فترة حجز $renterName',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17.sp(context)),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17.sp(context),
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -245,15 +289,25 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF0D9488).withAlpha(51)),
+                  border: Border.all(
+                    color: const Color(0xFF0D9488).withAlpha(51),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.security, color: Color(0xFF0F766E), size: 20),
+                    const Icon(
+                      Icons.security,
+                      color: Color(0xFF0F766E),
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'قيمة التأمين: $depositAmount ر.س',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp(context), color: const Color(0xFF0F766E)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15.sp(context),
+                        color: const Color(0xFF0F766E),
+                      ),
                     ),
                   ],
                 ),
@@ -261,12 +315,18 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               const SizedBox(height: 12),
               Text(
                 'من ${booking['start_date']} إلى ${booking['end_date']}',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp(context)),
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13.sp(context),
+                ),
               ),
               const SizedBox(height: 16),
               Text(
                 'هل تم إعادة مبلغ التأمين للعميل، أم تم خصمه؟',
-                style: TextStyle(fontSize: 14.sp(context), fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 14.sp(context),
+                  fontWeight: FontWeight.w500,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -279,7 +339,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               children: [
                 ElevatedButton.icon(
                   onPressed: () async {
-                    await dbHelper.updateDepositStatus(booking['id'], 'returned');
+                    await dbHelper.updateDepositStatus(
+                      booking['id'],
+                      'returned',
+                    );
                     if (!dialogContext.mounted) return;
                     Navigator.pop(dialogContext);
                   },
@@ -289,13 +352,18 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 ElevatedButton.icon(
                   onPressed: () async {
-                    await dbHelper.updateDepositStatus(booking['id'], 'deducted');
+                    await dbHelper.updateDepositStatus(
+                      booking['id'],
+                      'deducted',
+                    );
                     if (!dialogContext.mounted) return;
                     Navigator.pop(dialogContext);
                   },
@@ -305,7 +373,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     backgroundColor: const Color(0xFFDC2626),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -317,7 +387,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     foregroundColor: Colors.grey.shade700,
                     side: BorderSide(color: Colors.grey.shade300),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ],
@@ -340,7 +412,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
 
   // الحصول على الحجوزات المتقاطعة مع يوم معين (start_date <= day <= end_date)
   List<Map<String, dynamic>> _getBookingsForDay(DateTime day) {
-    final dateStr = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
     return _bookings.where((b) {
       final start = b['start_date'].toString();
       final end = b['end_date'].toString();
@@ -356,7 +429,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('إضافة مستأجر جديد', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'إضافة مستأجر جديد',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Form(
           key: formKey,
           child: Column(
@@ -404,7 +480,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) {
@@ -438,7 +517,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F766E), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F766E),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('إضافة'),
           ),
         ],
@@ -455,7 +537,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('تعديل بيانات المستأجر', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'تعديل بيانات المستأجر',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Form(
           key: formKey,
           child: Column(
@@ -511,7 +596,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) {
@@ -534,19 +622,26 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('تم تحديث بيانات المستأجر بنجاح')),
+                  const SnackBar(
+                    content: Text('تم تحديث بيانات المستأجر بنجاح'),
+                  ),
                 );
               } catch (e) {
                 if (!dialogContext.mounted) return;
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
-                    content: Text('خطأ: قد يكون الهاتف الجديد مستخدماً من عميل آخر'),
+                    content: Text(
+                      'خطأ: قد يكون الهاتف الجديد مستخدماً من عميل آخر',
+                    ),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F766E), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F766E),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('حفظ التعديلات'),
           ),
         ],
@@ -562,7 +657,11 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 28),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.red.shade700,
+              size: 28,
+            ),
             const SizedBox(width: 8),
             Text(
               'تنبيه هام!',
@@ -587,7 +686,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade700,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('فهمت ذلك'),
           ),
@@ -608,7 +709,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('إضافة حجز جديد', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'إضافة حجز جديد',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -623,21 +727,31 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   items: _renters.map((renter) {
                     return DropdownMenuItem<String>(
                       value: renter['phone'].toString(),
-                      child: Text('${renter['full_name']} (${renter['phone']})'),
+                      child: Text(
+                        '${renter['full_name']} (${renter['phone']})',
+                      ),
                     );
                   }).toList(),
                   onChanged: (value) {
                     String? notes;
                     if (value != null) {
-                      final renter = _renters.firstWhere((r) => r['phone'].toString() == value);
+                      final renter = _renters.firstWhere(
+                        (r) => r['phone'].toString() == value,
+                      );
                       notes = renter['notes'] as String?;
                     }
                     setDialogState(() {
                       selectedPhone = value;
-                      selectedRenterNotes = (notes != null && notes.trim().isNotEmpty) ? notes : null;
+                      selectedRenterNotes =
+                          (notes != null && notes.trim().isNotEmpty)
+                          ? notes
+                          : null;
                     });
                     if (selectedRenterNotes != null) {
-                      _showRenterWarningDialog(dialogContext, selectedRenterNotes!);
+                      _showRenterWarningDialog(
+                        dialogContext,
+                        selectedRenterNotes!,
+                      );
                     }
                   },
                 ),
@@ -657,7 +771,11 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         Expanded(
                           child: Text(
                             'تنبيه: هذا العميل لديه ملاحظات سابقة: $selectedRenterNotes',
-                            style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 12.sp(context)),
+                            style: TextStyle(
+                              color: Colors.red.shade900,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12.sp(context),
+                            ),
                           ),
                         ),
                       ],
@@ -667,18 +785,26 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () async {
-                          final date = await _selectDateDual(dialogContext, startDate ?? DateTime.now());
+                          final date = await _selectDateDual(
+                            dialogContext,
+                            startDate ?? DateTime.now(),
+                          );
                           if (!dialogContext.mounted) return;
                           if (date != null) {
                             setDialogState(() {
                               startDate = date;
                               // إصلاح الخلل: تحديث تاريخ النهاية تلقائياً إذا كان يسبق البداية
-                              if (endDate == null || endDate!.isBefore(startDate!)) {
+                              if (endDate == null ||
+                                  endDate!.isBefore(startDate!)) {
                                 endDate = startDate;
                               }
                             });
@@ -696,17 +822,27 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () async {
                           // تحديد تاريخ البداية الحالي ليكون الحد الأدنى الآمن
-                          final initialDate = (endDate != null && startDate != null && !endDate!.isBefore(startDate!))
+                          final initialDate =
+                              (endDate != null &&
+                                  startDate != null &&
+                                  !endDate!.isBefore(startDate!))
                               ? endDate!
                               : (startDate ?? DateTime.now());
 
-                          final date = await _selectDateDual(dialogContext, initialDate);
+                          final date = await _selectDateDual(
+                            dialogContext,
+                            initialDate,
+                          );
                           if (!dialogContext.mounted) return;
                           if (date != null) {
                             setDialogState(() {
@@ -726,7 +862,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: priceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'سعر الحجز الإجمالي (ر.س)',
                     icon: Icon(Icons.attach_money),
@@ -745,11 +883,15 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final price = double.tryParse(priceController.text) ?? 0.0;
-                final securityDeposit = double.tryParse(securityDepositController.text) ?? 0.0;
+                final securityDeposit =
+                    double.tryParse(securityDepositController.text) ?? 0.0;
 
                 if (selectedPhone == null) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -765,13 +907,19 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 }
                 if (endDate!.isBefore(startDate!)) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('تاريخ النهاية يجب أن يكون مساوياً أو بعد تاريخ البداية')),
+                    const SnackBar(
+                      content: Text(
+                        'تاريخ النهاية يجب أن يكون مساوياً أو بعد تاريخ البداية',
+                      ),
+                    ),
                   );
                   return;
                 }
                 if (price <= 0) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('الرجاء إدخال سعر صحيح أكبر من الصفر')),
+                    const SnackBar(
+                      content: Text('الرجاء إدخال سعر صحيح أكبر من الصفر'),
+                    ),
                   );
                   return;
                 }
@@ -785,30 +933,55 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   if (!dialogContext.mounted) return;
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
-                      content: Text('عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!'),
+                      content: Text(
+                        'عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
                   return;
                 }
 
-                await dbHelper.insertBooking({
-                  'phone': selectedPhone,
-                  'start_date': startDate!.toString().split(' ')[0],
-                  'end_date': endDate!.toString().split(' ')[0],
-                  'total_price': price,
-                  'security_deposit': securityDeposit,
-                  'status': 'confirmed',
-                });
+                try {
+                  await dbHelper.insertBooking({
+                    'phone': selectedPhone,
+                    'start_date': startDate!.toString().split(' ')[0],
+                    'end_date': endDate!.toString().split(' ')[0],
+                    'total_price': price,
+                    'security_deposit': securityDeposit,
+                    'status': DatabaseHelper.statusConfirmed,
+                  });
 
-                await _loadData();
-                if (!dialogContext.mounted) return;
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('تم تسجيل الحجز بنجاح')),
-                );
+                  await _loadData();
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('تم تسجيل الحجز بنجاح')),
+                  );
+                } on StateError catch (error) {
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: Text(error.message),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } on ArgumentError catch (error) {
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F766E), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
               child: const Text('حفظ الحجز'),
             ),
           ],
@@ -820,8 +993,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   void _showEditBookingDialog(Map<String, dynamic> booking) {
     DateTime? startDate = DateTime.tryParse(booking['start_date']);
     DateTime? endDate = DateTime.tryParse(booking['end_date']);
-    final priceController = TextEditingController(text: booking['total_price'].toString());
-    final securityDepositController = TextEditingController(text: (booking['security_deposit'] ?? 0.0).toString());
+    final priceController = TextEditingController(
+      text: booking['total_price'].toString(),
+    );
+    final securityDepositController = TextEditingController(
+      text: (booking['security_deposit'] ?? 0.0).toString(),
+    );
     String selectedStatus = booking['status'] ?? 'confirmed';
 
     final renter = _renters.firstWhere(
@@ -833,32 +1010,55 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('تعديل الحجز الحالي', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'تعديل الحجز الحالي',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.person_outline, color: Color(0xFF0F766E)),
-                  title: Text('المستأجر', style: TextStyle(fontSize: 12.sp(context), color: Colors.grey)),
-                  subtitle: Text('${renter['full_name']} (${booking['phone']})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  leading: const Icon(
+                    Icons.person_outline,
+                    color: Color(0xFF0F766E),
+                  ),
+                  title: Text(
+                    'المستأجر',
+                    style: TextStyle(
+                      fontSize: 12.sp(context),
+                      color: Colors.grey,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${renter['full_name']} (${booking['phone']})',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const Divider(),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () async {
-                          final date = await _selectDateDual(dialogContext, startDate ?? DateTime.now());
+                          final date = await _selectDateDual(
+                            dialogContext,
+                            startDate ?? DateTime.now(),
+                          );
                           if (!dialogContext.mounted) return;
                           if (date != null) {
                             setDialogState(() {
                               startDate = date;
-                              if (endDate == null || endDate!.isBefore(startDate!)) {
+                              if (endDate == null ||
+                                  endDate!.isBefore(startDate!)) {
                                 endDate = startDate;
                               }
                             });
@@ -876,16 +1076,26 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () async {
-                          final initialDate = (endDate != null && startDate != null && !endDate!.isBefore(startDate!))
+                          final initialDate =
+                              (endDate != null &&
+                                  startDate != null &&
+                                  !endDate!.isBefore(startDate!))
                               ? endDate!
                               : (startDate ?? DateTime.now());
 
-                          final date = await _selectDateDual(dialogContext, initialDate);
+                          final date = await _selectDateDual(
+                            dialogContext,
+                            initialDate,
+                          );
                           if (!dialogContext.mounted) return;
                           if (date != null) {
                             setDialogState(() {
@@ -905,7 +1115,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: priceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'سعر الحجز الإجمالي (ر.س)',
                     icon: Icon(Icons.attach_money),
@@ -914,7 +1126,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: securityDepositController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'قيمة التأمين (ر.س)',
                     icon: Icon(Icons.security),
@@ -930,20 +1144,29 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   initialValue: selectedStatus,
                   items: const [
                     DropdownMenuItem(value: 'confirmed', child: Text('مؤكد')),
-                    DropdownMenuItem(value: 'pending', child: Text('قيد الانتظار')),
+                    DropdownMenuItem(
+                      value: 'pending',
+                      child: Text('قيد الانتظار'),
+                    ),
                     DropdownMenuItem(value: 'cancelled', child: Text('ملغي')),
                   ],
-                  onChanged: (value) => setDialogState(() => selectedStatus = value ?? 'confirmed'),
+                  onChanged: (value) => setDialogState(
+                    () => selectedStatus = value ?? 'confirmed',
+                  ),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final price = double.tryParse(priceController.text) ?? 0.0;
-                final securityDeposit = double.tryParse(securityDepositController.text) ?? 0.0;
+                final securityDeposit =
+                    double.tryParse(securityDepositController.text) ?? 0.0;
 
                 if (startDate == null || endDate == null) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -953,13 +1176,19 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 }
                 if (endDate!.isBefore(startDate!)) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('تاريخ النهاية يجب أن يكون مساوياً أو بعد تاريخ البداية')),
+                    const SnackBar(
+                      content: Text(
+                        'تاريخ النهاية يجب أن يكون مساوياً أو بعد تاريخ البداية',
+                      ),
+                    ),
                   );
                   return;
                 }
                 if (price <= 0) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('الرجاء إدخال سعر صحيح أكبر من الصفر')),
+                    const SnackBar(
+                      content: Text('الرجاء إدخال سعر صحيح أكبر من الصفر'),
+                    ),
                   );
                   return;
                 }
@@ -972,10 +1201,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     excludeId: booking['id'],
                   );
                   if (conflict) {
-                     if (!dialogContext.mounted) return;
-                     ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    if (!dialogContext.mounted) return;
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
-                        content: Text('عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!'),
+                        content: Text(
+                          'عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!',
+                        ),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -983,24 +1214,49 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   }
                 }
 
-                await dbHelper.updateBooking({
-                  'id': booking['id'],
-                  'phone': booking['phone'],
-                  'start_date': startDate!.toString().split(' ')[0],
-                  'end_date': endDate!.toString().split(' ')[0],
-                  'total_price': price,
-                  'security_deposit': securityDeposit,
-                  'status': selectedStatus,
-                });
+                try {
+                  await dbHelper.updateBooking({
+                    'id': booking['id'],
+                    'phone': booking['phone'],
+                    'start_date': startDate!.toString().split(' ')[0],
+                    'end_date': endDate!.toString().split(' ')[0],
+                    'total_price': price,
+                    'security_deposit': securityDeposit,
+                    'status': selectedStatus,
+                  });
 
-                await _loadData();
-                if (!dialogContext.mounted) return;
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('تم تعديل بيانات الحجز بنجاح')),
-                );
+                  await _loadData();
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('تم تعديل بيانات الحجز بنجاح'),
+                    ),
+                  );
+                } on StateError catch (error) {
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: Text(error.message),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } on ArgumentError catch (error) {
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F766E), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
               child: const Text('حفظ'),
             ),
           ],
@@ -1016,7 +1272,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         title: const Text('تأكيد الحذف'),
         content: const Text('هل تريد حذف هذا الحجز نهائياً من قاعدة البيانات؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
           TextButton(
             onPressed: () async {
               await dbHelper.deleteBooking(id);
@@ -1039,9 +1298,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('تأكيد حذف المستأجر'),
-        content: const Text('تحذير: سيؤدي حذف المستأجر إلى إزالة بياناته فقط. إذا كان لديه حجوزات مرتبطة فقد تظهر كـ "غير معروف". هل تريد الاستمرار؟'),
+        content: const Text(
+          'تحذير: سيؤدي حذف المستأجر إلى إزالة بياناته فقط. إذا كان لديه حجوزات مرتبطة فقد تظهر كـ "غير معروف". هل تريد الاستمرار؟',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
           TextButton(
             onPressed: () async {
               try {
@@ -1055,29 +1319,39 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               } catch (e) {
                 if (!dialogContext.mounted) return;
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('تعذر الحذف لوجود قيود على البيانات')),
+                  const SnackBar(
+                    content: Text('تعذر الحذف لوجود قيود على البيانات'),
+                  ),
                 );
               }
             },
-            child: const Text('حذف المستأجر', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'حذف المستأجر',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCalendarDayCell(DateTime day, {required bool isSelected, required bool isToday, required bool isOutside}) {
+  Widget _buildCalendarDayCell(
+    DateTime day, {
+    required bool isSelected,
+    required bool isToday,
+    required bool isOutside,
+  }) {
     final hijri = HijriCalendar.fromDate(day);
     final hijriDayStr = toArabicDigits(hijri.hDay);
     final gregorianDayStr = day.day.toString();
 
-    Color hijriColor = isSelected 
-        ? Colors.white 
+    Color hijriColor = isSelected
+        ? Colors.white
         : const Color(0xFF991B1B); // dark red
-    Color gregorianColor = isSelected 
-        ? Colors.white.withValues(alpha: 0.7) 
+    Color gregorianColor = isSelected
+        ? Colors.white.withValues(alpha: 0.7)
         : Colors.grey.shade500;
-    
+
     BoxDecoration? decoration;
     if (isSelected) {
       decoration = const BoxDecoration(
@@ -1114,10 +1388,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             const SizedBox(height: 2),
             Text(
               gregorianDayStr,
-              style: TextStyle(
-                fontSize: 10.sp(context),
-                color: gregorianColor,
-              ),
+              style: TextStyle(fontSize: 10.sp(context), color: gregorianColor),
             ),
           ],
         ),
@@ -1128,8 +1399,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   @override
   Widget build(BuildContext context) {
     final todayStr = DateTime.now().toString().split(' ')[0];
-    final activeBookingsCount = _bookings.where((b) => b['end_date'].toString().compareTo(todayStr) >= 0).length;
-    final archivedBookingsCount = _bookings.where((b) => b['end_date'].toString().compareTo(todayStr) < 0).length;
+    final activeBookingsCount = _bookings
+        .where((b) => b['end_date'].toString().compareTo(todayStr) >= 0)
+        .length;
+    final archivedBookingsCount = _bookings
+        .where((b) => b['end_date'].toString().compareTo(todayStr) < 0)
+        .length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -1154,18 +1429,23 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       children: [
                         Expanded(
                           child: InkWell(
-                            onTap: () => setState(() => _showRentersTab = false),
+                            onTap: () =>
+                                setState(() => _showRentersTab = false),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               decoration: BoxDecoration(
-                                color: !_showRentersTab ? const Color(0xFF0F766E) : Colors.transparent,
+                                color: !_showRentersTab
+                                    ? const Color(0xFF0F766E)
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 'الحجوزات (${_bookings.length})',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: !_showRentersTab ? Colors.white : Colors.grey.shade700,
+                                  color: !_showRentersTab
+                                      ? Colors.white
+                                      : Colors.grey.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13.sp(context),
                                 ),
@@ -1179,14 +1459,18 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               decoration: BoxDecoration(
-                                color: _showRentersTab ? const Color(0xFF0F766E) : Colors.transparent,
+                                color: _showRentersTab
+                                    ? const Color(0xFF0F766E)
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 'قائمة المستأجرين (${_renters.length})',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: _showRentersTab ? Colors.white : Colors.grey.shade700,
+                                  color: _showRentersTab
+                                      ? Colors.white
+                                      : Colors.grey.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13.sp(context),
                                 ),
@@ -1210,9 +1494,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         children: [
                           Expanded(
                             child: InkWell(
-                              onTap: () => setState(() => _bookingFilter = 'active'),
+                              onTap: () =>
+                                  setState(() => _bookingFilter = 'active'),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _bookingFilter == 'active'
                                       ? const Color(0xFF0D9488)
@@ -1223,7 +1510,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                   'الحجوزات النشطة ($activeBookingsCount)',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _bookingFilter == 'active' ? Colors.white : Colors.grey.shade600,
+                                    color: _bookingFilter == 'active'
+                                        ? Colors.white
+                                        : Colors.grey.shade600,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11.sp(context),
                                   ),
@@ -1233,9 +1522,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                           ),
                           Expanded(
                             child: InkWell(
-                              onTap: () => setState(() => _bookingFilter = 'archived'),
+                              onTap: () =>
+                                  setState(() => _bookingFilter = 'archived'),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _bookingFilter == 'archived'
                                       ? const Color(0xFF0D9488)
@@ -1246,7 +1538,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                   'الأرشيف ($archivedBookingsCount)',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _bookingFilter == 'archived' ? Colors.white : Colors.grey.shade600,
+                                    color: _bookingFilter == 'archived'
+                                        ? Colors.white
+                                        : Colors.grey.shade600,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11.sp(context),
                                   ),
@@ -1261,13 +1555,19 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   const SizedBox(height: 12),
                   // محتوى القائمة
                   Expanded(
-                    child: _showRentersTab ? _buildRentersList() : _buildBookingsList(),
+                    child: _showRentersTab
+                        ? _buildRentersList()
+                        : _buildBookingsList(),
                   ),
                 ],
               ),
             ),
           ),
-          const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+          const VerticalDivider(
+            width: 1,
+            thickness: 1,
+            color: Color(0xFFE2E8F0),
+          ),
           // القسم الأيسر - التقويم مع الحجوزات الخاصة باليوم المختار
           Expanded(
             flex: 3,
@@ -1287,7 +1587,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             backgroundColor: const Color(0xFF0F766E),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -1301,7 +1603,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             foregroundColor: const Color(0xFF0F766E),
                             side: const BorderSide(color: Color(0xFF0F766E)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -1312,7 +1616,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   Card(
                     color: Colors.white,
                     elevation: 1,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
@@ -1320,20 +1626,44 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                           // Custom dual date header
                           Builder(
                             builder: (context) {
-                              final focusedHijri = HijriCalendar.fromDate(_focusedDay);
-                              final lastDayNum = HijriCalendar().getDaysInMonth(focusedHijri.hYear, focusedHijri.hMonth);
-                              final firstDayGregorian = HijriCalendar().hijriToGregorian(focusedHijri.hYear, focusedHijri.hMonth, 1);
-                              final lastDayGregorian = HijriCalendar().hijriToGregorian(focusedHijri.hYear, focusedHijri.hMonth, lastDayNum);
+                              final focusedHijri = HijriCalendar.fromDate(
+                                _focusedDay,
+                              );
+                              final lastDayNum = HijriCalendar().getDaysInMonth(
+                                focusedHijri.hYear,
+                                focusedHijri.hMonth,
+                              );
+                              final firstDayGregorian = HijriCalendar()
+                                  .hijriToGregorian(
+                                    focusedHijri.hYear,
+                                    focusedHijri.hMonth,
+                                    1,
+                                  );
+                              final lastDayGregorian = HijriCalendar()
+                                  .hijriToGregorian(
+                                    focusedHijri.hYear,
+                                    focusedHijri.hMonth,
+                                    lastDayNum,
+                                  );
 
                               return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                  vertical: 4.0,
+                                ),
                                 child: Row(
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.chevron_left, color: Color(0xFF0F766E)),
+                                      icon: const Icon(
+                                        Icons.chevron_left,
+                                        color: Color(0xFF0F766E),
+                                      ),
                                       onPressed: () {
                                         setState(() {
-                                          _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1);
+                                          _focusedDay = DateTime(
+                                            _focusedDay.year,
+                                            _focusedDay.month - 1,
+                                          );
                                         });
                                       },
                                     ),
@@ -1357,10 +1687,16 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                     ),
                                     const SizedBox(width: 4),
                                     IconButton(
-                                      icon: const Icon(Icons.chevron_right, color: Color(0xFF0F766E)),
+                                      icon: const Icon(
+                                        Icons.chevron_right,
+                                        color: Color(0xFF0F766E),
+                                      ),
                                       onPressed: () {
                                         setState(() {
-                                          _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1);
+                                          _focusedDay = DateTime(
+                                            _focusedDay.year,
+                                            _focusedDay.month + 1,
+                                          );
                                         });
                                       },
                                     ),
@@ -1374,7 +1710,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             firstDay: DateTime.utc(2020, 1, 1),
                             lastDay: DateTime.utc(2050, 12, 31),
                             focusedDay: _focusedDay,
-                            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                            selectedDayPredicate: (day) =>
+                                isSameDay(_selectedDay, day),
                             eventLoader: _getBookingsForDay,
                             onDaySelected: (selectedDay, focusedDay) {
                               setState(() {
@@ -1393,16 +1730,36 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             headerVisible: false,
                             calendarBuilders: CalendarBuilders(
                               defaultBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(day, isSelected: false, isToday: false, isOutside: false);
+                                return _buildCalendarDayCell(
+                                  day,
+                                  isSelected: false,
+                                  isToday: false,
+                                  isOutside: false,
+                                );
                               },
                               selectedBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(day, isSelected: true, isToday: false, isOutside: false);
+                                return _buildCalendarDayCell(
+                                  day,
+                                  isSelected: true,
+                                  isToday: false,
+                                  isOutside: false,
+                                );
                               },
                               todayBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(day, isSelected: false, isToday: true, isOutside: false);
+                                return _buildCalendarDayCell(
+                                  day,
+                                  isSelected: false,
+                                  isToday: true,
+                                  isOutside: false,
+                                );
                               },
                               outsideBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(day, isSelected: false, isToday: false, isOutside: true);
+                                return _buildCalendarDayCell(
+                                  day,
+                                  isSelected: false,
+                                  isToday: false,
+                                  isOutside: true,
+                                );
                               },
                               markerBuilder: (context, date, events) {
                                 if (events.isNotEmpty) {
@@ -1430,13 +1787,20 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   // عنوان حجوزات اليوم المحدد
                   Row(
                     children: [
-                      const Icon(Icons.bookmark_added_outlined, color: Color(0xFF0D9488)),
+                      const Icon(
+                        Icons.bookmark_added_outlined,
+                        color: Color(0xFF0D9488),
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         _selectedDay == null
                             ? 'الحجوزات اليومية'
                             : 'الحجوزات في تاريخ ${_selectedDay.toString().split(' ')[0]}',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp(context), color: const Color(0xFF1E293B)),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15.sp(context),
+                          color: const Color(0xFF1E293B),
+                        ),
                       ),
                     ],
                   ),
@@ -1471,7 +1835,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     }
 
     final sorted = List<Map<String, dynamic>>.from(filtered)
-      ..sort((a, b) => b['start_date'].toString().compareTo(a['start_date'].toString()));
+      ..sort(
+        (a, b) =>
+            b['start_date'].toString().compareTo(a['start_date'].toString()),
+      );
 
     return ListView.builder(
       itemCount: sorted.length,
@@ -1486,9 +1853,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           elevation: 0,
           color: const Color(0xFFF8FAFC),
           margin: const EdgeInsets.symmetric(vertical: 4),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -1501,14 +1873,20 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                           Expanded(
                             child: Text(
                               renter['full_name'].toString(),
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp(context)),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13.sp(context),
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (_bookingFilter == 'archived') ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE2E8F0),
                                 borderRadius: BorderRadius.circular(6),
@@ -1566,8 +1944,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       Text(
                         '${booking['total_price']} ر.س',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold, 
-                          color: const Color(0xFF0F766E), 
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0F766E),
                           fontSize: 12.sp(context),
                         ),
                       ),
@@ -1577,15 +1955,24 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 18),
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.blue,
+                              size: 18,
+                            ),
                             onPressed: () => _showEditBookingDialog(booking),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
                           const SizedBox(width: 12),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                            onPressed: () => _confirmDeleteBooking(booking['id']),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            onPressed: () =>
+                                _confirmDeleteBooking(booking['id']),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -1600,10 +1987,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         );
 
         if (_bookingFilter == 'archived') {
-          return Opacity(
-            opacity: 0.75,
-            child: cardContent,
-          );
+          return Opacity(opacity: 0.75, child: cardContent);
         }
         return cardContent;
       },
@@ -1629,7 +2013,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           elevation: 0,
           color: const Color(0xFFF8FAFC),
           margin: const EdgeInsets.symmetric(vertical: 4),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: ListTile(
             leading: const CircleAvatar(
               backgroundColor: Color(0xFFE0F2FE),
@@ -1640,17 +2026,27 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               children: [
                 Text(
                   renter['full_name'].toString(),
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp(context)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13.sp(context),
+                  ),
                 ),
                 const SizedBox(width: 8),
-                if (renter['notes'] != null && renter['notes'].toString().trim().isNotEmpty)
+                if (renter['notes'] != null &&
+                    renter['notes'].toString().trim().isNotEmpty)
                   const Tooltip(
                     message: 'توجد ملاحظات على العميل',
-                    child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 16),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.red,
+                      size: 16,
+                    ),
                   ),
                 const SizedBox(width: 4),
-                if ((renter['rating'] != null && (renter['rating'] as num) >= 4) ||
-                    (renter['rental_count'] != null && (renter['rental_count'] as num) >= 3))
+                if ((renter['rating'] != null &&
+                        (renter['rating'] as num) >= 4) ||
+                    (renter['rental_count'] != null &&
+                        (renter['rental_count'] as num) >= 3))
                   const Tooltip(
                     message: 'عميل مميز وموثوق',
                     child: Icon(Icons.verified, color: Colors.green, size: 16),
@@ -1665,14 +2061,22 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 18),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: Colors.blue,
+                    size: 18,
+                  ),
                   onPressed: () => _showEditRenterDialog(renter),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 18,
+                  ),
                   onPressed: () => _confirmDeleteRenter(renter['phone']),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -1694,12 +2098,20 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade200),
         ),
-        child: const Center(child: Text('يرجى تحديد يوم من التقويم', style: TextStyle(color: Colors.grey))),
+        child: const Center(
+          child: Text(
+            'يرجى تحديد يوم من التقويم',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
       );
     }
 
     final bookingsOnDay = _getBookingsForDay(_selectedDay!)
-      ..sort((a, b) => b['start_date'].toString().compareTo(a['start_date'].toString()));
+      ..sort(
+        (a, b) =>
+            b['start_date'].toString().compareTo(a['start_date'].toString()),
+      );
 
     if (bookingsOnDay.isEmpty) {
       return Container(
@@ -1731,7 +2143,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF0D9488).withAlpha(51), width: 1),
+            border: Border.all(
+              color: const Color(0xFF0D9488).withAlpha(51),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withAlpha(13),
@@ -1756,25 +2171,30 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: booking['status'] == 'cancelled'
                               ? const Color(0xFFFEF2F2)
                               : (booking['status'] == 'pending'
-                                  ? const Color(0xFFFFFBEB)
-                                  : const Color(0xFFECFDF5)),
+                                    ? const Color(0xFFFFFBEB)
+                                    : const Color(0xFFECFDF5)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           booking['status'] == 'cancelled'
                               ? 'ملغي'
-                              : (booking['status'] == 'pending' ? 'قيد الانتظار' : 'مؤكد'),
+                              : (booking['status'] == 'pending'
+                                    ? 'قيد الانتظار'
+                                    : 'مؤكد'),
                           style: TextStyle(
                             color: booking['status'] == 'cancelled'
                                 ? const Color(0xFFDC2626)
                                 : (booking['status'] == 'pending'
-                                    ? const Color(0xFFD97706)
-                                    : const Color(0xFF059669)),
+                                      ? const Color(0xFFD97706)
+                                      : const Color(0xFF059669)),
                             fontSize: 12.sp(context),
                             fontWeight: FontWeight.bold,
                           ),
@@ -1785,14 +2205,22 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
                         onPressed: () => _showEditBookingDialog(booking),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
                       const SizedBox(width: 12),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                          size: 20,
+                        ),
                         onPressed: () => _confirmDeleteBooking(booking['id']),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -1822,17 +2250,28 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       ),
                     ),
                   ),
-                  if (renter['notes'] != null && renter['notes'].toString().trim().isNotEmpty)
+                  if (renter['notes'] != null &&
+                      renter['notes'].toString().trim().isNotEmpty)
                     const Tooltip(
                       message: 'توجد ملاحظات على العميل',
-                      child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.red,
+                        size: 20,
+                      ),
                     ),
                   const SizedBox(width: 4),
-                  if ((renter['rating'] != null && (renter['rating'] as num) >= 4) ||
-                      (renter['rental_count'] != null && (renter['rental_count'] as num) >= 3))
+                  if ((renter['rating'] != null &&
+                          (renter['rating'] as num) >= 4) ||
+                      (renter['rental_count'] != null &&
+                          (renter['rental_count'] as num) >= 3))
                     const Tooltip(
                       message: 'عميل مميز وموثوق',
-                      child: Icon(Icons.verified, color: Colors.green, size: 20),
+                      child: Icon(
+                        Icons.verified,
+                        color: Colors.green,
+                        size: 20,
+                      ),
                     ),
                 ],
               ),
@@ -1982,7 +2421,10 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
       } else {
         _selectedMonth++;
       }
-      final maxDays = HijriCalendar().getDaysInMonth(_selectedYear, _selectedMonth);
+      final maxDays = HijriCalendar().getDaysInMonth(
+        _selectedYear,
+        _selectedMonth,
+      );
       if (_selectedDay > maxDays) {
         _selectedDay = maxDays;
       }
@@ -1997,7 +2439,10 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
       } else {
         _selectedMonth--;
       }
-      final maxDays = HijriCalendar().getDaysInMonth(_selectedYear, _selectedMonth);
+      final maxDays = HijriCalendar().getDaysInMonth(
+        _selectedYear,
+        _selectedMonth,
+      );
       if (_selectedDay > maxDays) {
         _selectedDay = maxDays;
       }
@@ -2006,8 +2451,15 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final daysInMonth = HijriCalendar().getDaysInMonth(_selectedYear, _selectedMonth);
-    final firstDayGregorian = HijriCalendar().hijriToGregorian(_selectedYear, _selectedMonth, 1);
+    final daysInMonth = HijriCalendar().getDaysInMonth(
+      _selectedYear,
+      _selectedMonth,
+    );
+    final firstDayGregorian = HijriCalendar().hijriToGregorian(
+      _selectedYear,
+      _selectedMonth,
+      1,
+    );
     final startOffset = firstDayGregorian.weekday % 7;
 
     const weekdayNames = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'];
@@ -2113,13 +2565,19 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
         ),
         ElevatedButton(
           onPressed: () {
-            final targetGregorian = HijriCalendar().hijriToGregorian(_selectedYear, _selectedMonth, _selectedDay);
+            final targetGregorian = HijriCalendar().hijriToGregorian(
+              _selectedYear,
+              _selectedMonth,
+              _selectedDay,
+            );
             Navigator.pop(context, targetGregorian);
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0F766E),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           child: const Text('تأكيد'),
         ),
