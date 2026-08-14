@@ -61,6 +61,16 @@ void main() {
         as int;
   }
 
+  test(
+    'يبدأ التثبيت الأول بقاعدة بيانات خالية من البيانات التجريبية',
+    () async {
+      expect(await helper.queryAllRenters(), isEmpty);
+      expect(await helper.queryAllBookings(), isEmpty);
+      expect(await helper.queryAllExpenses(), isEmpty);
+      expect(await helper.queryAllPayments(), isEmpty);
+    },
+  );
+
   test('يرفض حجزًا مؤكدًا متداخلًا داخل معاملة قاعدة البيانات', () async {
     await helper.insertRenter(renter('0511111111', 'مستأجر أول'));
     await helper.insertBooking(
