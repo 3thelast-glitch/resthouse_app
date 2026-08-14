@@ -2,9 +2,26 @@ import 'package:hijri/hijri_calendar.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+class DemoDataDeletionResult {
+  const DemoDataDeletionResult({
+    required this.deletedPayments,
+    required this.deletedBookings,
+    required this.deletedRenters,
+    required this.deletedExpenses,
+  });
+
+  final int deletedPayments;
+  final int deletedBookings;
+  final int deletedRenters;
+  final int deletedExpenses;
+
+  int get totalDeleted =>
+      deletedPayments + deletedBookings + deletedRenters + deletedExpenses;
+}
+
 class DatabaseHelper {
   static const _databaseName = 'resthouse.db';
-  static const _databaseVersion = 7;
+  static const _databaseVersion = 8;
   static const backupSchemaVersion = 1;
 
   static const tableRenters = 'renters';
@@ -20,6 +37,58 @@ class DatabaseHelper {
   static const depositPending = 'pending';
   static const depositReturned = 'returned';
   static const depositDeducted = 'deducted';
+
+  static const _demoSeedRows = <Map<String, Object>>[
+    {
+      'customerName': 'أماني المطيري',
+      'hijriDate': '13 محرم 1448',
+      'price': 900.0,
+      'insurance': 300.0,
+      'phone': '0511111113',
+    },
+    {
+      'customerName': 'الراشد',
+      'hijriDate': '18 محرم 1448',
+      'price': 1500.0,
+      'insurance': 500.0,
+      'phone': '0511111114',
+    },
+    {
+      'customerName': 'العليان',
+      'hijriDate': '19 محرم 1448',
+      'price': 950.0,
+      'insurance': 300.0,
+      'phone': '0511111115',
+    },
+    {
+      'customerName': 'محمد المطيري',
+      'hijriDate': '29 محرم 1448',
+      'price': 900.0,
+      'insurance': 300.0,
+      'phone': '0511111116',
+    },
+    {
+      'customerName': 'العايد عبد الرحمن',
+      'hijriDate': '5 صفر 1448',
+      'price': 950.0,
+      'insurance': 300.0,
+      'phone': '0511111117',
+    },
+    {
+      'customerName': 'هند عبدالله المصري',
+      'hijriDate': '1 شوال 1448',
+      'price': 3500.0,
+      'insurance': 0.0,
+      'phone': '0511111118',
+    },
+    {
+      'customerName': 'نوف البقمي',
+      'hijriDate': '3 شوال 1448',
+      'price': 0.0,
+      'insurance': 0.0,
+      'phone': '0511111119',
+    },
+  ];
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -58,7 +127,8 @@ class DatabaseHelper {
         full_name TEXT NOT NULL,
         notes TEXT,
         rating INTEGER NOT NULL DEFAULT 0 CHECK (rating BETWEEN 0 AND 5),
-        rental_count INTEGER NOT NULL DEFAULT 0
+        rental_count INTEGER NOT NULL DEFAULT 0,
+        is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1))
       )
     ''');
 
@@ -70,7 +140,8 @@ class DatabaseHelper {
         description TEXT,
         amount REAL NOT NULL CHECK (amount > 0),
         date TEXT NOT NULL,
-        category TEXT NOT NULL DEFAULT 'مصاريف تشغيلية أخرى'
+        category TEXT NOT NULL DEFAULT 'مصاريف تشغيلية أخرى',
+        is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1))
       )
     ''');
 
@@ -137,6 +208,34 @@ class DatabaseHelper {
       );
     }
 
+    if (oldVersion < 8) {
+      await _addColumnIfMissing(
+        db,
+        tableRenters,
+        'is_demo',
+        'is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1))',
+      );
+      await _addColumnIfMissing(
+        db,
+        tableBookings,
+        'is_demo',
+        'is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1))',
+      );
+      await _addColumnIfMissing(
+        db,
+        tableExpenses,
+        'is_demo',
+        'is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1))',
+      );
+      await _addColumnIfMissing(
+        db,
+        tablePayments,
+        'is_demo',
+        'is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1))',
+      );
+      await _markLegacyDemoData(db);
+    }
+
     await _recalculateRentalCounts(db);
     await _createIndexes(db);
   }
@@ -167,6 +266,7 @@ class DatabaseHelper {
           CHECK (status IN ('$statusConfirmed', '$statusPending', '$statusCancelled')),
         deposit_status TEXT NOT NULL DEFAULT '$depositPending'
           CHECK (deposit_status IN ('$depositPending', '$depositReturned', '$depositDeducted')),
+        is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1)),
         FOREIGN KEY (phone) REFERENCES $tableRenters(phone)
           ON UPDATE CASCADE ON DELETE RESTRICT
       )
@@ -230,6 +330,7 @@ class DatabaseHelper {
         status TEXT NOT NULL DEFAULT 'confirmed',
         voided_at TEXT,
         void_reason TEXT,
+        is_demo INTEGER NOT NULL DEFAULT 0 CHECK (is_demo IN (0, 1)),
         FOREIGN KEY (booking_id) REFERENCES $tableBookings(id)
           ON UPDATE CASCADE ON DELETE CASCADE
       )
@@ -266,6 +367,70 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_audit_events_created ON $tableAuditEvents(created_at DESC)',
     );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_bookings_is_demo ON $tableBookings(is_demo)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_renters_is_demo ON $tableRenters(is_demo)',
+    );
+  }
+
+  Future<void> _markLegacyDemoData(DatabaseExecutor db) async {
+    // قواعد البيانات قبل الإصدار 8 لا تحمل وسمًا للبذور. لذا لا نوسم إلا
+    // السجلات المطابقة تمامًا لتعريف البذر والمعزولة عن أي دفعة فعلية.
+    for (final seed in _demoSeedRows) {
+      final phone = seed['phone'] as String;
+      final date = _parseHijriStringToGregorian(
+        seed['hijriDate'] as String,
+      ).toIso8601String().split('T').first;
+      await db.update(
+        tableBookings,
+        {'is_demo': 1},
+        where:
+            '''
+          phone = ?
+          AND start_date = ?
+          AND end_date = ?
+          AND total_price = ?
+          AND security_deposit = ?
+          AND status = ?
+          AND deposit_status = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM $tablePayments payment
+            WHERE payment.booking_id = $tableBookings.id
+          )
+        ''',
+        whereArgs: [
+          phone,
+          date,
+          date,
+          seed['price'],
+          seed['insurance'],
+          statusConfirmed,
+          depositPending,
+        ],
+      );
+    }
+
+    for (final seed in _demoSeedRows) {
+      await db.update(
+        tableRenters,
+        {'is_demo': 1},
+        where:
+            '''
+          phone = ?
+          AND full_name = ?
+          AND COALESCE(notes, '') = ''
+          AND rating = 5
+          AND NOT EXISTS (
+            SELECT 1 FROM $tableBookings booking
+            WHERE booking.phone = $tableRenters.phone
+              AND booking.is_demo = 0
+          )
+        ''',
+        whereArgs: [seed['phone'], seed['customerName']],
+      );
+    }
   }
 
   Future<void> _recordAudit(
@@ -296,11 +461,16 @@ class DatabaseHelper {
     ''');
   }
 
-  Future<int> insertRenter(Map<String, dynamic> row) async {
+  Future<int> insertRenter(
+    Map<String, dynamic> row, {
+    bool isDemo = false,
+  }) async {
     final db = await database;
+    final renterRow = Map<String, dynamic>.from(row)
+      ..['is_demo'] = isDemo ? 1 : 0;
     return db.insert(
       tableRenters,
-      row,
+      renterRow,
       conflictAlgorithm: ConflictAlgorithm.abort,
     );
   }
@@ -322,13 +492,14 @@ class DatabaseHelper {
 
   Future<int> updateRenter(Map<String, dynamic> row, {String? oldPhone}) async {
     final db = await database;
-    final targetPhone = oldPhone ?? row['phone'] as String;
+    final renterRow = Map<String, dynamic>.from(row)..['is_demo'] = 0;
+    final targetPhone = oldPhone ?? renterRow['phone'] as String;
 
-    if (oldPhone != null && oldPhone != row['phone']) {
+    if (oldPhone != null && oldPhone != renterRow['phone']) {
       return db.transaction((txn) async {
         final updated = await txn.update(
           tableRenters,
-          row,
+          renterRow,
           where: 'phone = ?',
           whereArgs: [oldPhone],
         );
@@ -341,7 +512,7 @@ class DatabaseHelper {
 
     return db.update(
       tableRenters,
-      row,
+      renterRow,
       where: 'phone = ?',
       whereArgs: [targetPhone],
     );
@@ -365,13 +536,22 @@ class DatabaseHelper {
     return db.delete(tableRenters, where: 'phone = ?', whereArgs: [phone]);
   }
 
-  Future<int> insertBooking(Map<String, dynamic> row) async {
-    _validateBooking(row);
+  Future<int> insertBooking(
+    Map<String, dynamic> row, {
+    bool isDemo = false,
+  }) async {
+    final bookingRow = Map<String, dynamic>.from(row)
+      ..['is_demo'] = isDemo ? 1 : 0;
+    _validateBooking(bookingRow);
     final db = await database;
 
     return db.transaction((txn) async {
-      await _assertNoBookingConflict(txn, row);
-      final id = await txn.insert(tableBookings, row);
+      await _assertNoBookingConflict(txn, bookingRow);
+      final id = await txn.insert(tableBookings, bookingRow);
+      final phone = bookingRow['phone'];
+      if (!isDemo && phone is String) {
+        await _markRenterAsUserData(txn, phone);
+      }
       await _recordAudit(
         txn,
         entityType: 'booking',
@@ -389,22 +569,27 @@ class DatabaseHelper {
   }
 
   Future<int> updateBooking(Map<String, dynamic> row) async {
-    _validateBooking(row);
-    final id = row['id'];
+    final bookingRow = Map<String, dynamic>.from(row)..['is_demo'] = 0;
+    _validateBooking(bookingRow);
+    final id = bookingRow['id'];
     if (id is! int) {
       throw ArgumentError.value(id, 'id', 'معرف الحجز غير صالح.');
     }
 
     final db = await database;
     return db.transaction((txn) async {
-      await _assertNoBookingConflict(txn, row, excludeId: id);
+      await _assertNoBookingConflict(txn, bookingRow, excludeId: id);
       final updated = await txn.update(
         tableBookings,
-        row,
+        bookingRow,
         where: 'id = ?',
         whereArgs: [id],
       );
       if (updated > 0) {
+        final phone = bookingRow['phone'];
+        if (phone is String) {
+          await _markRenterAsUserData(txn, phone);
+        }
         await _recordAudit(
           txn,
           entityType: 'booking',
@@ -544,11 +729,21 @@ class DatabaseHelper {
     return db.transaction((txn) async {
       final updated = await txn.update(
         tableBookings,
-        {'deposit_status': status},
+        {'deposit_status': status, 'is_demo': 0},
         where: 'id = ?',
         whereArgs: [bookingId],
       );
       if (updated > 0) {
+        await txn.execute(
+          '''
+          UPDATE $tableRenters
+          SET is_demo = 0
+          WHERE phone = (
+            SELECT phone FROM $tableBookings WHERE id = ?
+          )
+          ''',
+          [bookingId],
+        );
         await _recordAudit(
           txn,
           entityType: 'deposit',
@@ -561,9 +756,10 @@ class DatabaseHelper {
   }
 
   Future<int> insertPayment(Map<String, dynamic> row) async {
-    final bookingId = row['booking_id'];
-    final amount = row['amount'];
-    final paidAt = row['paid_at'];
+    final paymentRow = Map<String, dynamic>.from(row)..['is_demo'] = 0;
+    final bookingId = paymentRow['booking_id'];
+    final amount = paymentRow['amount'];
+    final paidAt = paymentRow['paid_at'];
     if (bookingId is! int ||
         amount is! num ||
         amount <= 0 ||
@@ -576,7 +772,7 @@ class DatabaseHelper {
     return db.transaction((txn) async {
       final bookingRows = await txn.query(
         tableBookings,
-        columns: ['total_price'],
+        columns: ['total_price', 'phone'],
         where: 'id = ?',
         whereArgs: [bookingId],
       );
@@ -592,7 +788,17 @@ class DatabaseHelper {
       if (paid + amount > totalPrice) {
         throw ArgumentError('لا يمكن أن تتجاوز الدفعات إجمالي قيمة الحجز.');
       }
-      final id = await txn.insert(tablePayments, row);
+      final id = await txn.insert(tablePayments, paymentRow);
+      await txn.update(
+        tableBookings,
+        {'is_demo': 0},
+        where: 'id = ?',
+        whereArgs: [bookingId],
+      );
+      final phone = bookingRows.single['phone'];
+      if (phone is String) {
+        await _markRenterAsUserData(txn, phone);
+      }
       await _recordAudit(
         txn,
         entityType: 'payment',
@@ -683,10 +889,79 @@ class DatabaseHelper {
           'status': 'voided',
           'voided_at': DateTime.now().toUtc().toIso8601String(),
           'void_reason': reason.trim(),
+          'is_demo': 0,
         },
         where: "id = ? AND status = 'confirmed'",
         whereArgs: [paymentId],
       );
+    });
+  }
+
+  Future<void> _markRenterAsUserData(DatabaseExecutor db, String phone) async {
+    await db.update(
+      tableRenters,
+      {'is_demo': 0},
+      where: 'phone = ?',
+      whereArgs: [phone],
+    );
+  }
+
+  Future<DemoDataDeletionResult> deleteDemoData() async {
+    final db = await database;
+    return db.transaction((txn) async {
+      // الحذف لا يستهدف أي سجل إلا إذا حمل وسم البيانات التجريبية صراحةً.
+      final deletedPayments = await txn.delete(
+        tablePayments,
+        where:
+            'booking_id IN (SELECT id FROM $tableBookings WHERE is_demo = 1)',
+      );
+      final deletedBookings = await txn.delete(
+        tableBookings,
+        where: 'is_demo = 1',
+      );
+      await txn.execute('''
+        UPDATE $tableRenters
+        SET is_demo = 0
+        WHERE is_demo = 1
+          AND EXISTS (
+            SELECT 1 FROM $tableBookings booking
+            WHERE booking.phone = $tableRenters.phone
+              AND booking.is_demo = 0
+          )
+      ''');
+      final deletedRenters = await txn.delete(
+        tableRenters,
+        where:
+            '''
+          is_demo = 1
+          AND NOT EXISTS (
+            SELECT 1 FROM $tableBookings booking
+            WHERE booking.phone = $tableRenters.phone
+          )
+        ''',
+      );
+      final deletedExpenses = await txn.delete(
+        tableExpenses,
+        where: 'is_demo = 1',
+      );
+      await _recalculateRentalCounts(txn);
+
+      final result = DemoDataDeletionResult(
+        deletedPayments: deletedPayments,
+        deletedBookings: deletedBookings,
+        deletedRenters: deletedRenters,
+        deletedExpenses: deletedExpenses,
+      );
+      if (result.totalDeleted > 0) {
+        await _recordAudit(
+          txn,
+          entityType: 'demo_data',
+          entityId: 'cleanup',
+          action: 'deleted',
+          details: 'total=${result.totalDeleted}',
+        );
+      }
+      return result;
     });
   }
 
@@ -724,7 +999,8 @@ class DatabaseHelper {
       throw ArgumentError('قيمة المصروف يجب أن تكون أكبر من صفر.');
     }
     final db = await database;
-    return db.insert(tableExpenses, row);
+    final expenseRow = Map<String, dynamic>.from(row)..['is_demo'] = 0;
+    return db.insert(tableExpenses, expenseRow);
   }
 
   Future<List<Map<String, dynamic>>> queryAllExpenses() async {
@@ -739,7 +1015,13 @@ class DatabaseHelper {
       throw ArgumentError('بيانات المصروف غير صالحة.');
     }
     final db = await database;
-    return db.update(tableExpenses, row, where: 'id = ?', whereArgs: [id]);
+    final expenseRow = Map<String, dynamic>.from(row)..['is_demo'] = 0;
+    return db.update(
+      tableExpenses,
+      expenseRow,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<int> deleteExpense(int id) async {
@@ -954,59 +1236,7 @@ class DatabaseHelper {
   }
 
   Future<void> seedInitialData() async {
-    final importedBookings = <Map<String, dynamic>>[
-      {
-        'customerName': 'أماني المطيري',
-        'hijriDate': '13 محرم 1448',
-        'price': 900.0,
-        'insurance': 300.0,
-        'phone': '0511111113',
-      },
-      {
-        'customerName': 'الراشد',
-        'hijriDate': '18 محرم 1448',
-        'price': 1500.0,
-        'insurance': 500.0,
-        'phone': '0511111114',
-      },
-      {
-        'customerName': 'العليان',
-        'hijriDate': '19 محرم 1448',
-        'price': 950.0,
-        'insurance': 300.0,
-        'phone': '0511111115',
-      },
-      {
-        'customerName': 'محمد المطيري',
-        'hijriDate': '29 محرم 1448',
-        'price': 900.0,
-        'insurance': 300.0,
-        'phone': '0511111116',
-      },
-      {
-        'customerName': 'العايد عبد الرحمن',
-        'hijriDate': '5 صفر 1448',
-        'price': 950.0,
-        'insurance': 300.0,
-        'phone': '0511111117',
-      },
-      {
-        'customerName': 'هند عبدالله المصري',
-        'hijriDate': '1 شوال 1448',
-        'price': 3500.0,
-        'insurance': 0.0,
-        'phone': '0511111118',
-      },
-      {
-        'customerName': 'نوف البقمي',
-        'hijriDate': '3 شوال 1448',
-        'price': 0.0,
-        'insurance': 0.0,
-        'phone': '0511111119',
-      },
-    ];
-
-    for (final item in importedBookings) {
+    for (final item in _demoSeedRows) {
       final customerName = item['customerName'] as String;
       final phone = item['phone'] as String;
       final hijriDate = item['hijriDate'] as String;
@@ -1026,7 +1256,7 @@ class DatabaseHelper {
           'notes': '',
           'rating': 5,
           'rental_count': 0,
-        });
+        }, isDemo: true);
       }
 
       final date = _parseHijriStringToGregorian(hijriDate);
@@ -1045,25 +1275,15 @@ class DatabaseHelper {
           'security_deposit': insurance,
           'status': statusConfirmed,
           'deposit_status': depositPending,
-        });
+        }, isDemo: true);
       }
     }
   }
 
   Future<void> seedTenantsOnly() async {
-    const tenants = <Map<String, String>>[
-      {'customerName': 'أماني المطيري', 'phone': '0511111113'},
-      {'customerName': 'الراشد', 'phone': '0511111114'},
-      {'customerName': 'العليان', 'phone': '0511111115'},
-      {'customerName': 'محمد المطيري', 'phone': '0511111116'},
-      {'customerName': 'العايد عبد الرحمن', 'phone': '0511111117'},
-      {'customerName': 'هند عبدالله المصري', 'phone': '0511111118'},
-      {'customerName': 'نوف البقمي', 'phone': '0511111119'},
-    ];
-
     final db = await database;
-    for (final tenant in tenants) {
-      final phone = tenant['phone']!;
+    for (final tenant in _demoSeedRows) {
+      final phone = tenant['phone'] as String;
       final existingRenters = await db.query(
         tableRenters,
         where: 'phone = ?',
@@ -1076,7 +1296,7 @@ class DatabaseHelper {
           'notes': '',
           'rating': 5,
           'rental_count': 0,
-        });
+        }, isDemo: true);
       }
     }
   }
