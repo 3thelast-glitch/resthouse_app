@@ -1406,6 +1406,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     final archivedBookingsCount = _bookings
         .where((b) => b['end_date'].toString().compareTo(todayStr) < 0)
         .length;
+    final hasDirectoryData = _bookings.isNotEmpty || _renters.isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -1482,7 +1483,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       ],
                     ),
                   ),
-                  if (!_showRentersTab) ...[
+                  if (!_showRentersTab && _bookings.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
@@ -1553,36 +1554,39 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 12),
-                  TextField(
-                    onChanged: (value) => setState(() => _searchQuery = value),
-                    decoration: InputDecoration(
-                      hintText: _showRentersTab
-                          ? 'ابحث بالاسم أو رقم الهاتف'
-                          : 'ابحث عن حجز بالاسم أو رقم الهاتف',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchQuery.isEmpty
-                          ? null
-                          : IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () =>
-                                  setState(() => _searchQuery = ''),
-                            ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
+                  if (hasDirectoryData) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value),
+                      decoration: InputDecoration(
+                        hintText: _showRentersTab
+                            ? 'ابحث بالاسم أو رقم الهاتف'
+                            : 'ابحث عن حجز بالاسم أو رقم الهاتف',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchQuery.isEmpty
+                            ? null
+                            : IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () =>
+                                    setState(() => _searchQuery = ''),
+                              ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  // محتوى القائمة
-                  Expanded(
-                    child: _showRentersTab
-                        ? _buildRentersList()
-                        : _buildBookingsList(),
-                  ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: _showRentersTab
+                          ? _buildRentersList()
+                          : _buildBookingsList(),
+                    ),
+                  ] else
+                    Expanded(child: _buildDirectoryEmptyState()),
                 ],
               ),
             ),
@@ -1692,21 +1696,32 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                       },
                                     ),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      "${firstDayGregorian.day}-${firstDayGregorian.month}-${firstDayGregorian.year} ➔ ${lastDayGregorian.day}-${lastDayGregorian.month}-${lastDayGregorian.year}",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF1E293B),
-                                        fontSize: 14.sp(context),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        "${firstDayGregorian.day}-${firstDayGregorian.month}-${firstDayGregorian.year} ➔ ${lastDayGregorian.day}-${lastDayGregorian.month}-${lastDayGregorian.year}",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF1E293B),
+                                          fontSize: 14.sp(context),
+                                        ),
                                       ),
                                     ),
-                                    const Spacer(),
-                                    Text(
-                                      "${getArabicHijriMonthName(focusedHijri.hMonth)} ${focusedHijri.hMonth}-${focusedHijri.hYear}",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF991B1B),
-                                        fontSize: 16.sp(context),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        "${getArabicHijriMonthName(focusedHijri.hMonth)} ${focusedHijri.hMonth}-${focusedHijri.hYear}",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.end,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF991B1B),
+                                          fontSize: 16.sp(context),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 4),
@@ -1835,6 +1850,44 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDirectoryEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.people_outline,
+              size: 44,
+              color: Color(0xFF0F766E),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'لا توجد حجوزات أو مستأجرون بعد',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15.sp(context),
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'استخدم أزرار الإضافة لإدخال بياناتك. ستظهر القوائم هنا بعد حفظ أول مستأجر أو حجز.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                height: 1.45,
+                fontSize: 12.sp(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

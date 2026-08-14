@@ -20,6 +20,7 @@ class _FinancePageState extends State<FinancePage> {
   List<Map<String, dynamic>> _allBookings = [];
   List<Map<String, dynamic>> _allExpenses = [];
   List<int> _availableYears = [DateTime.now().year];
+  bool _isLoaded = false;
 
   List<int> _getYearRange() => _availableYears;
 
@@ -115,6 +116,7 @@ class _FinancePageState extends State<FinancePage> {
       _availableYears = _collectAvailableYears(bookings, expenses);
       _normalizeSelectedYears();
       _applyFilter();
+      _isLoaded = true;
     });
   }
 
@@ -1074,6 +1076,16 @@ class _FinancePageState extends State<FinancePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isLoaded) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF0F766E)),
+        ),
+      );
+    }
+
+    final hasFinancialData = _allBookings.isNotEmpty || _allExpenses.isNotEmpty;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       // [تعديل] تم تغليف المحتوى الرئيسي بـ SingleChildScrollView للسماح بالتمرير على الشاشات الصغيرة
@@ -1085,16 +1097,68 @@ class _FinancePageState extends State<FinancePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildSubTabSelector(),
-                const SizedBox(height: 16),
-                // [تعديل] تم إزالة Expanded لأنه غير متوافق مع SingleChildScrollView
-                _activeTab == 0
-                    ? _buildReportTabContent(isWide)
-                    : _buildComparisonTabContent(isWide),
+                if (hasFinancialData) ...[
+                  _buildSubTabSelector(),
+                  const SizedBox(height: 16),
+                  _activeTab == 0
+                      ? _buildReportTabContent(isWide)
+                      : _buildComparisonTabContent(isWide),
+                ] else
+                  _buildFinancialEmptyState(),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildFinancialEmptyState() {
+    return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 52),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: Color(0xFF0F766E),
+              size: 52,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'لا توجد بيانات مالية لعرض تقرير بعد',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18.sp(context),
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'أضف حجزًا من شاشة الحجوزات أو سجّل أول مصروف. ستظهر التقارير والمقارنات تلقائيًا بعد حفظ بياناتك.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                height: 1.5,
+                fontSize: 13.sp(context),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _showAddExpenseDialog,
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('تسجيل أول مصروف'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

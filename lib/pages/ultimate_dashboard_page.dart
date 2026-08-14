@@ -36,6 +36,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   int _bookingsCount = 0;
   int _rentersCount = 0;
   int _activeBookingsCount = 0;
+  bool _hasRecordedData = false;
 
   List<DashboardActivity> _recentActivities = [];
   List<String> _sortedMonths = [];
@@ -119,6 +120,11 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
       _bookingsCount = bookings.length;
       _rentersCount = renters.length;
       _activeBookingsCount = activeCount;
+      _hasRecordedData =
+          bookings.isNotEmpty ||
+          renters.isNotEmpty ||
+          expenses.isNotEmpty ||
+          payments.isNotEmpty;
       _sortedMonths = months;
       _monthlyRevenue = mRevenue;
       _monthlyExpenses = mExpenses;
@@ -682,186 +688,235 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               ),
               const SizedBox(height: 16),
 
-              // بطاقات الإحصائيات الفوقية الملونة
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'إجمالي الإيرادات',
-                      value: '${_totalRevenue.toStringAsFixed(0)} ر.س',
-                      icon: Icons.monetization_on,
-                      color: const Color(0xFF10B981),
+              if (!_hasRecordedData)
+                _buildDashboardEmptyState()
+              else ...[
+                // بطاقات الإحصائيات الفوقية الملونة
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        title: 'إجمالي الإيرادات',
+                        value: '${_totalRevenue.toStringAsFixed(0)} ر.س',
+                        icon: Icons.monetization_on,
+                        color: const Color(0xFF10B981),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'إجمالي المصاريف',
-                      value: '${_totalExpenses.toStringAsFixed(0)} ر.س',
-                      icon: Icons.payment,
-                      color: const Color(0xFFEF4444),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMetricCard(
+                        title: 'إجمالي المصاريف',
+                        value: '${_totalExpenses.toStringAsFixed(0)} ر.س',
+                        icon: Icons.payment,
+                        color: const Color(0xFFEF4444),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'صافي الأرباح',
-                      value: '${netProfit.toStringAsFixed(0)} ر.س',
-                      icon: Icons.account_balance_wallet,
-                      color: netProfit >= 0
-                          ? const Color(0xFF0D9488)
-                          : const Color(0xFFDC2626),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMetricCard(
+                        title: 'صافي الأرباح',
+                        value: '${netProfit.toStringAsFixed(0)} ر.س',
+                        icon: Icons.account_balance_wallet,
+                        color: netProfit >= 0
+                            ? const Color(0xFF0D9488)
+                            : const Color(0xFFDC2626),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'عدد الحجوزات الكلي',
-                      value: '$_bookingsCount حجز',
-                      icon: Icons.calendar_month,
-                      color: Colors.indigo,
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        title: 'عدد الحجوزات الكلي',
+                        value: '$_bookingsCount حجز',
+                        icon: Icons.calendar_month,
+                        color: Colors.indigo,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'الحجوزات النشطة حالياً',
-                      value: '$_activeBookingsCount حجز نشط',
-                      icon: Icons.timer,
-                      color: const Color(0xFFD97706),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMetricCard(
+                        title: 'الحجوزات النشطة حالياً',
+                        value: '$_activeBookingsCount حجز نشط',
+                        icon: Icons.timer,
+                        color: const Color(0xFFD97706),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'العملاء المسجلين',
-                      value: '$_rentersCount مستأجر',
-                      icon: Icons.people,
-                      color: Colors.blueGrey,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMetricCard(
+                        title: 'العملاء المسجلين',
+                        value: '$_rentersCount مستأجر',
+                        icon: Icons.people,
+                        color: Colors.blueGrey,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+                  ],
+                ),
+                const SizedBox(height: 24),
 
-              // القسم السفلي: الرسم البياني على اليمين والأنشطة الأخيرة على اليسار
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // الرسم البياني (الإيرادات والمصروفات شهرياً)
-                  Expanded(
-                    flex: 3,
-                    child: Card(
-                      color: Colors.white,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'تقرير الأداء المالي (آخر 5 أشهر)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15.sp(context),
-                                color: const Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Wrap(
-                              spacing: 16,
-                              runSpacing: 4,
-                              children: [
-                                _buildLegendIndicator(
-                                  const Color(0xFF10B981),
-                                  'الإيرادات',
-                                ),
-                                _buildLegendIndicator(
-                                  const Color(0xFFEF4444),
-                                  'المصروفات',
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              height: 250,
-                              child: BarChart(
-                                BarChartData(
-                                  barGroups: _buildBarChartGroups(),
-                                  titlesData: FlTitlesData(
-                                    topTitles: const AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                    rightTitles: const AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                    leftTitles: const AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        reservedSize: 40,
-                                      ),
-                                    ),
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        getTitlesWidget: _getBottomTitlesWidget,
-                                      ),
-                                    ),
-                                  ),
-                                  borderData: FlBorderData(show: false),
-                                  gridData: const FlGridData(
-                                    show: true,
-                                    drawVerticalLine: false,
-                                  ),
+                // القسم السفلي: الرسم البياني على اليمين والأنشطة الأخيرة على اليسار
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // الرسم البياني (الإيرادات والمصروفات شهرياً)
+                    Expanded(
+                      flex: 3,
+                      child: Card(
+                        color: Colors.white,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'تقرير الأداء المالي (آخر 5 أشهر)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.sp(context),
+                                  color: const Color(0xFF1E293B),
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 16,
+                                runSpacing: 4,
+                                children: [
+                                  _buildLegendIndicator(
+                                    const Color(0xFF10B981),
+                                    'الإيرادات',
+                                  ),
+                                  _buildLegendIndicator(
+                                    const Color(0xFFEF4444),
+                                    'المصروفات',
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                height: 250,
+                                child: BarChart(
+                                  BarChartData(
+                                    barGroups: _buildBarChartGroups(),
+                                    titlesData: FlTitlesData(
+                                      topTitles: const AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                      rightTitles: const AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                      leftTitles: const AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          reservedSize: 40,
+                                        ),
+                                      ),
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          getTitlesWidget:
+                                              _getBottomTitlesWidget,
+                                        ),
+                                      ),
+                                    ),
+                                    borderData: FlBorderData(show: false),
+                                    gridData: const FlGridData(
+                                      show: true,
+                                      drawVerticalLine: false,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  // قائمة الأنشطة الأخيرة
-                  Expanded(
-                    flex: 2,
-                    child: Card(
-                      color: Colors.white,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'الأنشطة والعمليات الأخيرة',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15.sp(context),
-                                color: const Color(0xFF1E293B),
+                    const SizedBox(width: 16),
+                    // قائمة الأنشطة الأخيرة
+                    Expanded(
+                      flex: 2,
+                      child: Card(
+                        color: Colors.white,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'الأنشطة والعمليات الأخيرة',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.sp(context),
+                                  color: const Color(0xFF1E293B),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildActivitiesList(),
-                          ],
+                              const SizedBox(height: 16),
+                              _buildActivitiesList(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardEmptyState() {
+    return Card(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.space_dashboard_outlined,
+              size: 52,
+              color: Color(0xFF0F766E),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'لا توجد بيانات لعرض لوحة التحكم بعد',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18.sp(context),
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'ابدأ بإضافة مستأجر أو تسجيل حجز أو مصروف. ستظهر التقارير والأرقام تلقائيًا بعد إدخال بياناتك الفعلية.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                height: 1.5,
+                fontSize: 13.sp(context),
+              ),
+            ),
+          ],
         ),
       ),
     );
