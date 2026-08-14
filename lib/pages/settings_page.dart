@@ -464,6 +464,95 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _clearLocalData() async {
+    final shouldClear =
+        await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.delete_forever, color: Colors.red),
+                SizedBox(width: 8),
+                Expanded(child: Text('مسح جميع البيانات المحلية')),
+              ],
+            ),
+            content: const Text(
+              'سيُمسح جميع المستأجرين والحجوزات والدفعات والمصروفات وسجل التدقيق من هذا الجهاز. لا يمكن التراجع عن المسح من داخل التطبيق، لكن سيُنشئ التطبيق نسخة استعادة JSON تلقائية قبل التنفيذ.',
+              style: TextStyle(height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('مسح جميع البيانات'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!shouldClear) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final recoveryPath = await _createRecoveryBackup();
+      final result = await DatabaseHelper.instance.clearLocalData();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
+              SizedBox(width: 8),
+              Text('أصبحت القوائم فارغة'),
+            ],
+          ),
+          content: Text(
+            result.totalDeleted == 0
+                ? 'لا توجد سجلات محلية لمسحها.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath'
+                : 'مُسح ${result.totalDeleted} سجلًا محليًا، وأصبحت قوائم الحجوزات والمستأجرين والتقارير المالية فارغة.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath',
+            style: const TextStyle(height: 1.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('موافق'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) widget.onDatabaseRestored();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تعذر مسح البيانات المحلية: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -591,6 +680,23 @@ class _SettingsPageState extends State<SettingsPage> {
                             color: Colors.deepOrange,
                             width: 1.5,
                           ),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _clearLocalData,
+                        icon: const Icon(Icons.delete_forever, size: 22),
+                        label: const Text(
+                          'مسح جميع البيانات المحلية',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red, width: 1.5),
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

@@ -330,6 +330,48 @@ void main() {
   });
 
   test(
+    'يمسح جميع بيانات التشغيل المحلية ويبقي قاعدة البيانات جاهزة للإضافة',
+    () async {
+      await helper.insertRenter(renter('0511111111', 'مستأجر أول'));
+      final bookingId = await helper.insertBooking(
+        booking(
+          phone: '0511111111',
+          startDate: '2026-11-01',
+          endDate: '2026-11-02',
+        ),
+      );
+      await helper.insertPayment({
+        'booking_id': bookingId,
+        'amount': 250.0,
+        'paid_at': '2026-10-20',
+        'method': 'cash',
+      });
+      await helper.insertExpense({
+        'description': 'صيانة',
+        'amount': 125.0,
+        'date': '2026-10-20',
+        'category': 'صيانة',
+      });
+
+      final result = await helper.clearLocalData();
+
+      expect(result.deletedPayments, 1);
+      expect(result.deletedBookings, 1);
+      expect(result.deletedRenters, 1);
+      expect(result.deletedExpenses, 1);
+      expect(result.deletedAuditEvents, greaterThanOrEqualTo(2));
+      expect(await helper.queryAllRenters(), isEmpty);
+      expect(await helper.queryAllBookings(), isEmpty);
+      expect(await helper.queryAllPayments(), isEmpty);
+      expect(await helper.queryAllExpenses(), isEmpty);
+      expect(await helper.queryRecentAuditEvents(), isEmpty);
+
+      await helper.insertRenter(renter('0522222222', 'مستأجر جديد'));
+      expect(await helper.queryAllRenters(), hasLength(1));
+    },
+  );
+
+  test(
     'يحذف البيانات التجريبية الموسومة فقط ويحافظ على البيانات الفعلية',
     () async {
       await helper.seedInitialData();
