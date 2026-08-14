@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'resthouse.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 7;
   static const backupSchemaVersion = 1;
 
   static const tableRenters = 'renters';
@@ -116,6 +116,27 @@ class DatabaseHelper {
       await _createAuditEventsTable(db);
     }
 
+    if (oldVersion < 7) {
+      await _addColumnIfMissing(
+        db,
+        tablePayments,
+        'status',
+        "status TEXT NOT NULL DEFAULT 'confirmed'",
+      );
+      await _addColumnIfMissing(
+        db,
+        tablePayments,
+        'voided_at',
+        'voided_at TEXT',
+      );
+      await _addColumnIfMissing(
+        db,
+        tablePayments,
+        'void_reason',
+        'void_reason TEXT',
+      );
+    }
+
     await _recalculateRentalCounts(db);
     await _createIndexes(db);
   }
@@ -206,6 +227,9 @@ class DatabaseHelper {
         paid_at TEXT NOT NULL,
         method TEXT NOT NULL DEFAULT 'cash',
         note TEXT,
+        status TEXT NOT NULL DEFAULT 'confirmed',
+        voided_at TEXT,
+        void_reason TEXT,
         FOREIGN KEY (booking_id) REFERENCES $tableBookings(id)
           ON UPDATE CASCADE ON DELETE CASCADE
       )
@@ -561,7 +585,7 @@ class DatabaseHelper {
       }
       final totalPrice = (bookingRows.single['total_price'] as num).toDouble();
       final paidResult = await txn.rawQuery(
-        'SELECT COALESCE(SUM(amount), 0) AS paid FROM $tablePayments WHERE booking_id = ?',
+        "SELECT COALESCE(SUM(amount), 0) AS paid FROM $tablePayments WHERE booking_id = ? AND status = 'confirmed'",
         [bookingId],
       );
       final paid = (paidResult.single['paid'] as num).toDouble();
@@ -586,7 +610,7 @@ class DatabaseHelper {
     final db = await database;
     return db.query(
       tablePayments,
-      where: 'booking_id = ?',
+      where: "booking_id = ? AND status = 'confirmed'",
       whereArgs: [bookingId],
       orderBy: 'paid_at DESC, id DESC',
     );
@@ -604,6 +628,7 @@ class DatabaseHelper {
       SELECT b.total_price AS total, COALESCE(SUM(p.amount), 0) AS paid
       FROM $tableBookings b
       LEFT JOIN $tablePayments p ON p.booking_id = b.id
+        AND p.status = 'confirmed'
       WHERE b.id = ?
       GROUP BY b.id
     ''',
@@ -644,6 +669,25 @@ class DatabaseHelper {
       orderBy: 'created_at DESC, id DESC',
       limit: limit,
     );
+  }
+
+  Future<int> voidPayment(int paymentId, {required String reason}) async {
+    if (reason.trim().isEmpty) {
+      throw ArgumentError('سبب إلغاء الدفعة مطلوب.');
+    }
+    final db = await database;
+    return db.transaction((txn) async {
+      return txn.update(
+        tablePayments,
+        {
+          'status': 'voided',
+          'voided_at': DateTime.now().toUtc().toIso8601String(),
+          'void_reason': reason.trim(),
+        },
+        where: "id = ? AND status = 'confirmed'",
+        whereArgs: [paymentId],
+      );
+    });
   }
 
   Future<String> getDatabasePath() => _resolveDatabasePath();
