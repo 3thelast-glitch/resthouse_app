@@ -55,6 +55,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   // للتبديل في القائمة الجانبية بين الحجوزات والمستأجرين
   bool _showRentersTab = false;
   String _bookingFilter = 'active'; // 'active' or 'archived'
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -1553,6 +1554,29 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   ],
                   const SizedBox(height: 12),
+                  TextField(
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    decoration: InputDecoration(
+                      hintText: _showRentersTab
+                          ? 'ابحث بالاسم أو رقم الهاتف'
+                          : 'ابحث عن حجز بالاسم أو رقم الهاتف',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () =>
+                                  setState(() => _searchQuery = ''),
+                            ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   // محتوى القائمة
                   Expanded(
                     child: _showRentersTab
@@ -1815,12 +1839,151 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     );
   }
 
+  Future<void> _showAddPaymentDialog(Map<String, dynamic> booking) async {
+    final bookingId = booking['id'] as int;
+    final summary = await dbHelper.queryPaymentSummary(bookingId);
+    if (!mounted) return;
+    final amountController = TextEditingController();
+    final noteController = TextEditingController();
+    String method = 'cash';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('تسجيل دفعة'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'إجمالي الحجز: ${summary['total']!.toStringAsFixed(2)} ر.س',
+                ),
+                Text('المسدد: ${summary['paid']!.toStringAsFixed(2)} ر.س'),
+                Text(
+                  'المتبقي: ${summary['remaining']!.toStringAsFixed(2)} ر.س',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F766E),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'قيمة الدفعة (ر.س)',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: method,
+                  decoration: const InputDecoration(labelText: 'طريقة السداد'),
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('نقدي')),
+                    DropdownMenuItem(
+                      value: 'transfer',
+                      child: Text('تحويل بنكي'),
+                    ),
+                    DropdownMenuItem(value: 'card', child: Text('بطاقة')),
+                  ],
+                  onChanged: (value) =>
+                      setDialogState(() => method = value ?? 'cash'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: noteController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'ملاحظة (اختياري)',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final amount = double.tryParse(amountController.text.trim());
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('أدخل قيمة دفعة صحيحة.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                try {
+                  await dbHelper.insertPayment({
+                    'booking_id': bookingId,
+                    'amount': amount,
+                    'paid_at': DateTime.now()
+                        .toIso8601String()
+                        .split('T')
+                        .first,
+                    'method': method,
+                    'note': noteController.text.trim(),
+                  });
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تم تسجيل الدفعة بنجاح.')),
+                  );
+                } on ArgumentError catch (error) {
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        error.message?.toString() ?? 'تعذر تسجيل الدفعة.',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } on StateError catch (error) {
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: Text(error.message),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('حفظ الدفعة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // بناء قائمة الحجوزات العامة (مرتبة من الأحدث إلى الأقدم)
   Widget _buildBookingsList() {
     final todayStr = DateTime.now().toString().split(' ')[0];
+    final normalizedQuery = _searchQuery.trim().toLowerCase();
     final filtered = _bookings.where((b) {
       final isArchived = b['end_date'].toString().compareTo(todayStr) < 0;
-      return _bookingFilter == 'archived' ? isArchived : !isArchived;
+      final renter = _renters.firstWhere(
+        (r) => r['phone'] == b['phone'],
+        orElse: () => const <String, dynamic>{},
+      );
+      final matchesSearch =
+          normalizedQuery.isEmpty ||
+          b['phone'].toString().contains(normalizedQuery) ||
+          renter['full_name'].toString().toLowerCase().contains(
+            normalizedQuery,
+          );
+      return (_bookingFilter == 'archived' ? isArchived : !isArchived) &&
+          matchesSearch;
     }).toList();
 
     if (filtered.isEmpty) {
@@ -1956,6 +2119,18 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         children: [
                           IconButton(
                             icon: const Icon(
+                              Icons.payments_outlined,
+                              color: Color(0xFF0F766E),
+                              size: 18,
+                            ),
+                            tooltip: 'تسجيل دفعة',
+                            onPressed: () => _showAddPaymentDialog(booking),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            icon: const Icon(
                               Icons.edit_outlined,
                               color: Colors.blue,
                               size: 18,
@@ -1999,7 +2174,15 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     if (_renters.isEmpty) {
       return const Center(child: Text('لا توجد مستأجرين مسجلين بعد'));
     }
-    final sorted = List<Map<String, dynamic>>.from(_renters)
+    final normalizedQuery = _searchQuery.trim().toLowerCase();
+    final matchingRenters = _renters.where((renter) {
+      return normalizedQuery.isEmpty ||
+          renter['full_name'].toString().toLowerCase().contains(
+            normalizedQuery,
+          ) ||
+          renter['phone'].toString().contains(normalizedQuery);
+    }).toList();
+    final sorted = List<Map<String, dynamic>>.from(matchingRenters)
       ..sort((a, b) {
         final countA = (a['rental_count'] as num?)?.toInt() ?? 0;
         final countB = (b['rental_count'] as num?)?.toInt() ?? 0;

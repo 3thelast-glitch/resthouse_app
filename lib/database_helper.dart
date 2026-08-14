@@ -4,12 +4,13 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'resthouse.db';
-  static const _databaseVersion = 4;
+  static const _databaseVersion = 5;
   static const backupSchemaVersion = 1;
 
   static const tableRenters = 'renters';
   static const tableBookings = 'bookings';
   static const tableExpenses = 'expenses';
+  static const tablePayments = 'payments';
 
   static const statusConfirmed = 'confirmed';
   static const statusPending = 'pending';
@@ -72,6 +73,7 @@ class DatabaseHelper {
       )
     ''');
 
+    await _createPaymentsTable(db);
     await _createIndexes(db);
   }
 
@@ -102,6 +104,10 @@ class DatabaseHelper {
 
     if (oldVersion < 4) {
       await _migrateBookingsForeignKey(db);
+    }
+
+    if (oldVersion < 5) {
+      await _createPaymentsTable(db);
     }
 
     await _recalculateRentalCounts(db);
@@ -185,6 +191,21 @@ class DatabaseHelper {
     await db.execute('DROP TABLE $legacyTable');
   }
 
+  Future<void> _createPaymentsTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tablePayments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        booking_id INTEGER NOT NULL,
+        amount REAL NOT NULL CHECK (amount > 0),
+        paid_at TEXT NOT NULL,
+        method TEXT NOT NULL DEFAULT 'cash',
+        note TEXT,
+        FOREIGN KEY (booking_id) REFERENCES $tableBookings(id)
+          ON UPDATE CASCADE ON DELETE CASCADE
+      )
+    ''');
+  }
+
   Future<void> _createIndexes(DatabaseExecutor db) async {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_bookings_dates_status '
@@ -195,6 +216,9 @@ class DatabaseHelper {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_expenses_date ON $tableExpenses(date)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_payments_booking ON $tablePayments(booking_id, paid_at)',
     );
   }
 
@@ -443,6 +467,77 @@ class DatabaseHelper {
     );
   }
 
+  Future<int> insertPayment(Map<String, dynamic> row) async {
+    final bookingId = row['booking_id'];
+    final amount = row['amount'];
+    final paidAt = row['paid_at'];
+    if (bookingId is! int ||
+        amount is! num ||
+        amount <= 0 ||
+        paidAt is! String ||
+        paidAt.isEmpty) {
+      throw ArgumentError('بيانات الدفعة غير صالحة.');
+    }
+
+    final db = await database;
+    return db.transaction((txn) async {
+      final bookingRows = await txn.query(
+        tableBookings,
+        columns: ['total_price'],
+        where: 'id = ?',
+        whereArgs: [bookingId],
+      );
+      if (bookingRows.isEmpty) {
+        throw StateError('الحجز المرتبط بالدفعة غير موجود.');
+      }
+      final totalPrice = (bookingRows.single['total_price'] as num).toDouble();
+      final paidResult = await txn.rawQuery(
+        'SELECT COALESCE(SUM(amount), 0) AS paid FROM $tablePayments WHERE booking_id = ?',
+        [bookingId],
+      );
+      final paid = (paidResult.single['paid'] as num).toDouble();
+      if (paid + amount > totalPrice) {
+        throw ArgumentError('لا يمكن أن تتجاوز الدفعات إجمالي قيمة الحجز.');
+      }
+      return txn.insert(tablePayments, row);
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> queryPaymentsForBooking(
+    int bookingId,
+  ) async {
+    final db = await database;
+    return db.query(
+      tablePayments,
+      where: 'booking_id = ?',
+      whereArgs: [bookingId],
+      orderBy: 'paid_at DESC, id DESC',
+    );
+  }
+
+  Future<Map<String, double>> queryPaymentSummary(int bookingId) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      '''
+      SELECT b.total_price AS total, COALESCE(SUM(p.amount), 0) AS paid
+      FROM $tableBookings b
+      LEFT JOIN $tablePayments p ON p.booking_id = b.id
+      WHERE b.id = ?
+      GROUP BY b.id
+    ''',
+      [bookingId],
+    );
+    if (rows.isEmpty) throw StateError('الحجز غير موجود.');
+    final total = (rows.single['total'] as num).toDouble();
+    final paid = (rows.single['paid'] as num).toDouble();
+    return {'total': total, 'paid': paid, 'remaining': total - paid};
+  }
+
+  Future<int> deletePayment(int paymentId) async {
+    final db = await database;
+    return db.delete(tablePayments, where: 'id = ?', whereArgs: [paymentId]);
+  }
+
   Future<String> getDatabasePath() => _resolveDatabasePath();
 
   Future<void> closeDatabase() async {
@@ -516,6 +611,7 @@ class DatabaseHelper {
     final renters = await db.query(tableRenters, orderBy: 'phone ASC');
     final bookings = await db.query(tableBookings, orderBy: 'id ASC');
     final expenses = await db.query(tableExpenses, orderBy: 'id ASC');
+    final payments = await db.query(tablePayments, orderBy: 'id ASC');
 
     return {
       'app': 'resthouse_app',
@@ -525,6 +621,7 @@ class DatabaseHelper {
         tableRenters: renters,
         tableBookings: bookings,
         tableExpenses: expenses,
+        tablePayments: payments,
       },
     };
   }
@@ -534,11 +631,16 @@ class DatabaseHelper {
     final renters = _rowsFromBackup(backupData[tableRenters], tableRenters);
     final bookings = _rowsFromBackup(backupData[tableBookings], tableBookings);
     final expenses = _rowsFromBackup(backupData[tableExpenses], tableExpenses);
+    final payments = _rowsFromBackup(
+      backupData[tablePayments] ?? const [],
+      tablePayments,
+    );
 
-    _validateBackupRows(renters, bookings, expenses);
+    _validateBackupRows(renters, bookings, expenses, payments);
 
     final db = await database;
     await db.transaction((txn) async {
+      await txn.delete(tablePayments);
       await txn.delete(tableBookings);
       await txn.delete(tableExpenses);
       await txn.delete(tableRenters);
@@ -566,6 +668,13 @@ class DatabaseHelper {
           conflictAlgorithm: ConflictAlgorithm.abort,
         );
       }
+      for (final payment in payments) {
+        batch.insert(
+          tablePayments,
+          payment,
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
       await batch.commit(noResult: true);
 
       await _recalculateRentalCounts(txn);
@@ -590,7 +699,13 @@ class DatabaseHelper {
       throw const FormatException('بنية بيانات النسخة الاحتياطية غير صالحة.');
     }
     final normalized = Map<String, dynamic>.from(data);
-    for (final table in [tableRenters, tableBookings, tableExpenses]) {
+    normalized.putIfAbsent(tablePayments, () => <Object>[]);
+    for (final table in [
+      tableRenters,
+      tableBookings,
+      tableExpenses,
+      tablePayments,
+    ]) {
       if (normalized[table] is! List) {
         throw FormatException(
           'النسخة الاحتياطية لا تحتوي بيانات $table بشكل صالح.',
@@ -616,6 +731,7 @@ class DatabaseHelper {
     List<Map<String, dynamic>> renters,
     List<Map<String, dynamic>> bookings,
     List<Map<String, dynamic>> expenses,
+    List<Map<String, dynamic>> payments,
   ) {
     final renterPhones = <String>{};
     for (final renter in renters) {
@@ -660,6 +776,26 @@ class DatabaseHelper {
       if (amount is! num || amount <= 0 || date is! String || date.isEmpty) {
         throw const FormatException(
           'بيانات المصروفات في النسخة الاحتياطية غير صالحة.',
+        );
+      }
+    }
+
+    final bookingIds = bookings
+        .map((booking) => booking['id'])
+        .whereType<int>()
+        .toSet();
+    for (final payment in payments) {
+      final bookingId = payment['booking_id'];
+      final amount = payment['amount'];
+      final paidAt = payment['paid_at'];
+      if (bookingId is! int ||
+          !bookingIds.contains(bookingId) ||
+          amount is! num ||
+          amount <= 0 ||
+          paidAt is! String ||
+          paidAt.isEmpty) {
+        throw const FormatException(
+          'بيانات الدفعات في النسخة الاحتياطية غير صالحة.',
         );
       }
     }
