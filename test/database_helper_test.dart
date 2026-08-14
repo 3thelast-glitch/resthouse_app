@@ -85,6 +85,45 @@ void main() {
     expect(await helper.queryAllBookings(), hasLength(1));
   });
 
+  test('يقصر تعارض الحجوزات على الاستراحة نفسها', () async {
+    await helper.insertRenter(renter('0511111111', 'مستأجر أول'));
+    final secondPropertyId = await helper.insertProperty({
+      'name': 'الاستراحة الثانية',
+      'notes': '',
+    });
+    await helper.insertBooking(
+      booking(
+        phone: '0511111111',
+        startDate: '2026-08-10',
+        endDate: '2026-08-12',
+      ),
+    );
+    await helper.insertBooking({
+      ...booking(
+        phone: '0511111111',
+        startDate: '2026-08-10',
+        endDate: '2026-08-12',
+      ),
+      'property_id': secondPropertyId,
+    });
+
+    expect(await helper.queryAllBookings(propertyId: 1), hasLength(1));
+    expect(
+      await helper.queryAllBookings(propertyId: secondPropertyId),
+      hasLength(1),
+    );
+    await expectLater(
+      helper.insertBooking(
+        booking(
+          phone: '0511111111',
+          startDate: '2026-08-11',
+          endDate: '2026-08-13',
+        ),
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
+
   test('يحدّث الحجوزات عند تغيير الهاتف ويمنع حذف مستأجر ذي حجوزات', () async {
     await helper.insertRenter(renter('0511111111', 'مستأجر أول'));
     await helper.insertBooking(
