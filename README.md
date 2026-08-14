@@ -64,7 +64,7 @@
 | المنصة | الحالة | ملاحظة تشغيلية |
 |---|---|---|
 | Android | مدعومة | تعمل بقاعدة بيانات SQLite المحلية. |
-| iOS | مدعومة | يلزم macOS وXcode لبناء التطبيق وتوقيعه أو تشغيله على جهاز فعلي. |
+| iOS | مدعومة | يستهدف التطبيق iOS 13 أو أحدث. يلزم macOS وXcode لبنائه وتوقيعه أو تشغيله على iPhone/iPad. |
 | Windows | مدعومة | يستخدم التطبيق `sqflite_common_ffi` لقاعدة البيانات على سطح المكتب. |
 | macOS | مدعومة | يستخدم التطبيق `sqflite_common_ffi` لقاعدة البيانات على سطح المكتب. |
 | Linux | مدعومة | يستخدم التطبيق `sqflite_common_ffi` لقاعدة البيانات على سطح المكتب. |
@@ -124,6 +124,23 @@ flutter build macos --release
 # iOS — على macOS فقط، وبعد إعداد التوقيع في Xcode
 flutter build ipa --release
 ```
+
+### إعداد iOS واختباره
+
+يتطلب بناء iOS جهاز Mac مثبتًا عليه Xcode وCocoaPods وحساب Apple Developer عند التوزيع على TestFlight أو App Store. قبل أول تشغيل، غيّر معرّف الحزمة التجريبي `com.example.resthouseApp` من إعدادات Target `Runner` في Xcode إلى معرّف فريد تملكه، ثم اختر فريق التوقيع المناسب.
+
+نفّذ الأوامر التالية على macOS من جذر المشروع، وافتح **`Runner.xcworkspace`** وليس ملف `Runner.xcodeproj` عند ضبط التوقيع أو معالجة أخطاء CocoaPods:
+
+```bash
+flutter pub get
+cd ios
+pod install
+open Runner.xcworkspace
+cd ..
+flutter run -d <iphone-device-id>
+```
+
+يحفظ التطبيق قاعدة البيانات محليًا على الجهاز. وتظهر نسخ JSON الاحتياطية في مستندات التطبيق، وتكون قابلة للوصول من تطبيق «الملفات» أو Finder لأن مشاركة الملفات مفعلة في إعدادات iOS.
 
 ## التحقق والاختبارات
 
