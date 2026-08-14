@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../utils/responsive.dart';
+
 import 'package:fl_chart/fl_chart.dart';
+
 import '../database_helper.dart';
+import '../services/financial_summary_service.dart';
 
 class UltimateDashboardPage extends StatefulWidget {
   const UltimateDashboardPage({super.key});
@@ -47,49 +51,27 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   Future<void> _loadDashboardData() async {
     final bookings = await dbHelper.queryAllBookings();
     final expenses = await dbHelper.queryAllExpenses();
+    final payments = await dbHelper.queryAllPayments();
     final renters = await dbHelper.queryAllRenters();
-
-    double revenue = 0.0;
-    double expenseAmount = 0.0;
-
-    // حساب المجموع الكلي
-    for (var b in bookings) {
-      revenue += (b['total_price'] as num).toDouble();
-    }
-    for (var e in expenses) {
-      expenseAmount += (e['amount'] as num).toDouble();
-    }
+    final summary = FinancialSummaryService.calculate(
+      bookings: bookings,
+      expenses: expenses,
+      payments: payments,
+    );
 
     // حساب الحجوزات النشطة (التي تنتهي اليوم أو مستقبلاً)
     final todayStr = DateTime.now().toString().split(' ')[0];
     int activeCount = 0;
     for (var b in bookings) {
-      if (b['end_date'].toString().compareTo(todayStr) >= 0) {
+      if (b['status'] == DatabaseHelper.statusConfirmed &&
+          b['end_date'].toString().compareTo(todayStr) >= 0) {
         activeCount++;
       }
     }
 
     // تجميع الإحصائيات الشهرية للرسم البياني
-    final Map<String, double> mRevenue = {};
-    final Map<String, double> mExpenses = {};
-
-    for (var b in bookings) {
-      final date = b['start_date'].toString();
-      if (date.length >= 7) {
-        final month = date.substring(0, 7); // yyyy-MM
-        mRevenue[month] =
-            (mRevenue[month] ?? 0.0) + (b['total_price'] as num).toDouble();
-      }
-    }
-
-    for (var e in expenses) {
-      final date = e['date'].toString();
-      if (date.length >= 7) {
-        final month = date.substring(0, 7); // yyyy-MM
-        mExpenses[month] =
-            (mExpenses[month] ?? 0.0) + (e['amount'] as num).toDouble();
-      }
-    }
+    final mRevenue = summary.monthlyRevenue;
+    final mExpenses = summary.monthlyExpenses;
 
     List<String> months = {...mRevenue.keys, ...mExpenses.keys}.toList()
       ..sort();
@@ -132,8 +114,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
 
     if (!mounted) return;
     setState(() {
-      _totalRevenue = revenue;
-      _totalExpenses = expenseAmount;
+      _totalRevenue = summary.bookingRevenue;
+      _totalExpenses = summary.expenses;
       _bookingsCount = bookings.length;
       _rentersCount = renters.length;
       _activeBookingsCount = activeCount;

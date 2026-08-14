@@ -515,6 +515,11 @@ class DatabaseHelper {
     );
   }
 
+  Future<List<Map<String, dynamic>>> queryAllPayments() async {
+    final db = await database;
+    return db.query(tablePayments, orderBy: 'paid_at DESC, id DESC');
+  }
+
   Future<Map<String, double>> queryPaymentSummary(int bookingId) async {
     final db = await database;
     final rows = await db.rawQuery(
