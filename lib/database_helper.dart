@@ -4,13 +4,14 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'resthouse.db';
-  static const _databaseVersion = 5;
+  static const _databaseVersion = 6;
   static const backupSchemaVersion = 1;
 
   static const tableRenters = 'renters';
   static const tableBookings = 'bookings';
   static const tableExpenses = 'expenses';
   static const tablePayments = 'payments';
+  static const tableAuditEvents = 'audit_events';
 
   static const statusConfirmed = 'confirmed';
   static const statusPending = 'pending';
@@ -74,6 +75,7 @@ class DatabaseHelper {
     ''');
 
     await _createPaymentsTable(db);
+    await _createAuditEventsTable(db);
     await _createIndexes(db);
   }
 
@@ -108,6 +110,10 @@ class DatabaseHelper {
 
     if (oldVersion < 5) {
       await _createPaymentsTable(db);
+    }
+
+    if (oldVersion < 6) {
+      await _createAuditEventsTable(db);
     }
 
     await _recalculateRentalCounts(db);
@@ -206,6 +212,19 @@ class DatabaseHelper {
     ''');
   }
 
+  Future<void> _createAuditEventsTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableAuditEvents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        details TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+  }
+
   Future<void> _createIndexes(DatabaseExecutor db) async {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_bookings_dates_status '
@@ -220,6 +239,25 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_payments_booking ON $tablePayments(booking_id, paid_at)',
     );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_audit_events_created ON $tableAuditEvents(created_at DESC)',
+    );
+  }
+
+  Future<void> _recordAudit(
+    DatabaseExecutor db, {
+    required String entityType,
+    required Object entityId,
+    required String action,
+    String? details,
+  }) async {
+    await db.insert(tableAuditEvents, {
+      'entity_type': entityType,
+      'entity_id': entityId.toString(),
+      'action': action,
+      'details': details,
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+    });
   }
 
   Future<void> _recalculateRentalCounts(DatabaseExecutor db) async {
@@ -310,6 +348,12 @@ class DatabaseHelper {
     return db.transaction((txn) async {
       await _assertNoBookingConflict(txn, row);
       final id = await txn.insert(tableBookings, row);
+      await _recordAudit(
+        txn,
+        entityType: 'booking',
+        entityId: id,
+        action: 'created',
+      );
       await _recalculateRentalCounts(txn);
       return id;
     });
@@ -336,6 +380,14 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [id],
       );
+      if (updated > 0) {
+        await _recordAudit(
+          txn,
+          entityType: 'booking',
+          entityId: id,
+          action: 'updated',
+        );
+      }
       await _recalculateRentalCounts(txn);
       return updated;
     });
@@ -344,6 +396,12 @@ class DatabaseHelper {
   Future<int> deleteBooking(int id) async {
     final db = await database;
     return db.transaction((txn) async {
+      await _recordAudit(
+        txn,
+        entityType: 'booking',
+        entityId: id,
+        action: 'deleted',
+      );
       final deleted = await txn.delete(
         tableBookings,
         where: 'id = ?',
@@ -459,12 +517,23 @@ class DatabaseHelper {
     }
 
     final db = await database;
-    return db.update(
-      tableBookings,
-      {'deposit_status': status},
-      where: 'id = ?',
-      whereArgs: [bookingId],
-    );
+    return db.transaction((txn) async {
+      final updated = await txn.update(
+        tableBookings,
+        {'deposit_status': status},
+        where: 'id = ?',
+        whereArgs: [bookingId],
+      );
+      if (updated > 0) {
+        await _recordAudit(
+          txn,
+          entityType: 'deposit',
+          entityId: bookingId,
+          action: status,
+        );
+      }
+      return updated;
+    });
   }
 
   Future<int> insertPayment(Map<String, dynamic> row) async {
@@ -499,7 +568,15 @@ class DatabaseHelper {
       if (paid + amount > totalPrice) {
         throw ArgumentError('لا يمكن أن تتجاوز الدفعات إجمالي قيمة الحجز.');
       }
-      return txn.insert(tablePayments, row);
+      final id = await txn.insert(tablePayments, row);
+      await _recordAudit(
+        txn,
+        entityType: 'payment',
+        entityId: id,
+        action: 'created',
+        details: 'booking_id=$bookingId; amount=$amount',
+      );
+      return id;
     });
   }
 
@@ -535,7 +612,33 @@ class DatabaseHelper {
 
   Future<int> deletePayment(int paymentId) async {
     final db = await database;
-    return db.delete(tablePayments, where: 'id = ?', whereArgs: [paymentId]);
+    return db.transaction((txn) async {
+      final deleted = await txn.delete(
+        tablePayments,
+        where: 'id = ?',
+        whereArgs: [paymentId],
+      );
+      if (deleted > 0) {
+        await _recordAudit(
+          txn,
+          entityType: 'payment',
+          entityId: paymentId,
+          action: 'deleted',
+        );
+      }
+      return deleted;
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> queryRecentAuditEvents({
+    int limit = 100,
+  }) async {
+    final db = await database;
+    return db.query(
+      tableAuditEvents,
+      orderBy: 'created_at DESC, id DESC',
+      limit: limit,
+    );
   }
 
   Future<String> getDatabasePath() => _resolveDatabasePath();
