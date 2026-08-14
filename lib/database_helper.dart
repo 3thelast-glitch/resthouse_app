@@ -19,6 +19,29 @@ class DemoDataDeletionResult {
       deletedPayments + deletedBookings + deletedRenters + deletedExpenses;
 }
 
+class LocalDataClearResult {
+  const LocalDataClearResult({
+    required this.deletedPayments,
+    required this.deletedBookings,
+    required this.deletedRenters,
+    required this.deletedExpenses,
+    required this.deletedAuditEvents,
+  });
+
+  final int deletedPayments;
+  final int deletedBookings;
+  final int deletedRenters;
+  final int deletedExpenses;
+  final int deletedAuditEvents;
+
+  int get totalDeleted =>
+      deletedPayments +
+      deletedBookings +
+      deletedRenters +
+      deletedExpenses +
+      deletedAuditEvents;
+}
+
 class DatabaseHelper {
   static const _databaseName = 'resthouse.db';
   static const _databaseVersion = 8;
@@ -962,6 +985,25 @@ class DatabaseHelper {
         );
       }
       return result;
+    });
+  }
+
+  Future<LocalDataClearResult> clearLocalData() async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final deletedPayments = await txn.delete(tablePayments);
+      final deletedBookings = await txn.delete(tableBookings);
+      final deletedExpenses = await txn.delete(tableExpenses);
+      final deletedRenters = await txn.delete(tableRenters);
+      final deletedAuditEvents = await txn.delete(tableAuditEvents);
+
+      return LocalDataClearResult(
+        deletedPayments: deletedPayments,
+        deletedBookings: deletedBookings,
+        deletedRenters: deletedRenters,
+        deletedExpenses: deletedExpenses,
+        deletedAuditEvents: deletedAuditEvents,
+      );
     });
   }
 
