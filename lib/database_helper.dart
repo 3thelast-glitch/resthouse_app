@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'resthouse.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 7;
   static const backupSchemaVersion = 1;
 
   static const tableRenters = 'renters';
@@ -12,6 +12,7 @@ class DatabaseHelper {
   static const tableExpenses = 'expenses';
   static const tablePayments = 'payments';
   static const tableAuditEvents = 'audit_events';
+  static const tableProperties = 'properties';
 
   static const statusConfirmed = 'confirmed';
   static const statusPending = 'pending';
@@ -62,6 +63,7 @@ class DatabaseHelper {
       )
     ''');
 
+    await _createPropertiesTable(db);
     await _createBookingsTable(db);
 
     await db.execute('''
@@ -116,6 +118,16 @@ class DatabaseHelper {
       await _createAuditEventsTable(db);
     }
 
+    if (oldVersion < 7) {
+      await _createPropertiesTable(db);
+      await _addColumnIfMissing(
+        db,
+        tableBookings,
+        'property_id',
+        'property_id INTEGER NOT NULL DEFAULT 1',
+      );
+    }
+
     await _recalculateRentalCounts(db);
     await _createIndexes(db);
   }
@@ -138,6 +150,7 @@ class DatabaseHelper {
       CREATE TABLE $tableBookings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         phone TEXT NOT NULL,
+        property_id INTEGER NOT NULL DEFAULT 1,
         start_date TEXT NOT NULL,
         end_date TEXT NOT NULL,
         total_price REAL NOT NULL CHECK (total_price >= 0),
@@ -150,6 +163,21 @@ class DatabaseHelper {
           ON UPDATE CASCADE ON DELETE RESTRICT
       )
     ''');
+  }
+
+  Future<void> _createPropertiesTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableProperties (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        notes TEXT
+      )
+    ''');
+    await db.insert(tableProperties, {
+      'id': 1,
+      'name': 'الاستراحة الرئيسية',
+      'notes': '',
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   Future<void> _migrateBookingsForeignKey(Database db) async {
@@ -232,6 +260,9 @@ class DatabaseHelper {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_bookings_phone ON $tableBookings(phone)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_bookings_property_dates ON $tableBookings(property_id, start_date, end_date)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_expenses_date ON $tableExpenses(date)',
@@ -342,12 +373,14 @@ class DatabaseHelper {
   }
 
   Future<int> insertBooking(Map<String, dynamic> row) async {
-    _validateBooking(row);
+    final booking = Map<String, dynamic>.from(row)
+      ..putIfAbsent('property_id', () => 1);
+    _validateBooking(booking);
     final db = await database;
 
     return db.transaction((txn) async {
-      await _assertNoBookingConflict(txn, row);
-      final id = await txn.insert(tableBookings, row);
+      await _assertNoBookingConflict(txn, booking);
+      final id = await txn.insert(tableBookings, booking);
       await _recordAudit(
         txn,
         entityType: 'booking',
@@ -359,9 +392,31 @@ class DatabaseHelper {
     });
   }
 
-  Future<List<Map<String, dynamic>>> queryAllBookings() async {
+  Future<List<Map<String, dynamic>>> queryAllBookings({int? propertyId}) async {
     final db = await database;
-    return db.query(tableBookings, orderBy: 'start_date DESC, id DESC');
+    return db.query(
+      tableBookings,
+      where: propertyId == null ? null : 'property_id = ?',
+      whereArgs: propertyId == null ? null : [propertyId],
+      orderBy: 'start_date DESC, id DESC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> queryAllProperties() async {
+    final db = await database;
+    return db.query(tableProperties, orderBy: 'name COLLATE NOCASE ASC');
+  }
+
+  Future<int> insertProperty(Map<String, dynamic> row) async {
+    final name = row['name'];
+    if (name is! String || name.trim().isEmpty) {
+      throw ArgumentError('اسم الاستراحة مطلوب.');
+    }
+    final db = await database;
+    return db.insert(tableProperties, {
+      'name': name.trim(),
+      'notes': row['notes']?.toString() ?? '',
+    });
   }
 
   Future<int> updateBooking(Map<String, dynamic> row) async {
@@ -415,26 +470,35 @@ class DatabaseHelper {
   Future<bool> hasBookingConflict(
     String startDate,
     String endDate, {
+    int propertyId = 1,
     int? excludeId,
   }) async {
     final db = await database;
-    return _hasBookingConflict(db, startDate, endDate, excludeId: excludeId);
+    return _hasBookingConflict(
+      db,
+      startDate,
+      endDate,
+      propertyId: propertyId,
+      excludeId: excludeId,
+    );
   }
 
   Future<bool> _hasBookingConflict(
     DatabaseExecutor db,
     String startDate,
     String endDate, {
+    required int propertyId,
     int? excludeId,
   }) async {
     var query =
         '''
       SELECT COUNT(*) AS count FROM $tableBookings
       WHERE status = '$statusConfirmed'
+        AND property_id = ?
         AND start_date <= ?
         AND end_date >= ?
     ''';
-    final args = <Object?>[endDate, startDate];
+    final args = <Object?>[propertyId, endDate, startDate];
     if (excludeId != null) {
       query += ' AND id != ?';
       args.add(excludeId);
@@ -455,6 +519,7 @@ class DatabaseHelper {
       db,
       row['start_date'] as String,
       row['end_date'] as String,
+      propertyId: (row['property_id'] as int?) ?? 1,
       excludeId: excludeId,
     );
     if (hasConflict) {
