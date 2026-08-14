@@ -90,9 +90,14 @@ class _SettingsPageState extends State<SettingsPage> {
         if (outputPath != null) {
           await dbFile.copy(outputPath);
         }
+      } else if (io.Platform.isIOS) {
+        // iOS لا يسمح باختيار مجلد حفظ عام؛ نستخدم مستندات التطبيق.
+        // تم تفعيل File Sharing في Info.plist للوصول إلى النسخ عبر Finder أو تطبيق الملفات.
+        final documentsDirectory = await pp.getApplicationDocumentsDirectory();
+        outputPath = p.join(documentsDirectory.path, fileName);
+        await dbFile.copy(outputPath);
       } else {
-        // نظام تشغيل أندرويد
-        // محاولة اختيار مجلد مخصص باستخدام SAF
+        // Android: محاولة اختيار مجلد مخصص باستخدام SAF.
         final selectedDir = await FilePicker.platform.getDirectoryPath(
           dialogTitle: 'اختر مجلد حفظ النسخة الاحتياطية',
         );
@@ -100,7 +105,6 @@ class _SettingsPageState extends State<SettingsPage> {
           outputPath = p.join(selectedDir, fileName);
           await dbFile.copy(outputPath);
         } else {
-          // حل احتياطي: استخدام مجلد التخزين الخارجي الخاص بالتطبيق
           final externalDir = await pp.getExternalStorageDirectory() ?? await pp.getApplicationDocumentsDirectory();
           outputPath = p.join(externalDir.path, fileName);
           await dbFile.copy(outputPath);
@@ -120,7 +124,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   Text('تم التصدير بنجاح'),
                 ],
               ),
-              content: Text('تم حفظ نسخة من البيانات بأمان في المسار التالي:\n\n$outputPath', style: const TextStyle(height: 1.4)),
+              content: Text(
+                io.Platform.isIOS
+                    ? 'تم حفظ النسخة الاحتياطية في مستندات التطبيق. يمكنك الوصول إليها عبر Finder أو تطبيق الملفات عند توصيل iPhone.\n\n$outputPath'
+                    : 'تم حفظ نسخة من البيانات بأمان في المسار التالي:\n\n$outputPath',
+                style: const TextStyle(height: 1.4),
+              ),
               actions: [
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
