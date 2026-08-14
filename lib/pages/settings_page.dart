@@ -375,6 +375,95 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _removeDemoData() async {
+    final shouldDelete =
+        await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.deepOrange),
+                SizedBox(width: 8),
+                Expanded(child: Text('حذف البيانات التجريبية فقط')),
+              ],
+            ),
+            content: const Text(
+              'سيُحذف فقط ما وُسِم داخليًا كبيانات تجريبية. لن تُحذف الحجوزات أو الدفعات أو المستأجرون الذين أُضيفوا أو عُدّلوا للاستخدام الفعلي.\n\nسيُنشئ التطبيق نسخة استعادة تلقائية قبل الحذف.',
+              style: TextStyle(height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('حذف البيانات التجريبية'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!shouldDelete) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final recoveryPath = await _createRecoveryBackup();
+      final result = await DatabaseHelper.instance.deleteDemoData();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
+              SizedBox(width: 8),
+              Text('اكتمل الحذف الانتقائي'),
+            ],
+          ),
+          content: Text(
+            result.totalDeleted == 0
+                ? 'لم يُعثر على بيانات تجريبية موسومة للحذف.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath'
+                : 'حُذف ${result.totalDeleted} سجلًا تجريبيًا فقط، مع الحفاظ على البيانات الفعلية.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath',
+            style: const TextStyle(height: 1.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('موافق'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) widget.onDatabaseRestored();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تعذر حذف البيانات التجريبية: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -480,6 +569,26 @@ class _SettingsPageState extends State<SettingsPage> {
                           foregroundColor: const Color(0xFF0D9488),
                           side: const BorderSide(
                             color: Color(0xFF0D9488),
+                            width: 1.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _removeDemoData,
+                        icon: const Icon(Icons.delete_sweep_outlined, size: 22),
+                        label: const Text(
+                          'حذف البيانات التجريبية فقط',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.deepOrange,
+                          side: const BorderSide(
+                            color: Colors.deepOrange,
                             width: 1.5,
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 18),
