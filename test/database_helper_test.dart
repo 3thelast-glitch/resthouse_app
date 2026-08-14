@@ -227,6 +227,43 @@ void main() {
     expect(await helper.queryAllBookings(), hasLength(1));
   });
 
+  test('يدير الدفعات ويمنع تجاوز قيمة الحجز', () async {
+    await helper.insertRenter(renter('0511111111', 'مستأجر أول'));
+    final bookingId = await helper.insertBooking(
+      booking(
+        phone: '0511111111',
+        startDate: '2026-11-01',
+        endDate: '2026-11-02',
+        totalPrice: 1000,
+      ),
+    );
+
+    await helper.insertPayment({
+      'booking_id': bookingId,
+      'amount': 400.0,
+      'paid_at': '2026-10-20',
+      'method': 'cash',
+      'note': 'عربون',
+    });
+    final summary = await helper.queryPaymentSummary(bookingId);
+    expect(summary['paid'], 400.0);
+    expect(summary['remaining'], 600.0);
+
+    await expectLater(
+      helper.insertPayment({
+        'booking_id': bookingId,
+        'amount': 700.0,
+        'paid_at': '2026-10-21',
+        'method': 'transfer',
+      }),
+      throwsA(isA<ArgumentError>()),
+    );
+    expect(await helper.queryPaymentsForBooking(bookingId), hasLength(1));
+
+    await helper.deleteBooking(bookingId);
+    expect(await helper.queryPaymentsForBooking(bookingId), isEmpty);
+  });
+
   test(
     'يرقي قاعدة الإصدار السابق ويحافظ على الحجوزات اليتيمة كسجلات قابلة للإدارة',
     () async {
