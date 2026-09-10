@@ -2,6 +2,8 @@ import 'package:hijri/hijri_calendar.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'utils/money.dart';
+
 class DemoDataDeletionResult {
   const DemoDataDeletionResult({
     required this.deletedPayments,
@@ -403,9 +405,10 @@ class DatabaseHelper {
     // السجلات المطابقة تمامًا لتعريف البذر والمعزولة عن أي دفعة فعلية.
     for (final seed in _demoSeedRows) {
       final phone = seed['phone'] as String;
-      final date = _parseHijriStringToGregorian(
-        seed['hijriDate'] as String,
-      ).toIso8601String().split('T').first;
+      final date = _parseHijriStringToGregorian(seed['hijriDate'] as String)
+          .toIso8601String()
+          .split('T')
+          .first;
       await db.update(
         tableBookings,
         {'is_demo': 1},
@@ -602,6 +605,12 @@ class DatabaseHelper {
     final db = await database;
     return db.transaction((txn) async {
       await _assertNoBookingConflict(txn, bookingRow, excludeId: id);
+      final paid = await _paidMinor(txn, id);
+      if (Money.toMinor(bookingRow['total_price'] as num) < paid) {
+        throw ArgumentError(
+          'لا يمكن تخفيض سعر الحجز عن المبلغ المسدد. صحح الدفعات الخاطئة أولاً.',
+        );
+      }
       final updated = await txn.update(
         tableBookings,
         bookingRow,
@@ -628,6 +637,18 @@ class DatabaseHelper {
   Future<int> deleteBooking(int id) async {
     final db = await database;
     return db.transaction((txn) async {
+      final payments = await txn.query(
+        tablePayments,
+        columns: ['id'],
+        where: 'booking_id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (payments.isNotEmpty) {
+        throw StateError(
+          'لا يمكن حذف حجز له سجل دفعات. يمكنك تغيير حالته إلى ملغي مع الاحتفاظ بسجله.',
+        );
+      }
       await _recordAudit(
         txn,
         entityType: 'booking',
@@ -701,13 +722,10 @@ class DatabaseHelper {
     final securityDeposit = row['security_deposit'] ?? 0;
     final status = row['status'] ?? statusConfirmed;
 
-    if (startDate is! String ||
-        endDate is! String ||
-        startDate.isEmpty ||
-        endDate.isEmpty) {
+    if (!_isValidDate(startDate) || !_isValidDate(endDate)) {
       throw ArgumentError('يجب إدخال تاريخ بداية ونهاية صالحين.');
     }
-    if (endDate.compareTo(startDate) < 0) {
+    if ((endDate as String).compareTo(startDate as String) < 0) {
       throw ArgumentError(
         'تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.',
       );
@@ -721,6 +739,34 @@ class DatabaseHelper {
     if (![statusConfirmed, statusPending, statusCancelled].contains(status)) {
       throw ArgumentError('حالة الحجز غير صالحة.');
     }
+    row['total_price'] = Money.normalize(totalPrice);
+    row['security_deposit'] = Money.normalize(securityDeposit);
+    final depositStatus = row['deposit_status'] ?? depositPending;
+    if (![
+      depositPending,
+      depositReturned,
+      depositDeducted,
+    ].contains(depositStatus)) {
+      throw ArgumentError('حالة التأمين غير صالحة.');
+    }
+  }
+
+  bool _isValidDate(Object? value) {
+    if (value is! String || !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value)) {
+      return false;
+    }
+    final parsed = DateTime.tryParse(value);
+    return parsed != null && parsed.toIso8601String().split('T').first == value;
+  }
+
+  Future<int> _paidMinor(DatabaseExecutor db, int bookingId) async {
+    final rows = await db.query(
+      tablePayments,
+      columns: ['amount'],
+      where: "booking_id = ? AND status = 'confirmed'",
+      whereArgs: [bookingId],
+    );
+    return Money.sumMinor(rows, 'amount');
   }
 
   /// Returns ended, confirmed bookings with a positive unresolved deposit.
@@ -786,10 +832,17 @@ class DatabaseHelper {
     if (bookingId is! int ||
         amount is! num ||
         amount <= 0 ||
-        paidAt is! String ||
-        paidAt.isEmpty) {
+        !_isValidDate(paidAt)) {
       throw ArgumentError('بيانات الدفعة غير صالحة.');
     }
+    final amountMinor = Money.toMinor(amount);
+    if (amountMinor <= 0) {
+      throw ArgumentError('قيمة الدفعة يجب أن تكون هللة واحدة على الأقل.');
+    }
+    paymentRow['amount'] = Money.fromMinor(amountMinor);
+    paymentRow['status'] = 'confirmed';
+    paymentRow.remove('voided_at');
+    paymentRow.remove('void_reason');
 
     final db = await database;
     return db.transaction((txn) async {
@@ -802,13 +855,11 @@ class DatabaseHelper {
       if (bookingRows.isEmpty) {
         throw StateError('الحجز المرتبط بالدفعة غير موجود.');
       }
-      final totalPrice = (bookingRows.single['total_price'] as num).toDouble();
-      final paidResult = await txn.rawQuery(
-        "SELECT COALESCE(SUM(amount), 0) AS paid FROM $tablePayments WHERE booking_id = ? AND status = 'confirmed'",
-        [bookingId],
+      final totalPrice = Money.toMinor(
+        bookingRows.single['total_price'] as num,
       );
-      final paid = (paidResult.single['paid'] as num).toDouble();
-      if (paid + amount > totalPrice) {
+      final paid = await _paidMinor(txn, bookingId);
+      if (paid + amountMinor > totalPrice) {
         throw ArgumentError('لا يمكن أن تتجاوز الدفعات إجمالي قيمة الحجز.');
       }
       final id = await txn.insert(tablePayments, paymentRow);
@@ -834,12 +885,15 @@ class DatabaseHelper {
   }
 
   Future<List<Map<String, dynamic>>> queryPaymentsForBooking(
-    int bookingId,
-  ) async {
+    int bookingId, {
+    bool includeVoided = false,
+  }) async {
     final db = await database;
     return db.query(
       tablePayments,
-      where: "booking_id = ? AND status = 'confirmed'",
+      where: includeVoided
+          ? 'booking_id = ?'
+          : "booking_id = ? AND status = 'confirmed'",
       whereArgs: [bookingId],
       orderBy: 'paid_at DESC, id DESC',
     );
@@ -852,41 +906,28 @@ class DatabaseHelper {
 
   Future<Map<String, double>> queryPaymentSummary(int bookingId) async {
     final db = await database;
-    final rows = await db.rawQuery(
-      '''
-      SELECT b.total_price AS total, COALESCE(SUM(p.amount), 0) AS paid
-      FROM $tableBookings b
-      LEFT JOIN $tablePayments p ON p.booking_id = b.id
-        AND p.status = 'confirmed'
-      WHERE b.id = ?
-      GROUP BY b.id
-    ''',
-      [bookingId],
-    );
-    if (rows.isEmpty) throw StateError('الحجز غير موجود.');
-    final total = (rows.single['total'] as num).toDouble();
-    final paid = (rows.single['paid'] as num).toDouble();
-    return {'total': total, 'paid': paid, 'remaining': total - paid};
+    return db.transaction((txn) async {
+      final rows = await txn.query(
+        tableBookings,
+        columns: ['total_price'],
+        where: 'id = ?',
+        whereArgs: [bookingId],
+      );
+      if (rows.isEmpty) throw StateError('الحجز غير موجود.');
+      final total = Money.toMinor(rows.single['total_price'] as num);
+      final paid = await _paidMinor(txn, bookingId);
+      return {
+        'total': Money.fromMinor(total),
+        'paid': Money.fromMinor(paid),
+        'remaining': Money.fromMinor(total - paid),
+      };
+    });
   }
 
   Future<int> deletePayment(int paymentId) async {
-    final db = await database;
-    return db.transaction((txn) async {
-      final deleted = await txn.delete(
-        tablePayments,
-        where: 'id = ?',
-        whereArgs: [paymentId],
-      );
-      if (deleted > 0) {
-        await _recordAudit(
-          txn,
-          entityType: 'payment',
-          entityId: paymentId,
-          action: 'deleted',
-        );
-      }
-      return deleted;
-    });
+    throw StateError(
+      'لا يمكن حذف الدفعات نهائياً. استخدم إلغاء الدفعة مع تسجيل السبب.',
+    );
   }
 
   Future<List<Map<String, dynamic>>> queryRecentAuditEvents({
@@ -906,7 +947,13 @@ class DatabaseHelper {
     }
     final db = await database;
     return db.transaction((txn) async {
-      return txn.update(
+      final rows = await txn.query(
+        tablePayments,
+        where: "id = ? AND status = 'confirmed'",
+        whereArgs: [paymentId],
+      );
+      if (rows.isEmpty) return 0;
+      final updated = await txn.update(
         tablePayments,
         {
           'status': 'voided',
@@ -917,6 +964,15 @@ class DatabaseHelper {
         where: "id = ? AND status = 'confirmed'",
         whereArgs: [paymentId],
       );
+      await _recordAudit(
+        txn,
+        entityType: 'payment',
+        entityId: paymentId,
+        action: 'voided',
+        details:
+            'booking_id=${rows.single['booking_id']}; amount=${rows.single['amount']}; reason=${reason.trim()}',
+      );
+      return updated;
     });
   }
 
@@ -1037,11 +1093,15 @@ class DatabaseHelper {
 
   Future<int> insertExpense(Map<String, dynamic> row) async {
     final amount = row['amount'];
-    if (amount is! num || amount <= 0) {
+    if (amount is! num || amount <= 0 || !_isValidDate(row['date'])) {
       throw ArgumentError('قيمة المصروف يجب أن تكون أكبر من صفر.');
     }
     final db = await database;
     final expenseRow = Map<String, dynamic>.from(row)..['is_demo'] = 0;
+    expenseRow['amount'] = Money.normalize(amount);
+    if (expenseRow['amount'] <= 0) {
+      throw ArgumentError('قيمة المصروف يجب أن تكون هللة واحدة على الأقل.');
+    }
     return db.insert(tableExpenses, expenseRow);
   }
 
@@ -1053,11 +1113,18 @@ class DatabaseHelper {
   Future<int> updateExpense(Map<String, dynamic> row) async {
     final id = row['id'];
     final amount = row['amount'];
-    if (id is! int || amount is! num || amount <= 0) {
+    if (id is! int ||
+        amount is! num ||
+        amount <= 0 ||
+        !_isValidDate(row['date'])) {
       throw ArgumentError('بيانات المصروف غير صالحة.');
     }
     final db = await database;
     final expenseRow = Map<String, dynamic>.from(row)..['is_demo'] = 0;
+    expenseRow['amount'] = Money.normalize(amount);
+    if (expenseRow['amount'] <= 0) {
+      throw ArgumentError('قيمة المصروف يجب أن تكون هللة واحدة على الأقل.');
+    }
     return db.update(
       tableExpenses,
       expenseRow,
@@ -1084,22 +1151,24 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>> exportBackupData() async {
     final db = await database;
-    final renters = await db.query(tableRenters, orderBy: 'phone ASC');
-    final bookings = await db.query(tableBookings, orderBy: 'id ASC');
-    final expenses = await db.query(tableExpenses, orderBy: 'id ASC');
-    final payments = await db.query(tablePayments, orderBy: 'id ASC');
+    return db.transaction((txn) async {
+      final renters = await txn.query(tableRenters, orderBy: 'phone ASC');
+      final bookings = await txn.query(tableBookings, orderBy: 'id ASC');
+      final expenses = await txn.query(tableExpenses, orderBy: 'id ASC');
+      final payments = await txn.query(tablePayments, orderBy: 'id ASC');
 
-    return {
-      'app': 'resthouse_app',
-      'schemaVersion': backupSchemaVersion,
-      'createdAt': DateTime.now().toUtc().toIso8601String(),
-      'data': {
-        tableRenters: renters,
-        tableBookings: bookings,
-        tableExpenses: expenses,
-        tablePayments: payments,
-      },
-    };
+      return {
+        'app': 'resthouse_app',
+        'schemaVersion': backupSchemaVersion,
+        'createdAt': DateTime.now().toUtc().toIso8601String(),
+        'data': {
+          tableRenters: renters,
+          tableBookings: bookings,
+          tableExpenses: expenses,
+          tablePayments: payments,
+        },
+      };
+    });
   }
 
   Future<void> restoreBackupData(Map<String, dynamic> backup) async {
@@ -1158,6 +1227,13 @@ class DatabaseHelper {
       if (violations.isNotEmpty) {
         throw StateError('النسخة الاحتياطية تحتوي علاقات بيانات غير صالحة.');
       }
+      await _recordAudit(
+        txn,
+        entityType: 'backup',
+        entityId: 'restore',
+        action: 'restored',
+        details: 'bookings=${bookings.length}; payments=${payments.length}',
+      );
     });
   }
 
@@ -1228,12 +1304,26 @@ class DatabaseHelper {
       }
     }
 
+    final bookingTotals = <int, int>{};
     for (final booking in bookings) {
       final phone = booking['phone'];
       if (phone is! String || !renterPhones.contains(phone)) {
         throw const FormatException('يوجد حجز غير مرتبط بمستأجر صالح.');
       }
-      _validateBooking(booking);
+      final id = booking['id'];
+      if (id is! int || id <= 0 || bookingTotals.containsKey(id)) {
+        throw const FormatException(
+          'معرف حجز مفقود أو مكرر في النسخة الاحتياطية.',
+        );
+      }
+      try {
+        _validateBooking(booking);
+        bookingTotals[id] = Money.toMinor(booking['total_price'] as num);
+      } on ArgumentError catch (error) {
+        throw FormatException(
+          error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
+        );
+      }
       final depositStatus = booking['deposit_status'] ?? depositPending;
       if (![
         depositPending,
@@ -1246,33 +1336,89 @@ class DatabaseHelper {
       }
     }
 
+    final confirmed =
+        bookings
+            .where(
+              (row) => (row['status'] ?? statusConfirmed) == statusConfirmed,
+            )
+            .toList()
+          ..sort(
+            (a, b) => (a['start_date'] as String).compareTo(
+              b['start_date'] as String,
+            ),
+          );
+    String? previousEnd;
+    for (final booking in confirmed) {
+      if (previousEnd != null &&
+          (booking['start_date'] as String).compareTo(previousEnd) <= 0) {
+        throw const FormatException(
+          'تحتوي النسخة الاحتياطية على حجوزات مؤكدة متداخلة.',
+        );
+      }
+      previousEnd = booking['end_date'] as String;
+    }
+
     for (final expense in expenses) {
       final amount = expense['amount'];
       final date = expense['date'];
-      if (amount is! num || amount <= 0 || date is! String || date.isEmpty) {
+      if (amount is! num ||
+          !amount.isFinite ||
+          amount <= 0 ||
+          !_isValidDate(date)) {
         throw const FormatException(
           'بيانات المصروفات في النسخة الاحتياطية غير صالحة.',
         );
       }
+      expense['amount'] = Money.normalize(amount);
+      if (expense['amount'] <= 0) {
+        throw const FormatException('قيمة المصروف أقل من هللة.');
+      }
     }
 
-    final bookingIds = bookings
-        .map((booking) => booking['id'])
-        .whereType<int>()
-        .toSet();
+    final paymentIds = <int>{};
+    final paidByBooking = <int, int>{};
     for (final payment in payments) {
       final bookingId = payment['booking_id'];
       final amount = payment['amount'];
       final paidAt = payment['paid_at'];
       if (bookingId is! int ||
-          !bookingIds.contains(bookingId) ||
+          !bookingTotals.containsKey(bookingId) ||
           amount is! num ||
+          !amount.isFinite ||
           amount <= 0 ||
-          paidAt is! String ||
-          paidAt.isEmpty) {
+          !_isValidDate(paidAt)) {
         throw const FormatException(
           'بيانات الدفعات في النسخة الاحتياطية غير صالحة.',
         );
+      }
+      final id = payment['id'];
+      final status = payment['status'] ?? 'confirmed';
+      if (id is! int ||
+          id <= 0 ||
+          !paymentIds.add(id) ||
+          !['confirmed', 'voided'].contains(status)) {
+        throw const FormatException('معرف الدفعة أو حالتها غير صالح أو مكرر.');
+      }
+      if (status == 'voided' &&
+          (payment['void_reason'] is! String ||
+              (payment['void_reason'] as String).trim().isEmpty ||
+              payment['voided_at'] is! String ||
+              DateTime.tryParse(payment['voided_at'] as String) == null)) {
+        throw const FormatException(
+          'الدفعة الملغاة تفتقد سبب الإلغاء أو تاريخه.',
+        );
+      }
+      final minor = Money.toMinor(amount);
+      if (minor <= 0) throw const FormatException('قيمة الدفعة أقل من هللة.');
+      payment['amount'] = Money.fromMinor(minor);
+      if (status == 'confirmed') {
+        final paid = (paidByBooking[bookingId] ?? 0) + minor;
+        if (paid > bookingTotals[bookingId]!) {
+          throw const FormatException(
+            'تتجاوز الدفعات المؤكدة إجمالي قيمة الحجز.',
+          );
+        }
+        paidByBooking[bookingId] = paid;
       }
     }
   }

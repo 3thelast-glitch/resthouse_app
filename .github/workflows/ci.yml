@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: استنساخ المستودع
         uses: actions/checkout@v4
@@ -16,6 +17,7 @@ jobs:
       - name: إعداد Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.0'
           channel: stable
 
       - name: تثبيت الاعتمادات
@@ -26,3 +28,15 @@ jobs:
 
       - name: الاختبارات
         run: flutter test
+
+      - name: إعداد Java لبناء Android
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: فحص بناء Android Release دون توقيع
+        env:
+          ORG_GRADLE_PROJECT_resthouseUnsignedRelease: 'true'
+          ORG_GRADLE_PROJECT_resthouseApplicationId: 'sa.norah.resthouse'
+        run: flutter build apk --release

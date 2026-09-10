@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../utils/responsive.dart';
+
 import 'package:table_calendar/table_calendar.dart';
 import 'package:hijri/hijri_calendar.dart';
+
 import '../database_helper.dart';
+import '../services/booking_status_service.dart';
+import 'booking_payments_dialog.dart';
 
 String toArabicDigits(int number) {
   const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -415,11 +420,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   List<Map<String, dynamic>> _getBookingsForDay(DateTime day) {
     final dateStr =
         "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
-    return _bookings.where((b) {
-      final start = b['start_date'].toString();
-      final end = b['end_date'].toString();
-      return dateStr.compareTo(start) >= 0 && dateStr.compareTo(end) <= 0;
-    }).toList();
+    return _bookings
+        .where((b) => BookingStatusService.occupiesDay(b, dateStr))
+        .toList();
   }
 
   void _showAddRenterDialog() {
@@ -1279,13 +1282,22 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           ),
           TextButton(
             onPressed: () async {
-              await dbHelper.deleteBooking(id);
-              await _loadData();
-              if (!dialogContext.mounted) return;
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                const SnackBar(content: Text('تم حذف الحجز بنجاح')),
-              );
+              try {
+                await dbHelper.deleteBooking(id);
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                await _loadData();
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('تم حذف الحجز بنجاح')),
+                );
+              } on StateError catch (error) {
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(error.message)));
+              }
             },
             child: const Text('حذف الحجز', style: TextStyle(color: Colors.red)),
           ),
@@ -1401,10 +1413,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   Widget build(BuildContext context) {
     final todayStr = DateTime.now().toString().split(' ')[0];
     final activeBookingsCount = _bookings
-        .where((b) => b['end_date'].toString().compareTo(todayStr) >= 0)
+        .where((b) => BookingStatusService.isActive(b, todayStr))
         .length;
     final archivedBookingsCount = _bookings
-        .where((b) => b['end_date'].toString().compareTo(todayStr) < 0)
+        .where((b) => !BookingStatusService.isActive(b, todayStr))
         .length;
     final hasDirectoryData = _bookings.isNotEmpty || _renters.isNotEmpty;
 
@@ -1509,7 +1521,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'الحجوزات النشطة ($activeBookingsCount)',
+                                  'المؤكدة القادمة ($activeBookingsCount)',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: _bookingFilter == 'active'
@@ -1537,7 +1549,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'الأرشيف ($archivedBookingsCount)',
+                                  'السجل ($archivedBookingsCount)',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: _bookingFilter == 'archived'
@@ -1892,6 +1904,38 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     );
   }
 
+  Future<void> _showPaymentActions(Map<String, dynamic> booking) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.receipt_long),
+              title: const Text('سجل الدفعات وتصحيحها'),
+              onTap: () => Navigator.pop(sheetContext, 'history'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_card),
+              title: const Text('تسجيل دفعة'),
+              onTap: () => Navigator.pop(sheetContext, 'add'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'add') {
+      await _showAddPaymentDialog(booking);
+    } else if (action == 'history') {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => BookingPaymentsDialog(bookingId: booking['id'] as int),
+      );
+    }
+  }
+
   Future<void> _showAddPaymentDialog(Map<String, dynamic> booking) async {
     final bookingId = booking['id'] as int;
     final summary = await dbHelper.queryPaymentSummary(bookingId);
@@ -2024,7 +2068,6 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     final todayStr = DateTime.now().toString().split(' ')[0];
     final normalizedQuery = _searchQuery.trim().toLowerCase();
     final filtered = _bookings.where((b) {
-      final isArchived = b['end_date'].toString().compareTo(todayStr) < 0;
       final renter = _renters.firstWhere(
         (r) => r['phone'] == b['phone'],
         orElse: () => const <String, dynamic>{},
@@ -2035,7 +2078,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           renter['full_name'].toString().toLowerCase().contains(
             normalizedQuery,
           );
-      return (_bookingFilter == 'archived' ? isArchived : !isArchived) &&
+      final isActive = BookingStatusService.isActive(b, todayStr);
+      return (_bookingFilter == 'archived' ? !isActive : isActive) &&
           matchesSearch;
     }).toList();
 
@@ -2176,8 +2220,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                               color: Color(0xFF0F766E),
                               size: 18,
                             ),
-                            tooltip: 'تسجيل دفعة',
-                            onPressed: () => _showAddPaymentDialog(booking),
+                            tooltip: 'الدفعات',
+                            onPressed: () => _showPaymentActions(booking),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -2573,7 +2617,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               Row(
                 children: [
                   Text(
-                    'المبلغ المدفوع: ',
+                    'قيمة الحجز: ',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp(context),

@@ -1,4 +1,5 @@
 import '../database_helper.dart';
+import '../utils/money.dart';
 
 enum OperationsTaskType { pendingDeposit, outstandingBalance, arrivalToday }
 
@@ -28,13 +29,16 @@ class OperationsTaskService {
   }) {
     final referenceDate = now ?? DateTime.now();
     final today = _dateKey(referenceDate);
-    final paymentsByBooking = <int, double>{};
+    final paymentsByBooking = <int, int>{};
     for (final payment in payments) {
       final bookingId = payment['booking_id'];
-      if (bookingId is! int) continue;
+      if (bookingId is! int ||
+          (payment['status'] ?? 'confirmed') != 'confirmed') {
+        continue;
+      }
       paymentsByBooking[bookingId] =
           (paymentsByBooking[bookingId] ?? 0) +
-          ((payment['amount'] as num?)?.toDouble() ?? 0);
+          Money.toMinor((payment['amount'] as num?) ?? 0);
     }
 
     final tasks = <OperationsTask>[];
@@ -42,7 +46,7 @@ class OperationsTaskService {
       if (booking['status'] != DatabaseHelper.statusConfirmed) continue;
       final bookingId = booking['id'];
       if (bookingId is! int) continue;
-      final total = (booking['total_price'] as num?)?.toDouble() ?? 0;
+      final total = Money.toMinor((booking['total_price'] as num?) ?? 0);
       final paid = paymentsByBooking[bookingId] ?? 0;
       final remaining = total - paid;
       final endDate = booking['end_date']?.toString() ?? '';
@@ -56,7 +60,7 @@ class OperationsTaskService {
             type: OperationsTaskType.outstandingBalance,
             bookingId: bookingId,
             title: 'رصيد مستحق للحجز #$bookingId',
-            amount: remaining,
+            amount: Money.fromMinor(remaining),
           ),
         );
       }
