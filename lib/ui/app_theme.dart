@@ -45,7 +45,6 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.canvas,
       visualDensity: VisualDensity.standard,
     );
-
     final textTheme = _buildArabicFriendlyTextTheme(base.textTheme);
 
     return base.copyWith(
@@ -58,6 +57,56 @@ class AppTheme {
         scrolledUnderElevation: 1,
         centerTitle: false,
       ),
+      cardTheme: CardThemeData(
+        color: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 8,
+        titleTextStyle: textTheme.titleLarge,
+        contentTextStyle: textTheme.bodyMedium,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        actionsPadding: const EdgeInsetsDirectional.fromSTEB(16, 4, 16, 16),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        modalBackgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surfaceSubtle,
+        selectedColor: const Color(0xFFCCFBF1),
+        disabledColor: AppColors.surfaceSubtle,
+        checkmarkColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.border),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        labelStyle: textTheme.labelMedium?.copyWith(
+          color: AppColors.textSecondary,
+        ),
+        secondaryLabelStyle: textTheme.labelMedium?.copyWith(
+          color: AppColors.primary,
+        ),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: 8,
+          vertical: 4,
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
@@ -67,6 +116,11 @@ class AppTheme {
         ),
         labelStyle: const TextStyle(color: AppColors.textSecondary),
         hintStyle: const TextStyle(color: AppColors.textSecondary),
+        helperStyle: const TextStyle(color: AppColors.textSecondary),
+        errorStyle: const TextStyle(
+          color: AppColors.error,
+          fontWeight: FontWeight.w500,
+        ),
         errorMaxLines: 3,
         border: _outlineBorder(AppColors.border),
         enabledBorder: _outlineBorder(AppColors.border),
@@ -137,6 +191,15 @@ class AppTheme {
           ),
         ),
       ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: AppColors.textSecondary,
+          minimumSize: const Size(48, 48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
       navigationBarTheme: const NavigationBarThemeData(
         backgroundColor: AppColors.surface,
         indicatorColor: Color(0xFFCCFBF1),
@@ -161,6 +224,10 @@ class AppTheme {
         color: AppColors.border,
         thickness: 1,
         space: 1,
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.primary,
+        linearTrackColor: Color(0xFFCCFBF1),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
