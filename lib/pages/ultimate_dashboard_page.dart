@@ -1,12 +1,13 @@
+import 'dart:math' as math;
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../utils/responsive.dart';
-
-import 'package:fl_chart/fl_chart.dart';
-
 import '../database_helper.dart';
 import '../services/financial_summary_service.dart';
+import '../ui/app_theme.dart';
+import '../utils/responsive.dart';
 
 class UltimateDashboardPage extends StatefulWidget {
   const UltimateDashboardPage({super.key});
@@ -16,27 +17,34 @@ class UltimateDashboardPage extends StatefulWidget {
 }
 
 class DashboardActivity {
-  final String type; // 'booking' or 'expense'
-  final String title;
-  final String date;
-  final double amount;
-
-  DashboardActivity({
+  const DashboardActivity({
     required this.type,
     required this.title,
     required this.date,
     required this.amount,
   });
+
+  final String type;
+  final String title;
+  final String date;
+  final double amount;
 }
 
 class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   final dbHelper = DatabaseHelper.instance;
-  double _totalRevenue = 0.0;
-  double _totalExpenses = 0.0;
+
+  double _bookingRevenue = 0;
+  double _receivedPayments = 0;
+  double _outstandingBalance = 0;
+  double _pendingDeposits = 0;
+  double _totalExpenses = 0;
+  double _netCash = 0;
+
   int _bookingsCount = 0;
   int _rentersCount = 0;
   int _activeBookingsCount = 0;
   bool _hasRecordedData = false;
+  bool _isRefreshing = false;
 
   List<DashboardActivity> _recentActivities = [];
   List<String> _sortedMonths = [];
@@ -50,973 +58,931 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   }
 
   Future<void> _loadDashboardData() async {
-    final bookings = await dbHelper.queryAllBookings();
-    final expenses = await dbHelper.queryAllExpenses();
-    final payments = await dbHelper.queryAllPayments();
-    final renters = await dbHelper.queryAllRenters();
-    final summary = FinancialSummaryService.calculate(
-      bookings: bookings,
-      expenses: expenses,
-      payments: payments,
-    );
+    if (_isRefreshing) return;
+    _isRefreshing = true;
+    try {
+      final bookings = await dbHelper.queryAllBookings();
+      final expenses = await dbHelper.queryAllExpenses();
+      final payments = await dbHelper.queryAllPayments();
+      final renters = await dbHelper.queryAllRenters();
+      final summary = FinancialSummaryService.calculate(
+        bookings: bookings,
+        expenses: expenses,
+        payments: payments,
+      );
 
-    // حساب الحجوزات النشطة (التي تنتهي اليوم أو مستقبلاً)
-    final todayStr = DateTime.now().toString().split(' ')[0];
-    int activeCount = 0;
-    for (var b in bookings) {
-      if (b['status'] == DatabaseHelper.statusConfirmed &&
-          b['end_date'].toString().compareTo(todayStr) >= 0) {
-        activeCount++;
+      final todayStr = DateTime.now().toString().split(' ')[0];
+      var activeCount = 0;
+      for (final booking in bookings) {
+        if (booking['status'] == DatabaseHelper.statusConfirmed &&
+            booking['end_date'].toString().compareTo(todayStr) >= 0) {
+          activeCount++;
+        }
       }
-    }
 
-    // تجميع الإحصائيات الشهرية للرسم البياني
-    final mRevenue = summary.monthlyRevenue;
-    final mExpenses = summary.monthlyExpenses;
+      final months = <String>{
+        ...summary.monthlyRevenue.keys,
+        ...summary.monthlyExpenses.keys,
+      }.toList()
+        ..sort();
+      if (months.isEmpty) {
+        final now = DateTime.now();
+        months.add('${now.year}-${now.month.toString().padLeft(2, '0')}');
+      }
+      if (months.length > 5) {
+        months.removeRange(0, months.length - 5);
+      }
 
-    List<String> months = {...mRevenue.keys, ...mExpenses.keys}.toList()
-      ..sort();
-    if (months.isEmpty) {
-      final now = DateTime.now();
-      months.add("${now.year}-${now.month.toString().padLeft(2, '0')}");
-    }
-    if (months.length > 5) {
-      months = months.sublist(months.length - 5);
-    }
+      final activities = <DashboardActivity>[];
+      for (final booking in bookings) {
+        final renter = renters.firstWhere(
+          (row) => row['phone'] == booking['phone'],
+          orElse: () => {'full_name': 'مستأجر غير معروف'},
+        );
+        activities.add(
+          DashboardActivity(
+            type: 'booking',
+            title: 'حجز: ${renter['full_name']}',
+            date: booking['start_date'].toString(),
+            amount: (booking['total_price'] as num).toDouble(),
+          ),
+        );
+      }
+      for (final expense in expenses) {
+        activities.add(
+          DashboardActivity(
+            type: 'expense',
+            title: 'مصروف: ${expense['description']}',
+            date: expense['date'].toString(),
+            amount: (expense['amount'] as num).toDouble(),
+          ),
+        );
+      }
+      activities.sort((a, b) => b.date.compareTo(a.date));
 
-    // تجميع الأنشطة الأخيرة
-    final List<DashboardActivity> acts = [];
-    for (var b in bookings) {
-      final renter = renters.firstWhere(
-        (r) => r['phone'] == b['phone'],
-        orElse: () => {'full_name': 'مستأجر غير معروف'},
-      );
-      acts.add(
-        DashboardActivity(
-          type: 'booking',
-          title: 'حجز جديد: ${renter['full_name']}',
-          date: b['start_date'].toString(),
-          amount: (b['total_price'] as num).toDouble(),
-        ),
-      );
+      if (!mounted) return;
+      setState(() {
+        _bookingRevenue = summary.bookingRevenue;
+        _receivedPayments = summary.receivedPayments;
+        _outstandingBalance = summary.outstandingBalance;
+        _pendingDeposits = summary.pendingDeposits;
+        _totalExpenses = summary.expenses;
+        _netCash = summary.netCash;
+        _bookingsCount = bookings.length;
+        _rentersCount = renters.length;
+        _activeBookingsCount = activeCount;
+        _hasRecordedData =
+            bookings.isNotEmpty ||
+            renters.isNotEmpty ||
+            expenses.isNotEmpty ||
+            payments.isNotEmpty;
+        _sortedMonths = months;
+        _monthlyRevenue = summary.monthlyRevenue;
+        _monthlyExpenses = summary.monthlyExpenses;
+        _recentActivities = activities.take(5).toList();
+      });
+    } finally {
+      _isRefreshing = false;
     }
-    for (var e in expenses) {
-      acts.add(
-        DashboardActivity(
-          type: 'expense',
-          title: 'مصروف: ${e['description']}',
-          date: e['date'].toString(),
-          amount: (e['amount'] as num).toDouble(),
-        ),
-      );
-    }
-
-    acts.sort((a, b) => b.date.compareTo(a.date));
-
-    if (!mounted) return;
-    setState(() {
-      _totalRevenue = summary.bookingRevenue;
-      _totalExpenses = summary.expenses;
-      _bookingsCount = bookings.length;
-      _rentersCount = renters.length;
-      _activeBookingsCount = activeCount;
-      _hasRecordedData =
-          bookings.isNotEmpty ||
-          renters.isNotEmpty ||
-          expenses.isNotEmpty ||
-          payments.isNotEmpty;
-      _sortedMonths = months;
-      _monthlyRevenue = mRevenue;
-      _monthlyExpenses = mExpenses;
-      _recentActivities = acts.take(4).toList();
-    });
   }
 
-  void _showQuickAddRenter() {
+  Future<void> _showQuickAddRenter() async {
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    var saving = false;
 
-    showDialog(
+    await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(
-          'إضافة مستأجر سريع',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'الاسم الكامل'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'الرجاء إدخال الاسم الكامل';
-                  }
-                  return null;
-                },
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('إضافة مستأجر سريع'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(labelText: 'الاسم الكامل'),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'الرجاء إدخال الاسم الكامل';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.done,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+                      validator: (value) {
+                        final phone = value?.trim() ?? '';
+                        if (phone.isEmpty) return 'الرجاء إدخال رقم الهاتف';
+                        if (phone.length < 10) {
+                          return 'رقم الهاتف يجب أن يتكون من 10 أرقام';
+                        }
+                        if (!phone.startsWith('05')) {
+                          return 'رقم الهاتف يجب أن يبدأ بـ 05';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
               ),
-              TextFormField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
-                ],
-                decoration: const InputDecoration(labelText: 'رقم الهاتف'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'الرجاء إدخال رقم الهاتف';
-                  }
-                  if (value.trim().length < 10) {
-                    return 'رقم الهاتف يجب أن يتكون من 10 أرقام';
-                  }
-                  if (!value.trim().startsWith('05')) {
-                    return 'رقم الهاتف يجب أن يبدأ بـ 05';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) {
-                return;
-              }
-              try {
-                await dbHelper.insertRenter({
-                  'full_name': nameController.text.trim(),
-                  'phone': phoneController.text.trim(),
-                  'notes': '',
-                  'rating': 5,
-                  'rental_count': 0,
-                });
-                await _loadDashboardData();
-                if (!dialogContext.mounted) return;
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('تمت إضافة المستأجر بنجاح')),
-                );
-              } catch (e) {
-                if (!dialogContext.mounted) return;
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('خطأ: رقم الهاتف مسجل مسبقاً لمستأجر آخر!'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
-              foregroundColor: Colors.white,
             ),
-            child: const Text('إضافة'),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showRenterWarningDialog(BuildContext context, String notes) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.red.shade50,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.red.shade700,
-              size: 28,
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
             ),
-            const SizedBox(width: 8),
-            Text(
-              'تنبيه هام!',
-              style: TextStyle(
-                color: Colors.red.shade900,
-                fontWeight: FontWeight.bold,
-              ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() => saving = true);
+                      try {
+                        await dbHelper.insertRenter({
+                          'full_name': nameController.text.trim(),
+                          'phone': phoneController.text.trim(),
+                          'notes': '',
+                          'rating': 5,
+                          'rental_count': 0,
+                        });
+                        await _loadDashboardData();
+                        if (!dialogContext.mounted) return;
+                        Navigator.pop(dialogContext);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تمت إضافة المستأجر بنجاح')),
+                        );
+                      } catch (_) {
+                        if (!dialogContext.mounted) return;
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('رقم الهاتف مسجل مسبقًا لمستأجر آخر.'),
+                          ),
+                        );
+                      } finally {
+                        if (dialogContext.mounted) {
+                          setDialogState(() => saving = false);
+                        }
+                      }
+                    },
+              child: saving
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('إضافة'),
             ),
           ],
         ),
-        content: Text(
-          'تنبيه: هذا العميل لديه ملاحظات سابقة:\n\n$notes',
-          style: TextStyle(
-            color: Colors.red.shade900,
-            fontSize: 16.sp(context),
-            fontWeight: FontWeight.w600,
-          ),
+      ),
+    );
+
+    nameController.dispose();
+    phoneController.dispose();
+  }
+
+  Future<void> _showRenterWarningDialog(String notes) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 10),
+            Expanded(child: Text('تنبيه على المستأجر')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Text('هذا العميل لديه ملاحظات سابقة:\n\n$notes'),
         ),
         actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('فهمت ذلك'),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('فهمت'),
           ),
         ],
       ),
     );
   }
 
-  void _showQuickAddBooking() async {
+  Future<void> _showQuickAddBooking() async {
     final renters = await dbHelper.queryAllRenters();
     if (renters.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('الرجاء إضافة مستأجر أولاً قبل حجز الاستراحة'),
-        ),
+        const SnackBar(content: Text('أضف مستأجرًا أولًا قبل تسجيل الحجز.')),
       );
       return;
     }
 
     if (!mounted) return;
+
     String? selectedPhone;
     String? selectedRenterNotes;
-    DateTime? startDate = DateTime.now();
-    DateTime? endDate = DateTime.now();
+    DateTime startDate = DateTime.now();
+    DateTime endDate = DateTime.now();
     final priceController = TextEditingController();
     final securityDepositController = TextEditingController();
+    var saving = false;
 
-    showDialog(
+    await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text(
-            'تسجيل حجز سريع',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'المستأجر'),
-                  initialValue: selectedPhone,
-                  items: renters.map((renter) {
-                    return DropdownMenuItem<String>(
-                      value: renter['phone'].toString(),
-                      child: Text(
-                        '${renter['full_name']} (${renter['phone']})',
+          title: const Text('تسجيل حجز سريع'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'المستأجر'),
+                    initialValue: selectedPhone,
+                    items: renters.map((renter) {
+                      return DropdownMenuItem<String>(
+                        value: renter['phone'].toString(),
+                        child: Text(
+                          '${renter['full_name']} (${renter['phone']})',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: saving
+                        ? null
+                        : (value) {
+                            String? notes;
+                            if (value != null) {
+                              final renter = renters.firstWhere(
+                                (row) => row['phone'].toString() == value,
+                              );
+                              notes = renter['notes'] as String?;
+                            }
+                            setDialogState(() {
+                              selectedPhone = value;
+                              selectedRenterNotes =
+                                  (notes != null && notes.trim().isNotEmpty)
+                                      ? notes
+                                      : null;
+                            });
+                            if (selectedRenterNotes != null) {
+                              _showRenterWarningDialog(selectedRenterNotes!);
+                            }
+                          },
+                  ),
+                  if (selectedRenterNotes != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsetsDirectional.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.errorContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFF3C4C4)),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    String? notes;
-                    if (value != null) {
-                      final renter = renters.firstWhere(
-                        (r) => r['phone'].toString() == value,
-                      );
-                      notes = renter['notes'] as String?;
-                    }
-                    setDialogState(() {
-                      selectedPhone = value;
-                      selectedRenterNotes =
-                          (notes != null && notes.trim().isNotEmpty)
-                          ? notes
-                          : null;
-                    });
-                    if (selectedRenterNotes != null) {
-                      _showRenterWarningDialog(
-                        dialogContext,
-                        selectedRenterNotes!,
-                      );
-                    }
-                  },
-                ),
-                if (selectedRenterNotes != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      border: Border.all(color: Colors.red.shade200),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.warning, color: Colors.red.shade700),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'تنبيه: هذا العميل لديه ملاحظات سابقة: $selectedRenterNotes',
-                            style: TextStyle(
-                              color: Colors.red.shade900,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12.sp(context),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              selectedRenterNotes!,
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: saving
+                          ? null
+                          : () async {
+                              final date = await showDatePicker(
+                                context: dialogContext,
+                                initialDate: startDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2050),
+                              );
+                              if (!dialogContext.mounted || date == null) return;
+                              setDialogState(() {
+                                startDate = date;
+                                if (endDate.isBefore(startDate)) endDate = startDate;
+                              });
+                            },
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      label: Text('البداية: ${startDate.toString().split(' ')[0]}'),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: saving
+                          ? null
+                          : () async {
+                              final date = await showDatePicker(
+                                context: dialogContext,
+                                initialDate:
+                                    endDate.isBefore(startDate) ? startDate : endDate,
+                                firstDate: startDate,
+                                lastDate: DateTime(2050),
+                              );
+                              if (!dialogContext.mounted || date == null) return;
+                              setDialogState(() => endDate = date);
+                            },
+                      icon: const Icon(Icons.event_available_outlined),
+                      label: Text('النهاية: ${endDate.toString().split(' ')[0]}'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: priceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'سعر الحجز (ر.س)'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: securityDepositController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(labelText: 'قيمة التأمين (ر.س)'),
+                  ),
                 ],
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: startDate ?? DateTime.now(),
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2050),
-                    );
-                    if (!dialogContext.mounted) return;
-                    if (date != null) {
-                      setDialogState(() {
-                        startDate = date;
-                        if (endDate == null || endDate!.isBefore(startDate!)) {
-                          endDate = startDate;
-                        }
-                      });
-                    }
-                  },
-                  child: Text('البداية: ${startDate.toString().split(' ')[0]}'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () async {
-                    final initialDate =
-                        (endDate != null &&
-                            startDate != null &&
-                            !endDate!.isBefore(startDate!))
-                        ? endDate!
-                        : (startDate ?? DateTime.now());
-                    final firstDate = startDate ?? DateTime(2020);
-
-                    final date = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: initialDate,
-                      firstDate: firstDate,
-                      lastDate: DateTime(2050),
-                    );
-                    if (!dialogContext.mounted) return;
-                    if (date != null) {
-                      setDialogState(() {
-                        endDate = date;
-                      });
-                    }
-                  },
-                  child: Text('النهاية: ${endDate.toString().split(' ')[0]}'),
-                ),
-                TextField(
-                  controller: priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'سعر الحجز (ر.س)',
-                  ),
-                ),
-                TextField(
-                  controller: securityDepositController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'قيمة التأمين (ر.س)',
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
               child: const Text('إلغاء'),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                final price = double.tryParse(priceController.text) ?? 0.0;
-                final securityDeposit =
-                    double.tryParse(securityDepositController.text) ?? 0.0;
-                if (selectedPhone == null ||
-                    startDate == null ||
-                    endDate == null ||
-                    price <= 0) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('الرجاء التحقق من المدخلات')),
-                  );
-                  return;
-                }
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      final price = double.tryParse(priceController.text.trim()) ?? 0;
+                      final securityDeposit =
+                          double.tryParse(securityDepositController.text.trim()) ?? 0;
+                      if (selectedPhone == null || price <= 0) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('الرجاء التحقق من بيانات الحجز.')),
+                        );
+                        return;
+                      }
 
-                // فحص تعارض المواعيد
-                final conflict = await dbHelper.hasBookingConflict(
-                  startDate!.toString().split(' ')[0],
-                  endDate!.toString().split(' ')[0],
-                );
-                if (conflict) {
-                  if (!dialogContext.mounted) return;
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!',
-                      ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
+                      setDialogState(() => saving = true);
+                      try {
+                        final start = startDate.toString().split(' ')[0];
+                        final end = endDate.toString().split(' ')[0];
+                        final conflict = await dbHelper.hasBookingConflict(start, end);
+                        if (conflict) {
+                          if (!dialogContext.mounted) return;
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('الاستراحة محجوزة بالفعل في هذه الفترة.'),
+                            ),
+                          );
+                          return;
+                        }
 
-                try {
-                  await dbHelper.insertBooking({
-                    'phone': selectedPhone,
-                    'start_date': startDate!.toString().split(' ')[0],
-                    'end_date': endDate!.toString().split(' ')[0],
-                    'total_price': price,
-                    'security_deposit': securityDeposit,
-                    'status': DatabaseHelper.statusConfirmed,
-                  });
-                  await _loadDashboardData();
-                  if (!dialogContext.mounted) return;
-                  Navigator.pop(dialogContext);
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('تمت إضافة الحجز بنجاح')),
-                  );
-                } on StateError catch (error) {
-                  if (!dialogContext.mounted) return;
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(
-                      content: Text(error.message),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                } on ArgumentError catch (error) {
-                  if (!dialogContext.mounted) return;
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
+                        await dbHelper.insertBooking({
+                          'phone': selectedPhone,
+                          'start_date': start,
+                          'end_date': end,
+                          'total_price': price,
+                          'security_deposit': securityDeposit,
+                          'status': DatabaseHelper.statusConfirmed,
+                        });
+                        await _loadDashboardData();
+                        if (!dialogContext.mounted) return;
+                        Navigator.pop(dialogContext);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تمت إضافة الحجز بنجاح')),
+                        );
+                      } on StateError catch (error) {
+                        if (!dialogContext.mounted) return;
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(content: Text(error.message)),
+                        );
+                      } on ArgumentError catch (error) {
+                        if (!dialogContext.mounted) return;
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
+                            ),
+                          ),
+                        );
+                      } finally {
+                        if (dialogContext.mounted) {
+                          setDialogState(() => saving = false);
+                        }
+                      }
+                    },
+              child: saving
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('حفظ الحجز'),
+                    )
+                  : const Text('حفظ الحجز'),
             ),
           ],
         ),
       ),
     );
+
+    priceController.dispose();
+    securityDepositController.dispose();
   }
 
-  void _showQuickAddExpense() {
+  Future<void> _showQuickAddExpense() async {
     final descController = TextEditingController();
     final amountController = TextEditingController();
+    var saving = false;
 
-    showDialog(
+    await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(
-          'تسجيل مصروف سريع',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: descController,
-              decoration: const InputDecoration(labelText: 'وصف المصروف'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('تسجيل مصروف سريع'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: descController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'وصف المصروف'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(labelText: 'المبلغ (ر.س)'),
+                  ),
+                ],
+              ),
             ),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'المبلغ'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      final description = descController.text.trim();
+                      final amount = double.tryParse(amountController.text.trim());
+                      if (description.isEmpty) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('الرجاء إدخال وصف للمصروف.')),
+                        );
+                        return;
+                      }
+                      if (amount == null || amount <= 0) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('أدخل مبلغ مصروف صحيحًا.')),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => saving = true);
+                      try {
+                        await dbHelper.insertExpense({
+                          'description': description,
+                          'amount': amount,
+                          'date': DateTime.now().toString().split(' ')[0],
+                        });
+                        await _loadDashboardData();
+                        if (!dialogContext.mounted) return;
+                        Navigator.pop(dialogContext);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تم تسجيل المصروف بنجاح')),
+                        );
+                      } finally {
+                        if (dialogContext.mounted) {
+                          setDialogState(() => saving = false);
+                        }
+                      }
+                    },
+              child: saving
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('حفظ'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final desc = descController.text.trim();
-              final amountText = amountController.text.trim();
+      ),
+    );
 
-              if (desc.isEmpty) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('الرجاء إدخال وصف للمصروف'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              if (amountText.isEmpty) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('الرجاء إدخال مبلغ المصروف'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
+    descController.dispose();
+    amountController.dispose();
+  }
 
-              final amount = double.tryParse(amountText);
-              if (amount == null) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!',
-                    ),
-                    backgroundColor: Colors.red,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: RefreshIndicator(
+        onRefresh: _loadDashboardData,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: Responsive.pagePadding(context),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1260),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildDashboardHeader(context),
+                      const SizedBox(height: 20),
+                      if (!_hasRecordedData)
+                        _buildDashboardEmptyState()
+                      else ...[
+                        _buildMetricsGrid(),
+                        const SizedBox(height: 14),
+                        _buildCountsStrip(),
+                        const SizedBox(height: 20),
+                        _buildLowerContent(constraints.maxWidth),
+                      ],
+                    ],
                   ),
-                );
-                return;
-              }
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
-              if (amount <= 0) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('المبلغ يجب أن يكون أكبر من الصفر'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
+  Widget _buildDashboardHeader(BuildContext context) {
+    final theme = Theme.of(context);
 
-              await dbHelper.insertExpense({
-                'description': desc,
-                'amount': amount,
-                'date': DateTime.now().toString().split(' ')[0],
-              });
-              await _loadDashboardData();
-              if (!dialogContext.mounted) return;
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                const SnackBar(content: Text('تم تسجيل المصروف بنجاح')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
-              foregroundColor: Colors.white,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620;
+        final intro = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('نظرة عامة', style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 4),
+            Text(
+              'تابع الحجوزات والتحصيل والمصروفات من مكان واحد.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
-            child: const Text('حفظ'),
+          ],
+        );
+
+        final actions = Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: _showQuickAddBooking,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('حجز جديد'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _showQuickAddExpense,
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: const Text('مصروف'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _showQuickAddRenter,
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              label: const Text('مستأجر'),
+            ),
+          ],
+        );
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [intro, const SizedBox(height: 14), actions],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: intro),
+            const SizedBox(width: 16),
+            Flexible(child: actions),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMetricsGrid() {
+    final metrics = <_MetricData>[
+      _MetricData(
+        label: 'قيمة الحجوزات',
+        value: _currency(_bookingRevenue),
+        icon: Icons.event_available_outlined,
+        tone: AppColors.primary,
+        toneContainer: const Color(0xFFCCFBF1),
+      ),
+      _MetricData(
+        label: 'المقبوض فعليًا',
+        value: _currency(_receivedPayments),
+        icon: Icons.payments_outlined,
+        tone: AppColors.success,
+        toneContainer: AppColors.successContainer,
+      ),
+      _MetricData(
+        label: 'الرصيد المستحق',
+        value: _currency(_outstandingBalance),
+        icon: Icons.pending_actions_outlined,
+        tone: AppColors.warning,
+        toneContainer: AppColors.warningContainer,
+      ),
+      _MetricData(
+        label: 'المصروفات',
+        value: _currency(_totalExpenses),
+        icon: Icons.receipt_long_outlined,
+        tone: AppColors.error,
+        toneContainer: AppColors.errorContainer,
+      ),
+      _MetricData(
+        label: 'صافي النقد',
+        value: _currency(_netCash),
+        icon: Icons.account_balance_wallet_outlined,
+        tone: _netCash >= 0 ? AppColors.success : AppColors.error,
+        toneContainer: _netCash >= 0
+            ? AppColors.successContainer
+            : AppColors.errorContainer,
+      ),
+      _MetricData(
+        label: 'تأمينات معلقة',
+        value: _currency(_pendingDeposits),
+        icon: Icons.security_outlined,
+        tone: AppColors.warning,
+        toneContainer: AppColors.warningContainer,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth < 340
+            ? 1
+            : constraints.maxWidth < 700
+                ? 2
+                : 3;
+        const gap = 12.0;
+        final width = (constraints.maxWidth - (gap * (columns - 1))) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final metric in metrics)
+              SizedBox(width: width, child: _MetricCard(data: metric)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCountsStrip() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _CountPill(
+          icon: Icons.calendar_month_outlined,
+          label: 'إجمالي الحجوزات',
+          value: '$_bookingsCount',
+        ),
+        _CountPill(
+          icon: Icons.schedule_outlined,
+          label: 'نشطة الآن',
+          value: '$_activeBookingsCount',
+        ),
+        _CountPill(
+          icon: Icons.groups_2_outlined,
+          label: 'المستأجرون',
+          value: '$_rentersCount',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLowerContent(double availableWidth) {
+    final chart = _Panel(
+      title: 'الأداء المالي',
+      subtitle: 'قيمة الحجوزات والمصروفات خلال آخر 5 أشهر',
+      child: Column(
+        children: [
+          const Wrap(
+            spacing: 16,
+            runSpacing: 6,
+            children: [
+              _LegendDot(color: AppColors.success, label: 'قيمة الحجوزات'),
+              _LegendDot(color: AppColors.error, label: 'المصروفات'),
+            ],
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: availableWidth < 600 ? 230 : 280,
+            child: BarChart(
+              BarChartData(
+                maxY: _chartMaxY(),
+                barGroups: _buildBarChartGroups(),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: true, reservedSize: 44),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: _getBottomTitlesWidget,
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (_) => const FlLine(
+                    color: AppColors.border,
+                    strokeWidth: 1,
+                  ),
+                ),
+                barTouchData: const BarTouchData(enabled: true),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final activities = _Panel(
+      title: 'آخر العمليات',
+      subtitle: 'أحدث الحجوزات والمصروفات المسجلة',
+      child: _buildActivitiesList(),
+    );
+
+    if (availableWidth < 900) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [chart, const SizedBox(height: 14), activities],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: 3, child: chart),
+        const SizedBox(width: 14),
+        Expanded(flex: 2, child: activities),
+      ],
+    );
+  }
+
+  Widget _buildDashboardEmptyState() {
+    return Container(
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 44),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(
+              color: Color(0xFFCCFBF1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.space_dashboard_outlined,
+              size: 30,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'لا توجد بيانات لعرض لوحة التحكم بعد',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'ابدأ بإضافة مستأجر أو تسجيل حجز أو مصروف، وستظهر المؤشرات هنا تلقائيًا.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: _showQuickAddBooking,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('تسجيل أول حجز'),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final netProfit = _totalRevenue - _totalExpenses;
+  String _currency(double value) => '${value.toStringAsFixed(2)} ر.س';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // أزرار العمليات السريعة (تلتف تلقائياً لتفادي الطفح)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _showQuickAddBooking,
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('تسجيل حجز سريع'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F766E),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _showQuickAddExpense,
-                    icon: const Icon(Icons.money, size: 16),
-                    label: const Text('تسجيل مصروف سريع'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0F766E),
-                      side: const BorderSide(color: Color(0xFF0F766E)),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _showQuickAddRenter,
-                    icon: const Icon(Icons.person_add_outlined, size: 16),
-                    label: const Text('عميل جديد'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0D9488),
-                      side: const BorderSide(color: Color(0xFF0D9488)),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              if (!_hasRecordedData)
-                _buildDashboardEmptyState()
-              else ...[
-                // بطاقات الإحصائيات الفوقية الملونة
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'إجمالي الإيرادات',
-                        value: '${_totalRevenue.toStringAsFixed(0)} ر.س',
-                        icon: Icons.monetization_on,
-                        color: const Color(0xFF10B981),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'إجمالي المصاريف',
-                        value: '${_totalExpenses.toStringAsFixed(0)} ر.س',
-                        icon: Icons.payment,
-                        color: const Color(0xFFEF4444),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'صافي الأرباح',
-                        value: '${netProfit.toStringAsFixed(0)} ر.س',
-                        icon: Icons.account_balance_wallet,
-                        color: netProfit >= 0
-                            ? const Color(0xFF0D9488)
-                            : const Color(0xFFDC2626),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'عدد الحجوزات الكلي',
-                        value: '$_bookingsCount حجز',
-                        icon: Icons.calendar_month,
-                        color: Colors.indigo,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'الحجوزات النشطة حالياً',
-                        value: '$_activeBookingsCount حجز نشط',
-                        icon: Icons.timer,
-                        color: const Color(0xFFD97706),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'العملاء المسجلين',
-                        value: '$_rentersCount مستأجر',
-                        icon: Icons.people,
-                        color: Colors.blueGrey,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // القسم السفلي: الرسم البياني على اليمين والأنشطة الأخيرة على اليسار
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // الرسم البياني (الإيرادات والمصروفات شهرياً)
-                    Expanded(
-                      flex: 3,
-                      child: Card(
-                        color: Colors.white,
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'تقرير الأداء المالي (آخر 5 أشهر)',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15.sp(context),
-                                  color: const Color(0xFF1E293B),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Wrap(
-                                spacing: 16,
-                                runSpacing: 4,
-                                children: [
-                                  _buildLegendIndicator(
-                                    const Color(0xFF10B981),
-                                    'الإيرادات',
-                                  ),
-                                  _buildLegendIndicator(
-                                    const Color(0xFFEF4444),
-                                    'المصروفات',
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              SizedBox(
-                                height: 250,
-                                child: BarChart(
-                                  BarChartData(
-                                    barGroups: _buildBarChartGroups(),
-                                    titlesData: FlTitlesData(
-                                      topTitles: const AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: false,
-                                        ),
-                                      ),
-                                      rightTitles: const AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: false,
-                                        ),
-                                      ),
-                                      leftTitles: const AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          reservedSize: 40,
-                                        ),
-                                      ),
-                                      bottomTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          getTitlesWidget:
-                                              _getBottomTitlesWidget,
-                                        ),
-                                      ),
-                                    ),
-                                    borderData: FlBorderData(show: false),
-                                    gridData: const FlGridData(
-                                      show: true,
-                                      drawVerticalLine: false,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // قائمة الأنشطة الأخيرة
-                    Expanded(
-                      flex: 2,
-                      child: Card(
-                        color: Colors.white,
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'الأنشطة والعمليات الأخيرة',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15.sp(context),
-                                  color: const Color(0xFF1E293B),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildActivitiesList(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDashboardEmptyState() {
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.space_dashboard_outlined,
-              size: 52,
-              color: Color(0xFF0F766E),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'لا توجد بيانات لعرض لوحة التحكم بعد',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18.sp(context),
-                color: const Color(0xFF1E293B),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'ابدأ بإضافة مستأجر أو تسجيل حجز أو مصروف. ستظهر التقارير والأرقام تلقائيًا بعد إدخال بياناتك الفعلية.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                height: 1.5,
-                fontSize: 13.sp(context),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withValues(alpha: 0.1),
-              foregroundColor: color,
-              radius: 20,
-              child: Icon(icon, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 11.sp(context),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 15.sp(context),
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLegendIndicator(Color color, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12.sp(context),
-            color: Colors.grey,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
+  double _chartMaxY() {
+    var highest = 0.0;
+    for (final month in _sortedMonths) {
+      highest = math.max(highest, _monthlyRevenue[month] ?? 0);
+      highest = math.max(highest, _monthlyExpenses[month] ?? 0);
+    }
+    return highest <= 0 ? 1 : highest * 1.15;
   }
 
   List<BarChartGroupData> _buildBarChartGroups() {
-    final List<BarChartGroupData> groups = [];
-    for (int i = 0; i < _sortedMonths.length; i++) {
+    final groups = <BarChartGroupData>[];
+    for (var i = 0; i < _sortedMonths.length; i++) {
       final month = _sortedMonths[i];
-      final rev = _monthlyRevenue[month] ?? 0.0;
-      final exp = _monthlyExpenses[month] ?? 0.0;
-
       groups.add(
         BarChartGroupData(
           x: i,
+          barsSpace: 4,
           barRods: [
             BarChartRodData(
-              toY: rev,
-              color: const Color(0xFF10B981),
-              width: 10,
-              borderRadius: BorderRadius.circular(2),
+              toY: _monthlyRevenue[month] ?? 0,
+              color: AppColors.success,
+              width: 9,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
             ),
             BarChartRodData(
-              toY: exp,
-              color: const Color(0xFFEF4444),
-              width: 10,
-              borderRadius: BorderRadius.circular(2),
+              toY: _monthlyExpenses[month] ?? 0,
+              color: AppColors.error,
+              width: 9,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
             ),
           ],
         ),
@@ -1026,108 +992,271 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   }
 
   Widget _getBottomTitlesWidget(double value, TitleMeta meta) {
-    int index = value.toInt();
-    if (index >= 0 && index < _sortedMonths.length) {
-      final monthStr = _sortedMonths[index];
-      final parts = monthStr.split('-');
-      if (parts.length > 1) {
-        return SideTitleWidget(
-          meta: meta,
-          child: Text(
-            '${parts[1]}/${parts[0].substring(2)}',
-            style: TextStyle(
-              fontSize: 10.sp(context),
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
-          ),
-        );
-      }
-      return SideTitleWidget(meta: meta, child: Text(monthStr));
+    final index = value.toInt();
+    if (index < 0 || index >= _sortedMonths.length) {
+      return SideTitleWidget(meta: meta, child: const SizedBox.shrink());
     }
-    return SideTitleWidget(meta: meta, child: const Text(''));
+
+    final parts = _sortedMonths[index].split('-');
+    final label = parts.length == 2
+        ? '${parts[1]}/${parts[0].substring(2)}'
+        : _sortedMonths[index];
+
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(label, style: Theme.of(context).textTheme.labelSmall),
+    );
   }
 
   Widget _buildActivitiesList() {
     if (_recentActivities.isEmpty) {
-      return const SizedBox(
-        height: 180,
+      return Padding(
+        padding: const EdgeInsetsDirectional.symmetric(vertical: 28),
         child: Center(
           child: Text(
             'لا توجد أنشطة مسجلة بعد',
-            style: TextStyle(color: Colors.grey),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
           ),
         ),
       );
     }
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _recentActivities.length,
-      separatorBuilder: (context, index) =>
-          const Divider(height: 12, color: Color(0xFFF1F5F9)),
-      itemBuilder: (context, index) {
-        final act = _recentActivities[index];
-        final isBooking = act.type == 'booking';
+    return Column(
+      children: [
+        for (var index = 0; index < _recentActivities.length; index++) ...[
+          _ActivityRow(activity: _recentActivities[index]),
+          if (index != _recentActivities.length - 1) const Divider(height: 20),
+        ],
+      ],
+    );
+  }
+}
 
-        return Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: isBooking
-                  ? const Color(0xFFECFDF5)
-                  : const Color(0xFFFEF2F2),
-              foregroundColor: isBooking
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFFEF4444),
-              radius: 18,
-              child: Icon(
-                isBooking ? Icons.vpn_key_outlined : Icons.receipt_long,
-                size: 16,
+class _MetricData {
+  const _MetricData({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.tone,
+    required this.toneContainer,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color tone;
+  final Color toneContainer;
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.data});
+  final _MetricData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsetsDirectional.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: data.toneContainer,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(data.icon, color: data.tone, size: 21),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    act.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.sp(context),
-                      color: const Color(0xFF1E293B),
-                    ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  data.label,
+                  maxLines: 2,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    act.date,
-                    style: TextStyle(
-                      fontSize: 10.sp(context),
-                      color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          Text(
+            data.value,
+            maxLines: 2,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountPill extends StatelessWidget {
+  const _CountPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(width: 7),
+          Text('$label: ', style: theme.textTheme.bodySmall),
+          Text(
+            value,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Panel extends StatelessWidget {
+  const _Panel({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: EdgeInsetsDirectional.all(Responsive.isCompact(context) ? 16 : 20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color, required this.label});
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+  }
+}
+
+class _ActivityRow extends StatelessWidget {
+  const _ActivityRow({required this.activity});
+  final DashboardActivity activity;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBooking = activity.type == 'booking';
+    final tone = isBooking ? AppColors.success : AppColors.error;
+    final container =
+        isBooking ? AppColors.successContainer : AppColors.errorContainer;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: container,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(
+            isBooking ? Icons.event_available_outlined : Icons.receipt_outlined,
+            color: tone,
+            size: 19,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                activity.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                  ),
-                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isBooking
-                  ? '+${act.amount.toStringAsFixed(0)}'
-                  : '-${act.amount.toStringAsFixed(0)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13.sp(context),
-                color: isBooking
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-              ),
-            ),
-          ],
-        );
-      },
+              const SizedBox(height: 2),
+              Text(activity.date, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '${isBooking ? '+' : '-'}${activity.amount.toStringAsFixed(0)}',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(color: tone),
+        ),
+      ],
     );
   }
 }

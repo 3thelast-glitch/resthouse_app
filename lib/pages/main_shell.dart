@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+
+import '../ui/app_theme.dart';
 import '../utils/responsive.dart';
-import 'ultimate_dashboard_page.dart';
 import 'booking_manager_page.dart';
 import 'finance_page.dart';
 import 'settings_page.dart';
+import 'ultimate_dashboard_page.dart';
 
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
@@ -12,9 +14,51 @@ class MainShellPage extends StatefulWidget {
   State<MainShellPage> createState() => _MainShellPageState();
 }
 
+class _Destination {
+  const _Destination({
+    required this.label,
+    required this.title,
+    required this.icon,
+    required this.selectedIcon,
+  });
+
+  final String label;
+  final String title;
+  final IconData icon;
+  final IconData selectedIcon;
+}
+
 class _MainShellPageState extends State<MainShellPage> {
+  static const _destinations = <_Destination>[
+    _Destination(
+      label: 'لوحة التحكم',
+      title: 'لوحة التحكم',
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard_rounded,
+    ),
+    _Destination(
+      label: 'الحجوزات',
+      title: 'إدارة الحجوزات والتقويم',
+      icon: Icons.calendar_month_outlined,
+      selectedIcon: Icons.calendar_month_rounded,
+    ),
+    _Destination(
+      label: 'المالية',
+      title: 'الملخص المالي والمصروفات',
+      icon: Icons.account_balance_wallet_outlined,
+      selectedIcon: Icons.account_balance_wallet_rounded,
+    ),
+    _Destination(
+      label: 'الإعدادات',
+      title: 'الإعدادات والنسخ الاحتياطي',
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings_rounded,
+    ),
+  ];
+
   int _selectedIndex = 0;
   int _dbSessionId = 0;
+  final Set<int> _visitedIndexes = {0};
 
   void _handleDatabaseRestored() {
     setState(() {
@@ -22,259 +66,227 @@ class _MainShellPageState extends State<MainShellPage> {
     });
   }
 
-  List<Widget> get _pages => [
-    UltimateDashboardPage(key: ValueKey('dashboard_$_dbSessionId')),
-    BookingManagerPage(key: ValueKey('bookings_$_dbSessionId')),
-    FinancePage(key: ValueKey('finance_$_dbSessionId')),
-    SettingsPage(
-      key: ValueKey('settings_$_dbSessionId'),
-      onDatabaseRestored: _handleDatabaseRestored,
-    ),
-  ];
+  void _selectDestination(int index) {
+    if (_selectedIndex == index) return;
+    setState(() {
+      _selectedIndex = index;
+      _visitedIndexes.add(index);
+    });
+  }
 
-  final List<String> _titles = [
-    'لوحة التحكم الإحصائية',
-    'إدارة الحجوزات والتقويم',
-    'الملخص المالي والمصروفات',
-    'الإعدادات والنسخ الاحتياطي',
-  ];
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return UltimateDashboardPage(
+          key: ValueKey('dashboard_$_dbSessionId'),
+        );
+      case 1:
+        return BookingManagerPage(
+          key: ValueKey('bookings_$_dbSessionId'),
+        );
+      case 2:
+        return FinancePage(
+          key: ValueKey('finance_$_dbSessionId'),
+        );
+      case 3:
+        return SettingsPage(
+          key: ValueKey('settings_$_dbSessionId'),
+          onDatabaseRestored: _handleDatabaseRestored,
+        );
+      default:
+        throw StateError('Unknown destination index: $index');
+    }
+  }
+
+  Widget _buildPersistentPageStack() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var index = 0; index < _destinations.length; index++)
+          if (_visitedIndexes.contains(index))
+            Offstage(
+              key: ValueKey('shell-destination-$index'),
+              offstage: index != _selectedIndex,
+              child: TickerMode(
+                enabled: index == _selectedIndex,
+                child: _buildPage(index),
+              ),
+            ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 750;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < Responsive.compactBreakpoint;
+        final extendedRail = constraints.maxWidth >= 1180;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: Text(
-          _titles[_selectedIndex],
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontSize: 20.sp(context),
-          ),
-        ),
-        centerTitle: false,
-        backgroundColor: const Color(0xFF0F766E), // Teal 700
-        elevation: 2,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.holiday_village_outlined, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(
-                  'استراحة نوره',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w600,
+        return Scaffold(
+          backgroundColor: AppColors.canvas,
+          appBar: _buildAppBar(context, constraints.maxWidth),
+          body: SafeArea(
+            top: false,
+            child: compact
+                ? _buildPersistentPageStack()
+                : Row(
+                    children: [
+                      _buildNavigationRail(extended: extendedRail),
+                      const VerticalDivider(width: 1),
+                      Expanded(child: _buildPersistentPageStack()),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
-        ],
-      ),
-      body: isWide
-          ? Row(
-              children: [
-                _buildSidebar(),
-                const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child: _pages[_selectedIndex],
-                  ),
-                ),
-              ],
-            )
-          : AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: _pages[_selectedIndex],
-            ),
-      bottomNavigationBar: isWide
-          ? null
-          : BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              selectedItemColor: const Color(0xFF0D9488),
-              unselectedItemColor: Colors.grey.shade500,
-              backgroundColor: Colors.white,
-              elevation: 8,
-              type: BottomNavigationBarType.fixed,
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.dashboard_outlined),
-                  activeIcon: Icon(Icons.dashboard),
-                  label: 'لوحة التحكم',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  activeIcon: Icon(Icons.calendar_month),
-                  label: 'الحجوزات',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.account_balance_wallet_outlined),
-                  activeIcon: Icon(Icons.account_balance_wallet),
-                  label: 'المالية',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings_outlined),
-                  activeIcon: Icon(Icons.settings),
-                  label: 'الإعدادات',
-                ),
-              ],
-            ),
+          bottomNavigationBar: compact ? _buildNavigationBar() : null,
+        );
+      },
     );
   }
 
-  Widget _buildSidebar() {
-    return Container(
-      width: 250,
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+  PreferredSizeWidget _buildAppBar(BuildContext context, double width) {
+    final destination = _destinations[_selectedIndex];
+    final showResthouseName = width >= 390;
+
+    return AppBar(
+      toolbarHeight: width < 600 ? 64 : 68,
+      titleSpacing: width < 600 ? 16 : 24,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Header section inside sidebar
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0F766E), Color(0xFF0D9488)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
+          Text(
+            destination.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          if (width >= 600)
+            Text(
+              'إدارة يومية واضحة للحجوزات والعمليات المالية',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'لوحة الإدارة',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp(context),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'التحكم والمتابعة الفورية',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11.sp(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          _buildSidebarItem(
-            index: 0,
-            icon: Icons.dashboard_outlined,
-            activeIcon: Icons.dashboard,
-            label: 'لوحة التحكم العامة',
-          ),
-          const SizedBox(height: 8),
-          _buildSidebarItem(
-            index: 1,
-            icon: Icons.calendar_month_outlined,
-            activeIcon: Icons.calendar_month,
-            label: 'إدارة الحجوزات والتقويم',
-          ),
-          const SizedBox(height: 8),
-          _buildSidebarItem(
-            index: 2,
-            icon: Icons.account_balance_wallet_outlined,
-            activeIcon: Icons.account_balance_wallet,
-            label: 'الحسابات والمصروفات',
-          ),
-          const SizedBox(height: 8),
-          _buildSidebarItem(
-            index: 3,
-            icon: Icons.settings_outlined,
-            activeIcon: Icons.settings,
-            label: 'إعدادات النظام والنسخ',
-          ),
-          const Spacer(),
-          // Info Footer
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, size: 16, color: Color(0xFF0D9488)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'الإصدار 1.0.0 (تجريبي)',
-                    style: TextStyle(fontSize: 10.sp(context), color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
+      ),
+      actions: [
+        Padding(
+          padding: EdgeInsetsDirectional.only(
+            end: width < 600 ? 10 : 20,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSubtle,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Padding(
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: 10,
+                vertical: 7,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.holiday_village_outlined,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  if (showResthouseName) ...[
+                    const SizedBox(width: 7),
+                    Text(
+                      'استراحة نوره',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(),
       ),
     );
   }
 
-  Widget _buildSidebarItem({
-    required int index,
-    required IconData icon,
-    required IconData activeIcon,
-    required String label,
-  }) {
-    final isSelected = _selectedIndex == index;
+  Widget _buildNavigationBar() {
+    return NavigationBar(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: _selectDestination,
+      destinations: [
+        for (final destination in _destinations)
+          NavigationDestination(
+            icon: Icon(destination.icon),
+            selectedIcon: Icon(destination.selectedIcon),
+            label: destination.label,
+            tooltip: destination.title,
+          ),
+      ],
+    );
+  }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFECFDF5) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected ? const Color(0xFF0D9488) : Colors.grey.shade600,
-                size: 22,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected ? const Color(0xFF0D9488) : Colors.grey.shade800,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 14.sp(context),
-                  ),
+  Widget _buildNavigationRail({required bool extended}) {
+    return NavigationRail(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: _selectDestination,
+      extended: extended,
+      minWidth: 76,
+      minExtendedWidth: 240,
+      groupAlignment: -1,
+      labelType:
+          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      leading: Padding(
+        padding: const EdgeInsetsDirectional.only(top: 12, bottom: 18),
+        child: extended
+            ? Container(
+                width: 208,
+                padding: const EdgeInsetsDirectional.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCCFBF1),
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.home_work_outlined,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'لوحة الإدارة',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : const Icon(
+                Icons.home_work_outlined,
+                color: AppColors.primary,
               ),
-            ],
-          ),
-        ),
       ),
+      destinations: [
+        for (final destination in _destinations)
+          NavigationRailDestination(
+            icon: Icon(destination.icon),
+            selectedIcon: Icon(destination.selectedIcon),
+            label: Text(destination.label),
+            padding: const EdgeInsetsDirectional.symmetric(vertical: 4),
+          ),
+      ],
     );
   }
 }

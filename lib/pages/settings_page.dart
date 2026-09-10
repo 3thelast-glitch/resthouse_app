@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart' as pp;
 
 import '../database_helper.dart';
+import '../ui/app_theme.dart';
 import '../utils/responsive.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -24,6 +25,16 @@ class _SettingsPageState extends State<SettingsPage> {
   String _timestamp() {
     final now = DateTime.now();
     return '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+  }
+
+  String _friendlyError(Object error) {
+    if (error is FormatException) {
+      return error.message.toString();
+    }
+    if (error is io.FileSystemException) {
+      return 'تعذر الوصول إلى الملف أو حفظه. تحقق من صلاحية الموقع والمساحة المتاحة ثم أعد المحاولة.';
+    }
+    return 'تعذر إكمال العملية. أعد المحاولة وتأكد من صلاحية الملف أو موقع الحفظ.';
   }
 
   Future<void> _writeStructuredBackup(String outputPath) async {
@@ -54,7 +65,46 @@ class _SettingsPageState extends State<SettingsPage> {
     return Map<String, dynamic>.from(decoded);
   }
 
+  Future<void> _showResultDialog({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String message,
+    String actionLabel = 'موافق',
+    VoidCallback? onConfirmed,
+  }) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: iconColor),
+            const SizedBox(width: 10),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            message,
+            style: Theme.of(dialogContext).textTheme.bodyMedium,
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              onConfirmed?.call();
+            },
+            child: Text(actionLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _exportBackup() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
 
     try {
@@ -69,8 +119,6 @@ class _SettingsPageState extends State<SettingsPage> {
           allowedExtensions: ['json'],
         );
       } else if (io.Platform.isIOS) {
-        // iOS لا يقدم اختيار مجلد موثوقًا للحفظ؛ نستخدم مستندات التطبيق
-        // ونفعّل File Sharing في Info.plist للوصول إليها عبر تطبيق الملفات أو Finder.
         final documentsDirectory = await pp.getApplicationDocumentsDirectory();
         outputPath = p.join(documentsDirectory.path, fileName);
       } else {
@@ -87,97 +135,63 @@ class _SettingsPageState extends State<SettingsPage> {
           : '$outputPath.json';
       await _writeStructuredBackup(normalizedPath);
 
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-              SizedBox(width: 8),
-              Text('تم التصدير بنجاح'),
-            ],
-          ),
-          content: Text(
-            io.Platform.isIOS
-                ? 'تم حفظ نسخة JSON في مجلد مستندات التطبيق. يمكنك الوصول إليها من تطبيق الملفات أو Finder عند توصيل iPhone.\n\n$normalizedPath'
-                : 'تم حفظ نسخة JSON مهيكلة من البيانات في المسار التالي:\n\n$normalizedPath',
-            style: const TextStyle(height: 1.4),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('حسناً'),
-            ),
-          ],
-        ),
+      await _showResultDialog(
+        icon: Icons.check_circle_outline_rounded,
+        iconColor: AppColors.success,
+        title: 'تم التصدير بنجاح',
+        message: io.Platform.isIOS
+            ? 'تم حفظ نسخة JSON في مجلد مستندات التطبيق. يمكنك الوصول إليها من تطبيق الملفات أو Finder عند توصيل iPhone.\n\n$normalizedPath'
+            : 'تم حفظ نسخة JSON مهيكلة من البيانات في المسار التالي:\n\n$normalizedPath',
       );
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ أثناء تصدير البيانات: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      await _showResultDialog(
+        icon: Icons.error_outline_rounded,
+        iconColor: AppColors.error,
+        title: 'تعذر تصدير البيانات',
+        message: _friendlyError(error),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _importBackup() async {
+    if (_isLoading) return;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (dialogContext) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
-            SizedBox(width: 8),
-            Text('تأكيد استيراد البيانات'),
+            Icon(Icons.restore_rounded, color: AppColors.warning),
+            SizedBox(width: 10),
+            Expanded(child: Text('استعادة نسخة احتياطية')),
           ],
         ),
-        content: const Text(
-          'سيتم التحقق من ملف JSON واستبدال البيانات داخل معاملة آمنة. قبل الاستبدال ستُنشأ نسخة استرجاع تلقائية من بياناتك الحالية.',
-          style: TextStyle(height: 1.5),
+        content: const SingleChildScrollView(
+          child: Text(
+            'سيتم التحقق من ملف JSON واستبدال البيانات داخل معاملة آمنة. قبل الاستبدال ستُنشأ نسخة استرجاع تلقائية من بياناتك الحالية.',
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('إلغاء'),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber.shade800,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('اختيار النسخة والاستعادة'),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.folder_open_rounded),
+            label: const Text('اختيار النسخة'),
           ),
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
-    if (result == null || result.files.single.path == null) return;
+    if (result == null || result.files.single.path == null || !mounted) return;
 
     setState(() => _isLoading = true);
     try {
@@ -185,159 +199,86 @@ class _SettingsPageState extends State<SettingsPage> {
       final recoveryPath = await _createRecoveryBackup();
       await DatabaseHelper.instance.restoreBackupData(backup);
 
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-              SizedBox(width: 8),
-              Text('تمت الاستعادة بنجاح'),
-            ],
-          ),
-          content: Text(
+      await _showResultDialog(
+        icon: Icons.check_circle_outline_rounded,
+        iconColor: AppColors.success,
+        title: 'تمت الاستعادة بنجاح',
+        message:
             'تمت استعادة البيانات وتحديث واجهات التطبيق. احتُفظ بنسخة استرجاع تلقائية من بياناتك السابقة في:\n\n$recoveryPath',
-            style: const TextStyle(height: 1.4),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                widget.onDatabaseRestored();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('موافق'),
-            ),
-          ],
-        ),
+        onConfirmed: widget.onDatabaseRestored,
       );
     } catch (error) {
-      if (mounted) {
-        await showDialog<void>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.red, size: 28),
-                SizedBox(width: 8),
-                Text('فشل استيراد البيانات'),
-              ],
-            ),
-            content: Text(
-              'تعذر التحقق من النسخة أو استعادتها. لم تُستبدل البيانات عند فشل المعاملة.\n\nالسبب: $error',
-              style: const TextStyle(height: 1.4),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('حسنًا'),
-              ),
-            ],
-          ),
-        );
-      }
+      await _showResultDialog(
+        icon: Icons.error_outline_rounded,
+        iconColor: AppColors.error,
+        title: 'فشل استيراد البيانات',
+        message:
+            'لم تُستبدل البيانات عند فشل عملية الاستعادة.\n\n${_friendlyError(error)}',
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _clearLocalData() async {
+    if (_isLoading) return;
     final shouldClear =
         await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+          builder: (dialogContext) => AlertDialog(
             title: const Row(
               children: [
-                Icon(Icons.delete_forever, color: Colors.red),
-                SizedBox(width: 8),
+                Icon(Icons.delete_forever_rounded, color: AppColors.error),
+                SizedBox(width: 10),
                 Expanded(child: Text('مسح جميع البيانات المحلية')),
               ],
             ),
-            content: const Text(
-              'سيُمسح جميع المستأجرين والحجوزات والدفعات والمصروفات وسجل التدقيق من هذا الجهاز. لا يمكن التراجع عن المسح من داخل التطبيق، لكن سيُنشئ التطبيق نسخة استعادة JSON تلقائية قبل التنفيذ.',
-              style: TextStyle(height: 1.5),
+            content: const SingleChildScrollView(
+              child: Text(
+                'سيُمسح جميع المستأجرين والحجوزات والدفعات والمصروفات وسجل التدقيق من هذا الجهاز. لا يمكن التراجع عن المسح من داخل التطبيق، لكن سيُنشئ التطبيق نسخة استعادة JSON تلقائية قبل التنفيذ.',
+              ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
+                onPressed: () => Navigator.pop(dialogContext, false),
                 child: const Text('إلغاء'),
               ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.error,
                   foregroundColor: Colors.white,
                 ),
+                onPressed: () => Navigator.pop(dialogContext, true),
                 child: const Text('مسح جميع البيانات'),
               ),
             ],
           ),
         ) ??
         false;
-    if (!shouldClear) return;
+
+    if (!shouldClear || !mounted) return;
 
     setState(() => _isLoading = true);
     try {
       final recoveryPath = await _createRecoveryBackup();
       final result = await DatabaseHelper.instance.clearLocalData();
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-              SizedBox(width: 8),
-              Text('أصبحت القوائم فارغة'),
-            ],
-          ),
-          content: Text(
-            result.totalDeleted == 0
-                ? 'لا توجد سجلات محلية لمسحها.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath'
-                : 'مُسح ${result.totalDeleted} سجلًا محليًا، وأصبحت قوائم الحجوزات والمستأجرين والتقارير المالية فارغة.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath',
-            style: const TextStyle(height: 1.5),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('موافق'),
-            ),
-          ],
-        ),
+
+      await _showResultDialog(
+        icon: Icons.check_circle_outline_rounded,
+        iconColor: AppColors.success,
+        title: 'أصبحت القوائم فارغة',
+        message: result.totalDeleted == 0
+            ? 'لا توجد سجلات محلية لمسحها.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath'
+            : 'مُسح ${result.totalDeleted} سجلًا محليًا، وأصبحت قوائم الحجوزات والمستأجرين والتقارير المالية فارغة.\n\nأُنشئت نسخة الاستعادة هنا:\n$recoveryPath',
+        onConfirmed: widget.onDatabaseRestored,
       );
-      if (mounted) widget.onDatabaseRestored();
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تعذر مسح البيانات المحلية: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      await _showResultDialog(
+        icon: Icons.error_outline_rounded,
+        iconColor: AppColors.error,
+        title: 'تعذر مسح البيانات',
+        message: _friendlyError(error),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -345,172 +286,288 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Card(
-              color: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // أيقونة إعدادات عليا مع خلفية خفيفة
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFECFDF5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.settings_backup_restore_outlined,
-                          size: 48,
-                          color: Color(0xFF0F766E),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'إدارة البيانات والنسخ الاحتياطي',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20.sp(context),
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'احمِ بيانات استراحتك من الضياع. يمكنك عمل نسخة احتياطية كاملة للملفات وحفظها على حاسوبك أو هاتفك واستعادتها في أي وقت.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13.sp(context),
-                        color: Colors.grey,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    const Divider(height: 1),
-                    const SizedBox(height: 32),
-                    if (_isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF0F766E),
-                            ),
-                          ),
-                        ),
-                      )
-                    else ...[
-                      // زر تصدير البيانات
-                      ElevatedButton.icon(
-                        onPressed: _exportBackup,
-                        icon: const Icon(Icons.cloud_upload_outlined, size: 22),
-                        label: const Text(
-                          'تصدير نسخة احتياطية JSON',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F766E),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // زر استيراد البيانات
-                      OutlinedButton.icon(
-                        onPressed: _importBackup,
-                        icon: const Icon(
-                          Icons.cloud_download_outlined,
-                          size: 22,
-                        ),
-                        label: const Text(
-                          'استيراد نسخة احتياطية JSON',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0D9488),
-                          side: const BorderSide(
-                            color: Color(0xFF0D9488),
-                            width: 1.5,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: _clearLocalData,
-                        icon: const Icon(Icons.delete_forever, size: 22),
-                        label: const Text(
-                          'مسح جميع البيانات المحلية',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red, width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 32),
-                    // ملاحظة تحذيرية في الأسفل
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
-                        border: Border.all(color: Colors.amber.shade200),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: Responsive.pagePadding(context),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildIntro(context),
+                      const SizedBox(height: 20),
+                      if (_isLoading) ...[
+                        const LinearProgressIndicator(minHeight: 3),
+                        const SizedBox(height: 16),
+                      ],
+                      _SettingsSection(
+                        icon: Icons.cloud_sync_outlined,
+                        title: 'النسخ الاحتياطي',
+                        description:
+                            'احفظ نسخة JSON كاملة من بيانات الاستراحة أو استعد نسخة محفوظة سابقًا.',
                         children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.amber.shade800,
-                            size: 20,
+                          FilledButton.icon(
+                            onPressed: _isLoading ? null : _exportBackup,
+                            icon: const Icon(Icons.upload_file_rounded),
+                            label: const Text('تصدير نسخة احتياطية JSON'),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'نصيحة: ينصح بعمل نسخة احتياطية دورياً وحفظها في مكان آمن خارج الجهاز.',
-                              style: TextStyle(
-                                fontSize: 11.sp(context),
-                                color: const Color(0xFF78350F),
-                                fontWeight: FontWeight.w600,
-                              ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: _isLoading ? null : _importBackup,
+                            icon: const Icon(Icons.restore_page_rounded),
+                            label: const Text('استيراد نسخة احتياطية JSON'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _SettingsSection(
+                        icon: Icons.admin_panel_settings_outlined,
+                        title: 'إدارة البيانات',
+                        description:
+                            'العمليات الحساسة مفصولة بوضوح عن إجراءات النسخ والاستعادة العادية.',
+                        tone: _SectionTone.danger,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _isLoading ? null : _clearLocalData,
+                            icon: const Icon(Icons.delete_forever_rounded),
+                            label: const Text('مسح جميع البيانات المحلية'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              side: const BorderSide(color: Color(0xFFF3B4B4)),
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      const _SettingsSection(
+                        icon: Icons.info_outline_rounded,
+                        title: 'حول التطبيق',
+                        description:
+                            'نظام محلي لإدارة حجوزات الاستراحة والدفعات والمصروفات والنسخ الاحتياطي.',
+                        children: [
+                          _InfoRow(
+                            label: 'الإصدار',
+                            value: '1.0.0',
+                          ),
+                          SizedBox(height: 10),
+                          _InfoRow(
+                            label: 'طريقة التخزين',
+                            value: 'محلي على الجهاز',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsetsDirectional.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningContainer,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFFF4D7A6),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.lightbulb_outline_rounded,
+                              color: AppColors.warning,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'ينصح بعمل نسخة احتياطية دورية وحفظها في مكان آمن خارج الجهاز.',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.warning,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIntro(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: EdgeInsetsDirectional.all(
+        Responsive.isCompact(context) ? 18 : 24,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFCCFBF1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF99E7DD)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.settings_backup_restore_rounded,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'إدارة البيانات والنسخ الاحتياطي',
+                  style: theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'احمِ بيانات الاستراحة، واستعدها عند الحاجة، وأبقِ العمليات الحساسة منفصلة وواضحة.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _SectionTone { normal, danger }
+
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.children,
+    this.tone = _SectionTone.normal,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final List<Widget> children;
+  final _SectionTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final danger = tone == _SectionTone.danger;
+
+    return Container(
+      padding: EdgeInsetsDirectional.all(
+        Responsive.isCompact(context) ? 16 : 20,
+      ),
+      decoration: BoxDecoration(
+        color: danger ? AppColors.errorContainer : AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: danger ? const Color(0xFFF3C4C4) : AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: danger
+                      ? const Color(0xFFFDE2E2)
+                      : AppColors.surfaceSubtle,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: danger ? AppColors.error : AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+          if (children.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            ...children,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
