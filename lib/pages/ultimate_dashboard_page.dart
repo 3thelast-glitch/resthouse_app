@@ -87,9 +87,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
         ..sort();
       if (months.isEmpty) {
         final now = DateTime.now();
-        months.add(
-          '${now.year}-${now.month.toString().padLeft(2, '0')}',
-        );
+        months.add('${now.year}-${now.month.toString().padLeft(2, '0')}');
       }
       if (months.length > 5) {
         months.removeRange(0, months.length - 5);
@@ -170,9 +168,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                     TextFormField(
                       controller: nameController,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'الاسم الكامل',
-                      ),
+                      decoration: const InputDecoration(labelText: 'الاسم الكامل'),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'الرجاء إدخال الاسم الكامل';
@@ -189,14 +185,10 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(10),
                       ],
-                      decoration: const InputDecoration(
-                        labelText: 'رقم الهاتف',
-                      ),
+                      decoration: const InputDecoration(labelText: 'رقم الهاتف'),
                       validator: (value) {
                         final phone = value?.trim() ?? '';
-                        if (phone.isEmpty) {
-                          return 'الرجاء إدخال رقم الهاتف';
-                        }
+                        if (phone.isEmpty) return 'الرجاء إدخال رقم الهاتف';
                         if (phone.length < 10) {
                           return 'رقم الهاتف يجب أن يتكون من 10 أرقام';
                         }
@@ -235,17 +227,13 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         Navigator.pop(dialogContext);
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تمت إضافة المستأجر بنجاح'),
-                          ),
+                          const SnackBar(content: Text('تمت إضافة المستأجر بنجاح')),
                         );
                       } catch (_) {
                         if (!dialogContext.mounted) return;
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           const SnackBar(
-                            content: Text(
-                              'رقم الهاتف مسجل مسبقًا لمستأجر آخر.',
-                            ),
+                            content: Text('رقم الهاتف مسجل مسبقًا لمستأجر آخر.'),
                           ),
                         );
                       } finally {
@@ -279,18 +267,13 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
       builder: (dialogContext) => AlertDialog(
         title: const Row(
           children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: AppColors.error,
-            ),
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
             SizedBox(width: 10),
             Expanded(child: Text('تنبيه على المستأجر')),
           ],
         ),
         content: SingleChildScrollView(
-          child: Text(
-            'هذا العميل لديه ملاحظات سابقة:\n\n$notes',
-          ),
+          child: Text('هذا العميل لديه ملاحظات سابقة:\n\n$notes'),
         ),
         actions: [
           FilledButton(
@@ -307,9 +290,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     if (renters.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('أضف مستأجرًا أولًا قبل تسجيل الحجز.'),
-        ),
+        const SnackBar(content: Text('أضف مستأجرًا أولًا قبل تسجيل الحجز.')),
       );
       return;
     }
@@ -337,9 +318,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                 children: [
                   DropdownButtonFormField<String>(
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'المستأجر',
-                    ),
+                    decoration: const InputDecoration(labelText: 'المستأجر'),
                     initialValue: selectedPhone,
                     items: renters.map((renter) {
                       return DropdownMenuItem<String>(
@@ -364,8 +343,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                               selectedPhone = value;
                               selectedRenterNotes =
                                   (notes != null && notes.trim().isNotEmpty)
-                                  ? notes
-                                  : null;
+                                      ? notes
+                                      : null;
                             });
                             if (selectedRenterNotes != null) {
                               _showRenterWarningDialog(selectedRenterNotes!);
@@ -380,9 +359,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                       decoration: BoxDecoration(
                         color: AppColors.errorContainer,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFFF3C4C4),
-                        ),
+                        border: Border.all(color: const Color(0xFFF3C4C4)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,15 +402,11 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                               if (!dialogContext.mounted || date == null) return;
                               setDialogState(() {
                                 startDate = date;
-                                if (endDate.isBefore(startDate)) {
-                                  endDate = startDate;
-                                }
+                                if (endDate.isBefore(startDate)) endDate = startDate;
                               });
                             },
                       icon: const Icon(Icons.calendar_today_outlined),
-                      label: Text(
-                        'البداية: ${startDate.toString().split(' ')[0]}',
-                      ),
+                      label: Text('البداية: ${startDate.toString().split(' ')[0]}'),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -446,9 +419,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                               final date = await showDatePicker(
                                 context: dialogContext,
                                 initialDate:
-                                    endDate.isBefore(startDate)
-                                    ? startDate
-                                    : endDate,
+                                    endDate.isBefore(startDate) ? startDate : endDate,
                                 firstDate: startDate,
                                 lastDate: DateTime(2050),
                               );
@@ -456,32 +427,22 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                               setDialogState(() => endDate = date);
                             },
                       icon: const Icon(Icons.event_available_outlined),
-                      label: Text(
-                        'النهاية: ${endDate.toString().split(' ')[0]}',
-                      ),
+                      label: Text('النهاية: ${endDate.toString().split(' ')[0]}'),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: priceController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'سعر الحجز (ر.س)',
-                    ),
+                    decoration: const InputDecoration(labelText: 'سعر الحجز (ر.س)'),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: securityDepositController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textInputAction: TextInputAction.done,
-                    decoration: const InputDecoration(
-                      labelText: 'قيمة التأمين (ر.س)',
-                    ),
+                    decoration: const InputDecoration(labelText: 'قيمة التأمين (ر.س)'),
                   ),
                 ],
               ),
@@ -496,18 +457,12 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               onPressed: saving
                   ? null
                   : () async {
-                      final price =
-                          double.tryParse(priceController.text.trim()) ?? 0;
+                      final price = double.tryParse(priceController.text.trim()) ?? 0;
                       final securityDeposit =
-                          double.tryParse(
-                            securityDepositController.text.trim(),
-                          ) ??
-                          0;
+                          double.tryParse(securityDepositController.text.trim()) ?? 0;
                       if (selectedPhone == null || price <= 0) {
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(
-                            content: Text('الرجاء التحقق من بيانات الحجز.'),
-                          ),
+                          const SnackBar(content: Text('الرجاء التحقق من بيانات الحجز.')),
                         );
                         return;
                       }
@@ -516,17 +471,12 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                       try {
                         final start = startDate.toString().split(' ')[0];
                         final end = endDate.toString().split(' ')[0];
-                        final conflict = await dbHelper.hasBookingConflict(
-                          start,
-                          end,
-                        );
+                        final conflict = await dbHelper.hasBookingConflict(start, end);
                         if (conflict) {
                           if (!dialogContext.mounted) return;
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
                             const SnackBar(
-                              content: Text(
-                                'الاستراحة محجوزة بالفعل في هذه الفترة.',
-                              ),
+                              content: Text('الاستراحة محجوزة بالفعل في هذه الفترة.'),
                             ),
                           );
                           return;
@@ -545,9 +495,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         Navigator.pop(dialogContext);
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تمت إضافة الحجز بنجاح'),
-                          ),
+                          const SnackBar(content: Text('تمت إضافة الحجز بنجاح')),
                         );
                       } on StateError catch (error) {
                         if (!dialogContext.mounted) return;
@@ -559,8 +507,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           SnackBar(
                             content: Text(
-                              error.message?.toString() ??
-                                  'بيانات الحجز غير صالحة.',
+                              error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
                             ),
                           ),
                         );
@@ -608,20 +555,14 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                   TextField(
                     controller: descController,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'وصف المصروف',
-                    ),
+                    decoration: const InputDecoration(labelText: 'وصف المصروف'),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textInputAction: TextInputAction.done,
-                    decoration: const InputDecoration(
-                      labelText: 'المبلغ (ر.س)',
-                    ),
+                    decoration: const InputDecoration(labelText: 'المبلغ (ر.س)'),
                   ),
                 ],
               ),
@@ -637,21 +578,16 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                   ? null
                   : () async {
                       final description = descController.text.trim();
-                      final amount =
-                          double.tryParse(amountController.text.trim());
+                      final amount = double.tryParse(amountController.text.trim());
                       if (description.isEmpty) {
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(
-                            content: Text('الرجاء إدخال وصف للمصروف.'),
-                          ),
+                          const SnackBar(content: Text('الرجاء إدخال وصف للمصروف.')),
                         );
                         return;
                       }
                       if (amount == null || amount <= 0) {
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(
-                            content: Text('أدخل مبلغ مصروف صحيحًا.'),
-                          ),
+                          const SnackBar(content: Text('أدخل مبلغ مصروف صحيحًا.')),
                         );
                         return;
                       }
@@ -668,9 +604,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         Navigator.pop(dialogContext);
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تم تسجيل المصروف بنجاح'),
-                          ),
+                          const SnackBar(content: Text('تم تسجيل المصروف بنجاح')),
                         );
                       } finally {
                         if (dialogContext.mounted) {
@@ -742,14 +676,10 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
-
         final intro = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'نظرة عامة',
-              style: theme.textTheme.headlineSmall,
-            ),
+            Text('نظرة عامة', style: theme.textTheme.headlineSmall),
             const SizedBox(height: 4),
             Text(
               'تابع الحجوزات والتحصيل والمصروفات من مكان واحد.',
@@ -785,11 +715,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
         if (compact) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              intro,
-              const SizedBox(height: 14),
-              actions,
-            ],
+            children: [intro, const SizedBox(height: 14), actions],
           );
         }
 
@@ -840,8 +766,9 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
         value: _currency(_netCash),
         icon: Icons.account_balance_wallet_outlined,
         tone: _netCash >= 0 ? AppColors.success : AppColors.error,
-        toneContainer:
-            _netCash >= 0 ? AppColors.successContainer : AppColors.errorContainer,
+        toneContainer: _netCash >= 0
+            ? AppColors.successContainer
+            : AppColors.errorContainer,
       ),
       _MetricData(
         label: 'تأمينات معلقة',
@@ -860,18 +787,14 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                 ? 2
                 : 3;
         const gap = 12.0;
-        final width =
-            (constraints.maxWidth - (gap * (columns - 1))) / columns;
+        final width = (constraints.maxWidth - (gap * (columns - 1))) / columns;
 
         return Wrap(
           spacing: gap,
           runSpacing: gap,
           children: [
             for (final metric in metrics)
-              SizedBox(
-                width: width,
-                child: _MetricCard(data: metric),
-              ),
+              SizedBox(width: width, child: _MetricCard(data: metric)),
           ],
         );
       },
@@ -912,14 +835,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
             spacing: 16,
             runSpacing: 6,
             children: [
-              _LegendDot(
-                color: AppColors.success,
-                label: 'قيمة الحجوزات',
-              ),
-              _LegendDot(
-                color: AppColors.error,
-                label: 'المصروفات',
-              ),
+              _LegendDot(color: AppColors.success, label: 'قيمة الحجوزات'),
+              _LegendDot(color: AppColors.error, label: 'المصروفات'),
             ],
           ),
           const SizedBox(height: 18),
@@ -937,10 +854,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                     sideTitles: SideTitles(showTitles: false),
                   ),
                   leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 44,
-                    ),
+                    sideTitles: SideTitles(showTitles: true, reservedSize: 44),
                   ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -959,7 +873,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                     strokeWidth: 1,
                   ),
                 ),
-                barTouchData: BarTouchData(enabled: true),
+                barTouchData: const BarTouchData(enabled: true),
               ),
             ),
           ),
@@ -976,11 +890,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     if (availableWidth < 900) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          chart,
-          const SizedBox(height: 14),
-          activities,
-        ],
+        children: [chart, const SizedBox(height: 14), activities],
       );
     }
 
@@ -996,10 +906,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
 
   Widget _buildDashboardEmptyState() {
     return Container(
-      padding: const EdgeInsetsDirectional.symmetric(
-        horizontal: 24,
-        vertical: 44,
-      ),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 44),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
@@ -1069,17 +976,13 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               toY: _monthlyRevenue[month] ?? 0,
               color: AppColors.success,
               width: 9,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(4),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
             ),
             BarChartRodData(
               toY: _monthlyExpenses[month] ?? 0,
               color: AppColors.error,
               width: 9,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(4),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
             ),
           ],
         ),
@@ -1101,10 +1004,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
 
     return SideTitleWidget(
       meta: meta,
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall,
-      ),
+      child: Text(label, style: Theme.of(context).textTheme.labelSmall),
     );
   }
 
@@ -1127,8 +1027,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
       children: [
         for (var index = 0; index < _recentActivities.length; index++) ...[
           _ActivityRow(activity: _recentActivities[index]),
-          if (index != _recentActivities.length - 1)
-            const Divider(height: 20),
+          if (index != _recentActivities.length - 1) const Divider(height: 20),
         ],
       ],
     );
@@ -1153,13 +1052,11 @@ class _MetricData {
 
 class _MetricCard extends StatelessWidget {
   const _MetricCard({required this.data});
-
   final _MetricData data;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Container(
       padding: const EdgeInsetsDirectional.all(16),
       decoration: BoxDecoration(
@@ -1179,11 +1076,7 @@ class _MetricCard extends StatelessWidget {
                   color: data.toneContainer,
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(
-                  data.icon,
-                  color: data.tone,
-                  size: 21,
-                ),
+                child: Icon(data.icon, color: data.tone, size: 21),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1219,7 +1112,6 @@ class _CountPill extends StatelessWidget {
     required this.label,
     required this.value,
   });
-
   final IconData icon;
   final String label;
   final String value;
@@ -1227,12 +1119,8 @@ class _CountPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsetsDirectional.symmetric(
-        horizontal: 12,
-        vertical: 9,
-      ),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
@@ -1243,10 +1131,7 @@ class _CountPill extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: AppColors.primary),
           const SizedBox(width: 7),
-          Text(
-            '$label: ',
-            style: theme.textTheme.bodySmall,
-          ),
+          Text('$label: ', style: theme.textTheme.bodySmall),
           Text(
             value,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -1266,7 +1151,6 @@ class _Panel extends StatelessWidget {
     required this.subtitle,
     required this.child,
   });
-
   final String title;
   final String subtitle;
   final Widget child;
@@ -1274,11 +1158,8 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Container(
-      padding: EdgeInsetsDirectional.all(
-        Responsive.isCompact(context) ? 16 : 20,
-      ),
+      padding: EdgeInsetsDirectional.all(Responsive.isCompact(context) ? 16 : 20),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -1304,11 +1185,7 @@ class _Panel extends StatelessWidget {
 }
 
 class _LegendDot extends StatelessWidget {
-  const _LegendDot({
-    required this.color,
-    required this.label,
-  });
-
+  const _LegendDot({required this.color, required this.label});
   final Color color;
   final String label;
 
@@ -1320,16 +1197,10 @@ class _LegendDot extends StatelessWidget {
         Container(
           width: 9,
           height: 9,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
@@ -1337,7 +1208,6 @@ class _LegendDot extends StatelessWidget {
 
 class _ActivityRow extends StatelessWidget {
   const _ActivityRow({required this.activity});
-
   final DashboardActivity activity;
 
   @override
@@ -1377,19 +1247,14 @@ class _ActivityRow extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 2),
-              Text(
-                activity.date,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              Text(activity.date, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
         const SizedBox(width: 8),
         Text(
           '${isBooking ? '+' : '-'}${activity.amount.toStringAsFixed(0)}',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: tone,
-              ),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(color: tone),
         ),
       ],
     );
