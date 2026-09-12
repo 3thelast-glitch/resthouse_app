@@ -10,9 +10,14 @@ import 'package:resthouse_app/main.dart';
 Future<void> _settleDatabaseUi(WidgetTester tester) async {
   await tester.pump();
   await tester.runAsync(() async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final deadline = DateTime.now().add(const Duration(seconds: 4));
+    while (find.byType(CircularProgressIndicator).evaluate().isNotEmpty &&
+        DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      await tester.pump();
+    }
   });
-  for (var i = 0; i < 6; i++) {
+  for (var i = 0; i < 4; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
 }
@@ -86,9 +91,13 @@ void main() {
     await tester.pumpWidget(const ResthouseApp());
     await _settleDatabaseUi(tester);
 
-    final bookingsIcon = find.byIcon(Icons.calendar_month_outlined);
-    expect(bookingsIcon, findsOneWidget);
-    await tester.tap(bookingsIcon);
+    final bookingsDestination = find.byWidgetPredicate(
+      (widget) =>
+          widget is NavigationDestination && widget.label == 'الحجوزات',
+      description: 'bookings navigation destination',
+    );
+    expect(bookingsDestination, findsOneWidget);
+    await tester.tap(bookingsDestination);
     await _settleDatabaseUi(tester);
 
     final addBooking = find.text('تسجيل حجز جديد');
