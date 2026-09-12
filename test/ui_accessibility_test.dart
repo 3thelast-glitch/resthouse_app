@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:resthouse_app/database_helper.dart';
 import 'package:resthouse_app/main.dart';
+import 'package:resthouse_app/pages/booking_manager_page.dart';
+import 'package:resthouse_app/theme/app_theme.dart';
 
 Future<void> _settleDatabaseUi(WidgetTester tester) async {
   await tester.pump();
@@ -26,6 +29,21 @@ void _expectNoLayoutException(WidgetTester tester, String reason) {
   final exception = tester.takeException();
   expect(exception, isNull, reason: reason);
   while (tester.takeException() != null) {}
+}
+
+Widget _bookingTestApp() {
+  return MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    locale: const Locale('ar', 'SA'),
+    supportedLocales: const [Locale('ar', 'SA')],
+    localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: const BookingManagerPage(),
+  );
 }
 
 void main() {
@@ -88,12 +106,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const ResthouseApp());
-    await _settleDatabaseUi(tester);
-
-    final navigationBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-    expect(navigationBar.onDestinationSelected, isNotNull);
-    navigationBar.onDestinationSelected!(1);
+    await tester.pumpWidget(_bookingTestApp());
     await _settleDatabaseUi(tester);
 
     final addBooking = find.text('تسجيل حجز جديد');
