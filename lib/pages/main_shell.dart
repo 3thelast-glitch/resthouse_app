@@ -52,6 +52,7 @@ class _MainShellPageState extends State<MainShellPage> {
     final isWide = width >= 800;
     final isCompact = width < 600;
     final isLargeText = textScaler.scale(14) >= 20;
+    final showPropertyName = !isCompact && !isLargeText;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,43 +60,33 @@ class _MainShellPageState extends State<MainShellPage> {
         titleSpacing: 16,
         title: Text(
           isCompact ? _compactTitles[_selectedIndex] : _titles[_selectedIndex],
-          maxLines: 1,
+          maxLines: isLargeText ? 2 : 1,
           overflow: TextOverflow.ellipsis,
         ),
-        actions: [
-          if (!isCompact)
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: 16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.holiday_village_outlined,
-                    color: Colors.white,
+        actions: showPropertyName
+            ? [
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.holiday_village_outlined,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'استراحة نوره',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'استراحة نوره',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            const Padding(
-              padding: EdgeInsetsDirectional.only(end: 8),
-              child: Tooltip(
-                message: 'استراحة نوره',
-                child: Icon(
-                  Icons.holiday_village_outlined,
-                  color: Colors.white,
                 ),
-              ),
-            ),
-        ],
+              ]
+            : null,
       ),
       body: isWide
           ? Row(
