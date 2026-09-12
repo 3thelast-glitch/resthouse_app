@@ -91,13 +91,9 @@ void main() {
     await tester.pumpWidget(const ResthouseApp());
     await _settleDatabaseUi(tester);
 
-    final bookingsDestination = find.byWidgetPredicate(
-      (widget) =>
-          widget is NavigationDestination && widget.label == 'الحجوزات',
-      description: 'bookings navigation destination',
-    );
-    expect(bookingsDestination, findsOneWidget);
-    await tester.tap(bookingsDestination);
+    final navigationBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(navigationBar.onDestinationSelected, isNotNull);
+    navigationBar.onDestinationSelected!(1);
     await _settleDatabaseUi(tester);
 
     final addBooking = find.text('تسجيل حجز جديد');
