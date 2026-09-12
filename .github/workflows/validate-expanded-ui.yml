@@ -1,0 +1,29 @@
+name: Validate expanded UI accessibility
+
+on:
+  push:
+    branches: [test/expand-ui-accessibility]
+    paths:
+      - 'test/ui_accessibility_test.dart'
+      - '.github/workflows/validate-expanded-ui.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: flutter analyze
+        run: flutter analyze
+      - name: Targeted accessibility test
+        shell: bash
+        run: timeout 120s flutter test test/ui_accessibility_test.dart -r expanded
