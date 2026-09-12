@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../database_helper.dart';
+import '../theme/app_theme.dart';
 
 /// Shows the complete receipt history, including corrections, for one booking.
 class BookingPaymentsDialog extends StatefulWidget {
@@ -17,6 +18,8 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
   Map<String, double>? _summary;
   String? _error;
   bool _busy = false;
+
+  String _money(num value) => '\u2066${value.toStringAsFixed(2)}\u2069 ر.س';
 
   @override
   void initState() {
@@ -51,20 +54,28 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
     final reason = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('إلغاء دفعة خاطئة'),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const StatusBadge.warning(label: 'تصحيح سجل دفعة'),
+              const SizedBox(height: AppSpacing.md),
               const Text(
                 'سيُحتفظ بالدفعة وسبب إلغائها في السجل. هذه العملية تصحح التسجيل ولا تنفذ استرداداً مالياً للعميل.',
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 onChanged: (value) => reasonText = value,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'سبب الإلغاء'),
+                minLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'سبب الإلغاء',
+                  hintText: 'اكتب سبب تصحيح هذه الدفعة',
+                ),
                 validator: (value) => (value ?? '').trim().isEmpty
                     ? 'اكتب سبب إلغاء الدفعة.'
                     : null,
@@ -77,13 +88,14 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('رجوع'),
           ),
-          FilledButton(
+          FilledButton.icon(
             onPressed: () {
               if (formKey.currentState!.validate()) {
                 Navigator.pop(dialogContext, reasonText.trim());
               }
             },
-            child: const Text('تأكيد إلغاء الدفعة'),
+            icon: const Icon(Icons.undo),
+            label: const Text('تأكيد إلغاء الدفعة'),
           ),
         ],
       ),
@@ -109,68 +121,142 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text('دفعات الحجز #${widget.bookingId}'),
-      content: SizedBox(
-        width: 480,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
         child: _summary == null && _error == null
             ? const SizedBox(
-                height: 80,
+                height: 96,
                 child: Center(child: CircularProgressIndicator()),
               )
-            : SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_error != null)
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                    if (_summary != null) ...[
-                      Text(
-                        'المسدد: ${_summary!['paid']!.toStringAsFixed(2)} ر.س',
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_error != null) ...[
+                    StatusBadge.error(label: _error!),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (_summary != null) ...[
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: [
+                        _SummaryAmount(
+                          label: 'المسدد',
+                          value: _money(_summary!['paid']!),
+                          foreground: AppColors.successText,
+                          background: AppColors.successSurface,
+                        ),
+                        _SummaryAmount(
+                          label: 'المتبقي',
+                          value: _money(_summary!['remaining']!),
+                          foreground: _summary!['remaining']! > 0
+                              ? AppColors.warningText
+                              : AppColors.successText,
+                          background: _summary!['remaining']! > 0
+                              ? AppColors.warningSurface
+                              : AppColors.successSurface,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    const Divider(),
+                    const SizedBox(height: AppSpacing.md),
+                    if (_payments.isEmpty)
+                      const StatusBadge.neutral(
+                        label: 'لا توجد دفعات لهذا الحجز.',
                       ),
-                      Text(
-                        'المتبقي: ${_summary!['remaining']!.toStringAsFixed(2)} ر.س',
-                      ),
-                      const Divider(),
-                      if (_payments.isEmpty)
-                        const Text('لا توجد دفعات لهذا الحجز.'),
-                      for (final payment in _payments)
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${(payment['amount'] as num).toStringAsFixed(2)} ر.س — ${payment['status'] == 'voided' ? 'ملغاة' : 'مؤكدة'}',
-                                ),
-                                Text(
-                                  '${payment['paid_at']} — ${const {'cash': 'نقدي', 'transfer': 'تحويل بنكي', 'card': 'بطاقة'}[payment['method']] ?? payment['method']}',
-                                ),
-                                if ((payment['note'] ?? '')
-                                    .toString()
-                                    .isNotEmpty)
-                                  Text(payment['note'].toString()),
-                                if (payment['status'] == 'voided') ...[
-                                  Text('السبب: ${payment['void_reason']}'),
-                                  Text(
-                                    'تاريخ الإلغاء: ${payment['voided_at']}',
+                    for (final payment in _payments) ...[
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _money(payment['amount'] as num),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge,
+                                    ),
                                   ),
-                                ] else
-                                  TextButton.icon(
+                                  const SizedBox(width: AppSpacing.sm),
+                                  if (payment['status'] == 'voided')
+                                    const StatusBadge.error(label: 'ملغاة')
+                                  else
+                                    const StatusBadge.success(label: 'مؤكدة'),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Directionality(
+                                textDirection: TextDirection.ltr,
+                                child: Align(
+                                  alignment: AlignmentDirectional.centerEnd,
+                                  child: Text(
+                                    '${payment['paid_at']}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'طريقة الدفع: ${const {'cash': 'نقدي', 'transfer': 'تحويل بنكي', 'card': 'بطاقة'}[payment['method']] ?? payment['method']}',
+                              ),
+                              if ((payment['note'] ?? '')
+                                  .toString()
+                                  .isNotEmpty) ...[
+                                const SizedBox(height: AppSpacing.xs),
+                                Text('ملاحظة: ${payment['note']}'),
+                              ],
+                              if (payment['status'] == 'voided') ...[
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  'سبب الإلغاء: ${payment['void_reason']}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(color: AppColors.errorText),
+                                ),
+                                Directionality(
+                                  textDirection: TextDirection.ltr,
+                                  child: Align(
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: Text(
+                                      'تاريخ الإلغاء: ${payment['voided_at']}',
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ),
+                                ),
+                              ] else ...[
+                                const SizedBox(height: AppSpacing.sm),
+                                Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: TextButton.icon(
                                     onPressed: _busy
                                         ? null
                                         : () => _voidPayment(payment),
                                     icon: const Icon(Icons.undo),
                                     label: const Text('إلغاء الدفعة'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.errorText,
+                                    ),
                                   ),
+                                ),
                               ],
-                            ),
+                            ],
                           ),
                         ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
                     ],
                   ],
-                ),
+                ],
               ),
       ),
       actions: [
@@ -179,6 +265,54 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
           child: const Text('إغلاق'),
         ),
       ],
+    );
+  }
+}
+
+class _SummaryAmount extends StatelessWidget {
+  const _SummaryAmount({
+    required this.label,
+    required this.value,
+    required this.foreground,
+    required this.background,
+  });
+
+  final String label;
+  final String value;
+  final Color foreground;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 180),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(AppRadius.medium),
+        border: Border.all(color: foreground.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: foreground,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.visible,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: foreground,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+          ),
+        ],
+      ),
     );
   }
 }
