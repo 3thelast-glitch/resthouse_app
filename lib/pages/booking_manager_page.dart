@@ -1438,8 +1438,11 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         .length;
     final hasDirectoryData = _bookings.isNotEmpty || _renters.isNotEmpty;
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final calendarRowHeight = (52.0 * textScale).clamp(52.0, 104.0).toDouble();
-    final calendarDowHeight = (28.0 * textScale).clamp(28.0, 56.0).toDouble();
+    // Keep both Hijri and Gregorian day labels readable at large system text sizes.
+    // TableCalendar subtracts the cell margin from rowHeight, so leave enough
+    // vertical room instead of shrinking or clipping either date label.
+    final calendarRowHeight = (76.0 * textScale).clamp(52.0, 160.0).toDouble();
+    final calendarDowHeight = (36.0 * textScale).clamp(28.0, 76.0).toDouble();
 
     return Scaffold(
       backgroundColor: AppColors.background,
