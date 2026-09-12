@@ -168,7 +168,7 @@ void main() {
       tester.platformDispatcher.textScaleFactorTestValue = 2.0;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       debugPrint('[a11y] seeding data');
-      await _seedAccessibilityData(db);
+      await tester.runAsync(() => _seedAccessibilityData(db));
       debugPrint('[a11y] data seeded');
 
       const sizes = <Size>[
