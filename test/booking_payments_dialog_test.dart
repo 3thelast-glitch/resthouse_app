@@ -46,33 +46,48 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      // Start the entire interaction in the real async zone. Starting the
+      // dialog in fake time and only wrapping the final tap leaves its SQLite
+      // continuation in fake time and can strand an open transaction.
       await tester.runAsync(() async {
+        Future<void> waitForText(String text) async {
+          final deadline = DateTime.now().add(const Duration(seconds: 5));
+          while (find.text(text).evaluate().isEmpty &&
+              DateTime.now().isBefore(deadline)) {
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+            await tester.pump();
+          }
+          expect(find.text(text), findsOneWidget);
+        }
+
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(body: BookingPaymentsDialog(bookingId: bookingId)),
           ),
         );
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      });
-      await tester.pumpAndSettle();
-      expect(find.text('المسدد: 300.00 ر.س'), findsOneWidget);
-      await tester.tap(find.text('إلغاء الدفعة'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('تأكيد إلغاء الدفعة'));
-      await tester.pumpAndSettle();
-      expect(find.text('اكتب سبب إلغاء الدفعة.'), findsOneWidget);
-      await tester.enterText(find.byType(TextFormField), 'دفعة مكررة');
-      await tester.runAsync(() async {
+        await waitForText('المسدد: 300.00 ر.س');
+        await tester.tap(find.text('إلغاء الدفعة'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('تأكيد إلغاء الدفعة'));
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+        await tester.pumpAndSettle();
+        expect(find.text('اكتب سبب إلغاء الدفعة.'), findsOneWidget);
+        await tester.enterText(find.byType(TextFormField), 'دفعة مكررة');
+        await tester.tap(find.text('تأكيد إلغاء الدفعة'));
+        await waitForText('المسدد: 0.00 ر.س');
+        await tester.pumpAndSettle();
+        expect(find.text('المتبقي: 1000.00 ر.س'), findsOneWidget);
+        expect(find.text('السبب: دفعة مكررة'), findsOneWidget);
+        expect(find.text('إلغاء الدفعة'), findsNothing);
+        final payments = await helper.queryPaymentsForBooking(
+          bookingId,
+          includeVoided: true,
+        );
+        expect(payments.single['status'], 'voided');
+        expect(payments.single['void_reason'], 'دفعة مكررة');
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
       });
-      await tester.pumpAndSettle();
-      expect(find.text('المسدد: 0.00 ر.س'), findsOneWidget);
-      expect(find.text('المتبقي: 1000.00 ر.س'), findsOneWidget);
-      expect(find.text('السبب: دفعة مكررة'), findsOneWidget);
-      expect(find.text('إلغاء الدفعة'), findsNothing);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
     },
+    timeout: const Timeout(Duration(seconds: 45)),
   );
 }
