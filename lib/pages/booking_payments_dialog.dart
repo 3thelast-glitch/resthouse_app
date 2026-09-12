@@ -19,7 +19,7 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
   String? _error;
   bool _busy = false;
 
-  String _money(num value) => '\u2066${value.toStringAsFixed(2)}\u2069 ر.س';
+  String _money(num value) => '${value.toStringAsFixed(2)} ر.س';
 
   @override
   void initState() {
@@ -217,7 +217,7 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                               if (payment['status'] == 'voided') ...[
                                 const SizedBox(height: AppSpacing.sm),
                                 Text(
-                                  'سبب الإلغاء: ${payment['void_reason']}',
+                                  'السبب: ${payment['void_reason']}',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyMedium
@@ -292,26 +292,12 @@ class _SummaryAmount extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.medium),
         border: Border.all(color: foreground.withValues(alpha: 0.35)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: foreground,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.visible,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: foreground,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-          ),
-        ],
+      child: Text(
+        '$label: $value',
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: foreground,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
       ),
     );
   }
