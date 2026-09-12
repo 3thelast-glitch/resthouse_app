@@ -12,17 +12,15 @@ import 'package:resthouse_app/theme/app_theme.dart';
 
 Future<void> _settleDatabaseUi(WidgetTester tester) async {
   await tester.pump();
+
+  // sqflite_common_ffi runs database work on a real isolate. Advancing the
+  // widget-test clock alone does not wait for that isolate, so give the first
+  // load a short real-time window before asking Flutter to settle frames.
   await tester.runAsync(() async {
-    final deadline = DateTime.now().add(const Duration(seconds: 4));
-    while (find.byType(CircularProgressIndicator).evaluate().isNotEmpty &&
-        DateTime.now().isBefore(deadline)) {
-      await Future<void>.delayed(const Duration(milliseconds: 25));
-      await tester.pump();
-    }
+    await Future<void>.delayed(const Duration(milliseconds: 300));
   });
-  for (var i = 0; i < 4; i++) {
-    await tester.pump(const Duration(milliseconds: 100));
-  }
+
+  await tester.pumpAndSettle(const Duration(milliseconds: 100));
 }
 
 void _expectNoLayoutException(WidgetTester tester, String reason) {
@@ -92,7 +90,7 @@ void main() {
         'Unexpected layout exception at ${size.width}x${size.height} with 200% text scaling.',
       );
       await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
+      await _settleDatabaseUi(tester);
     }
 
     await tester.binding.setSurfaceSize(null);
@@ -124,6 +122,6 @@ void main() {
     );
 
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
+    await _settleDatabaseUi(tester);
   });
 }
