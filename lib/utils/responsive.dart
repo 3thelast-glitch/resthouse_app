@@ -1,52 +1,34 @@
 import 'package:flutter/material.dart';
 
-/// Responsive font scaling utility.
-/// Computes a scale factor based on screen shortest side to ensure
-/// text is legible on 8.7" tablets without being oversized on larger screens.
+/// Legacy sizing helper retained for source compatibility.
+///
+/// Text size is deliberately no longer scaled from the viewport width or
+/// shortest side. Flutter's MediaQuery TextScaler remains in control so the
+/// user's accessibility text-size setting is respected. Very small legacy
+/// labels are lifted to a readable floor instead of being shrunk on phones.
 class Responsive {
-  Responsive._(); // Prevent instantiation
+  Responsive._();
 
-  /// Set to [false] to hide the debug scale overlay in production.
-  static const bool showDebugOverlay = true;
+  static const bool showDebugOverlay = false;
+  static const double minimumReadableText = 13.0;
 
-  /// Reference shortest side dimension (calibrated for desktop ~600dp).
-  static const double _referenceShortestSide = 600.0;
+  static double scaleFactor(BuildContext context) => 1.0;
 
-  /// Computes the responsive scale factor for the current screen.
-  /// Clamped between 0.85 (small phones) and 1.4 (large tablets/desktop).
-  static double scaleFactor(BuildContext context) {
-    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
-    return (shortestSide / _referenceShortestSide).clamp(0.85, 1.4);
-  }
-
-  /// Scales a font size responsively based on screen dimensions.
   static double sp(BuildContext context, double fontSize) {
-    return fontSize * scaleFactor(context);
+    return fontSize < minimumReadableText ? minimumReadableText : fontSize;
   }
 
-  /// Scale factor for chart axis labels — clamped tighter (max 1.1)
-  /// to prevent label overlap on smaller screens.
-  static double chartScaleFactor(BuildContext context) {
-    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
-    return (shortestSide / _referenceShortestSide).clamp(0.85, 1.1);
-  }
+  /// Charts keep their authored sizes but never fall below 12 logical pixels.
+  /// Device text scaling is still applied by Flutter after this value.
+  static double chartScaleFactor(BuildContext context) => 1.0;
 
-  /// Scales a font size for chart axis labels with a tighter maximum.
   static double spChart(BuildContext context, double fontSize) {
-    return fontSize * chartScaleFactor(context);
+    return fontSize < 12.0 ? 12.0 : fontSize;
   }
 }
 
-/// Extension on [num] for ergonomic responsive font sizing.
-///
-/// Usage:
-/// ```dart
-/// Text('Hello', style: TextStyle(fontSize: 14.sp(context)));
-/// ```
 extension ResponsiveExt on num {
-  /// Scales this number as a responsive font size.
   double sp(BuildContext context) => Responsive.sp(context, toDouble());
 
-  /// Scales this number as a responsive chart label font size (clamped tighter).
   double spChart(BuildContext context) => Responsive.spChart(context, toDouble());
 }
