@@ -35,7 +35,16 @@ jobs:
           test "$(stat -c%s assets/fonts/IBMPlexSansArabic-Bold.ttf)" -gt 200000
 
       - name: Apply consistency migration
-        run: python3 tool/apply_ui_consistency.py
+        run: |
+          python3 tool/apply_ui_consistency.py
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in Path('lib/pages').glob('*.dart'):
+              text = path.read_text(encoding='utf-8')
+              text = text.replace('AppColors.background0', 'AppColors.secondaryText')
+              text = text.replace('AppColors.primaryPressedGrey', 'AppColors.secondaryText')
+              path.write_text(text, encoding='utf-8')
+          PY
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
