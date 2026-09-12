@@ -1,0 +1,38 @@
+name: Fix calendar large text cells
+
+on:
+  push:
+    branches: [feat/arabic-ui-clarity]
+    paths:
+      - '.github/workflows/fix-calendar-text-scale.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/arabic-ui-clarity
+      - name: Resize calendar rows for text scaling
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('lib/pages/booking_manager_page.dart')
+          text = path.read_text(encoding='utf-8')
+          old = """    final calendarRowHeight = (52.0 * textScale).clamp(52.0, 104.0).toDouble();\n    final calendarDowHeight = (28.0 * textScale).clamp(28.0, 56.0).toDouble();"""
+          new = """    // Keep both Hijri and Gregorian day labels readable at large system text sizes.\n    // TableCalendar subtracts the cell margin from rowHeight, so leave enough\n    // vertical room instead of shrinking or clipping either date label.\n    final calendarRowHeight = (76.0 * textScale).clamp(52.0, 160.0).toDouble();\n    final calendarDowHeight = (36.0 * textScale).clamp(28.0, 76.0).toDouble();"""
+          if old not in text:
+              raise SystemExit('calendar sizing block not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/pages/booking_manager_page.dart
+          git commit -m "fix(ui): scale calendar rows with accessible text"
+          git push origin HEAD:feat/arabic-ui-clarity
