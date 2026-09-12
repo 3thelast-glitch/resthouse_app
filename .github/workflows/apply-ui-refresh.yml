@@ -6,6 +6,11 @@ on:
     paths:
       - 'tool/apply_ui_consistency.py'
       - '.github/workflows/apply-ui-refresh.yml'
+      - 'lib/main.dart'
+      - 'lib/theme/**'
+      - 'lib/utils/responsive.dart'
+      - 'lib/pages/**'
+      - 'pubspec.yaml'
 
 permissions:
   contents: write
