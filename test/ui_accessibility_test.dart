@@ -86,7 +86,9 @@ void main() {
     await tester.pumpWidget(const ResthouseApp());
     await _settleDatabaseUi(tester);
 
-    await tester.tap(find.text('الحجوزات').last, warnIfMissed: false);
+    final bookingsIcon = find.byIcon(Icons.calendar_month_outlined);
+    expect(bookingsIcon, findsOneWidget);
+    await tester.tap(bookingsIcon);
     await _settleDatabaseUi(tester);
 
     final addBooking = find.text('تسجيل حجز جديد');
