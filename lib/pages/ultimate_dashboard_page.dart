@@ -685,11 +685,31 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                       MediaQuery.textScalerOf(context).scale(14) >= 20;
                   final stackActions =
                       constraints.maxWidth < 520 || isLargeText;
+
+                  Widget actionContent(IconData icon, String label) {
+                    if (stackActions) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 20),
+                          const SizedBox(height: 4),
+                          Text(label, textAlign: TextAlign.center),
+                        ],
+                      );
+                    }
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 18),
+                        const SizedBox(width: 8),
+                        Text(label),
+                      ],
+                    );
+                  }
+
                   final actions = <Widget>[
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: _showQuickAddBooking,
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('تسجيل حجز سريع'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -701,11 +721,10 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: actionContent(Icons.add, 'تسجيل حجز سريع'),
                     ),
-                    OutlinedButton.icon(
+                    OutlinedButton(
                       onPressed: _showQuickAddExpense,
-                      icon: const Icon(Icons.money, size: 18),
-                      label: const Text('تسجيل مصروف سريع'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primaryPressed,
                         side: const BorderSide(color: AppColors.fieldBorder),
@@ -717,11 +736,10 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: actionContent(Icons.money, 'تسجيل مصروف سريع'),
                     ),
-                    OutlinedButton.icon(
+                    OutlinedButton(
                       onPressed: _showQuickAddRenter,
-                      icon: const Icon(Icons.person_add_outlined, size: 18),
-                      label: const Text('عميل جديد'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primaryPressed,
                         side: const BorderSide(color: AppColors.fieldBorder),
@@ -732,6 +750,10 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                      ),
+                      child: actionContent(
+                        Icons.person_add_outlined,
+                        'عميل جديد',
                       ),
                     ),
                   ];
