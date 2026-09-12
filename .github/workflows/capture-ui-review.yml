@@ -1,0 +1,208 @@
+name: Capture UI review screenshots
+
+on:
+  push:
+    branches: [feat/arabic-ui-clarity]
+    paths:
+      - '.github/workflows/capture-ui-review.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout improved UI
+        uses: actions/checkout@v4
+        with:
+          ref: feat/arabic-ui-clarity
+          path: after
+          fetch-depth: 0
+
+      - name: Checkout baseline from PR 18 branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/financial-data-integrity
+          path: before
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+
+      - name: Create capture harness
+        shell: bash
+        run: |
+          cat > /tmp/ui_capture_test.dart <<'DART'
+          import 'dart:io';
+          import 'dart:ui' as ui;
+
+          import 'package:flutter/material.dart';
+          import 'package:flutter/rendering.dart';
+          import 'package:flutter_test/flutter_test.dart';
+          import 'package:path/path.dart' as p;
+          import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+          import 'package:resthouse_app/database_helper.dart';
+          import 'package:resthouse_app/main.dart';
+
+          const captureKey = ValueKey<String>('full-app-capture');
+
+          void drainFrameworkExceptions(WidgetTester tester) {
+            while (tester.takeException() != null) {}
+          }
+
+          Future<void> settleIo(WidgetTester tester) async {
+            await tester.pump();
+            await tester.runAsync(() async {
+              await Future<void>.delayed(const Duration(milliseconds: 450));
+            });
+            for (var i = 0; i < 8; i++) {
+              await tester.pump(const Duration(milliseconds: 120));
+            }
+            drainFrameworkExceptions(tester);
+          }
+
+          Future<void> capture(WidgetTester tester, String name) async {
+            await tester.pump();
+            drainFrameworkExceptions(tester);
+            final boundary = tester.renderObject<RenderRepaintBoundary>(
+              find.byKey(captureKey),
+            );
+            final image = await boundary.toImage(pixelRatio: 2);
+            final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+            if (bytes == null) throw StateError('Unable to encode screenshot');
+            final out = Directory(
+              Platform.environment['UI_CAPTURE_DIR'] ?? 'ui-captures',
+            );
+            out.createSync(recursive: true);
+            File(p.join(out.path, '$name.png'))
+                .writeAsBytesSync(bytes.buffer.asUint8List());
+          }
+
+          Future<void> seedReviewData(DatabaseHelper db) async {
+            await db.insertRenter({
+              'phone': '0500000001',
+              'full_name': 'أحمد العتيبي',
+              'notes': 'عميل دائم',
+              'rating': 5,
+              'rental_count': 0,
+            });
+            final bookingId = await db.insertBooking({
+              'phone': '0500000001',
+              'start_date': '2026-09-12',
+              'end_date': '2026-09-14',
+              'total_price': 1800.0,
+              'security_deposit': 500.0,
+              'status': DatabaseHelper.statusConfirmed,
+              'deposit_status': DatabaseHelper.depositPending,
+            });
+            await db.insertPayment({
+              'booking_id': bookingId,
+              'amount': 800.0,
+              'paid_at': '2026-09-12',
+              'method': 'transfer',
+              'note': 'دفعة مقدمة',
+            });
+            await db.insertExpense({
+              'description': 'كهرباء وصيانة',
+              'amount': 250.0,
+              'date': '2026-09-10',
+              'category': 'مصاريف تشغيلية أخرى',
+            });
+          }
+
+          void main() {
+            setUpAll(() {
+              sqfliteFfiInit();
+              databaseFactory = databaseFactoryFfi;
+            });
+
+            testWidgets('capture real phone UI review screens', (tester) async {
+              await tester.binding.setSurfaceSize(const Size(390, 844));
+              final temp = await Directory.systemTemp.createTemp('resthouse_ui_');
+              final db = DatabaseHelper.instance;
+              await db.configureDatabasePathForTesting(p.join(temp.path, 'ui.db'));
+              await seedReviewData(db);
+
+              addTearDown(() async {
+                await tester.binding.setSurfaceSize(null);
+                await db.clearTestingDatabase();
+                if (temp.existsSync()) temp.deleteSync(recursive: true);
+              });
+
+              await tester.pumpWidget(
+                const RepaintBoundary(
+                  key: captureKey,
+                  child: ResthouseApp(),
+                ),
+              );
+              await settleIo(tester);
+              await capture(tester, 'dashboard');
+
+              final bookingsNav = find.text('الحجوزات').last;
+              await tester.tap(bookingsNav, warnIfMissed: false);
+              await settleIo(tester);
+              await capture(tester, 'bookings');
+
+              final financeNav = find.text('المالية').last;
+              await tester.tap(financeNav, warnIfMissed: false);
+              await settleIo(tester);
+              await capture(tester, 'finance');
+
+              await tester.tap(find.text('الحجوزات').last, warnIfMissed: false);
+              await settleIo(tester);
+              final addBooking = find.text('تسجيل حجز جديد');
+              if (addBooking.evaluate().isEmpty) {
+                throw StateError('Add booking action was not built');
+              }
+              try {
+                await tester.ensureVisible(addBooking.first);
+                await tester.pump(const Duration(milliseconds: 200));
+              } catch (_) {}
+              await tester.tap(addBooking.first, warnIfMissed: false);
+              await settleIo(tester);
+              if (find.text('إضافة حجز جديد').evaluate().isEmpty) {
+                throw StateError('Add booking dialog did not open');
+              }
+              await capture(tester, 'booking_form');
+            });
+          }
+          DART
+          cp /tmp/ui_capture_test.dart before/test/ui_capture_test.dart
+          cp /tmp/ui_capture_test.dart after/test/ui_capture_test.dart
+
+      - name: Capture baseline screens
+        working-directory: before
+        env:
+          UI_CAPTURE_DIR: ui-captures
+        run: |
+          flutter pub get
+          flutter test test/ui_capture_test.dart
+
+      - name: Capture improved screens
+        working-directory: after
+        env:
+          UI_CAPTURE_DIR: ui-captures
+        run: |
+          flutter pub get
+          flutter test test/ui_capture_test.dart
+
+      - name: Store review images on feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p after/docs/ui-review/before after/docs/ui-review/after
+          cp before/ui-captures/*.png after/docs/ui-review/before/
+          cp after/ui-captures/*.png after/docs/ui-review/after/
+          rm -f after/test/ui_capture_test.dart
+          rm -f after/.github/workflows/capture-ui-review.yml
+          cd after
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/ui-review .github/workflows/capture-ui-review.yml
+          git commit -m 'docs(ui): add actual before and after phone screenshots'
+          git push origin HEAD:feat/arabic-ui-clarity
