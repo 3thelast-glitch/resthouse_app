@@ -39,28 +39,29 @@ abstract final class AppTheme {
   static const fontFamily = 'IBMPlexSansArabic';
 
   static ThemeData get light {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: Brightness.light,
-    ).copyWith(
-      primary: AppColors.primary,
-      onPrimary: Colors.white,
-      primaryContainer: AppColors.selectedSurface,
-      onPrimaryContainer: AppColors.primaryPressed,
-      secondary: AppColors.primaryPressed,
-      onSecondary: Colors.white,
-      secondaryContainer: AppColors.selectedSurface,
-      onSecondaryContainer: AppColors.primaryPressed,
-      error: AppColors.errorText,
-      onError: Colors.white,
-      errorContainer: AppColors.errorSurface,
-      onErrorContainer: AppColors.errorText,
-      surface: AppColors.surface,
-      onSurface: AppColors.text,
-      onSurfaceVariant: AppColors.secondaryText,
-      outline: AppColors.fieldBorder,
-      outlineVariant: AppColors.divider,
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: AppColors.primary,
+          onPrimary: Colors.white,
+          primaryContainer: AppColors.selectedSurface,
+          onPrimaryContainer: AppColors.primaryPressed,
+          secondary: AppColors.primaryPressed,
+          onSecondary: Colors.white,
+          secondaryContainer: AppColors.selectedSurface,
+          onSecondaryContainer: AppColors.primaryPressed,
+          error: AppColors.errorText,
+          onError: Colors.white,
+          errorContainer: AppColors.errorSurface,
+          onErrorContainer: AppColors.errorText,
+          surface: AppColors.surface,
+          onSurface: AppColors.text,
+          onSurfaceVariant: AppColors.secondaryText,
+          outline: AppColors.fieldBorder,
+          outlineVariant: AppColors.divider,
+        );
 
     final textTheme = _textTheme();
     final radius = BorderRadius.circular(AppRadius.medium);
@@ -139,11 +140,13 @@ abstract final class AppTheme {
           borderSide: const BorderSide(color: AppColors.errorText, width: 2),
         ),
       ),
-      filledButtonTheme: FilledButtonThemeData(style: _primaryButtonStyle(radius)),
+      filledButtonTheme: FilledButtonThemeData(
+        style: _primaryButtonStyle(radius),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: _primaryButtonStyle(radius).copyWith(
-          elevation: const WidgetStatePropertyAll(0),
-        ),
+        style: _primaryButtonStyle(
+          radius,
+        ).copyWith(elevation: const WidgetStatePropertyAll(0)),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
@@ -152,7 +155,9 @@ abstract final class AppTheme {
             EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 12),
           ),
           textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
-          foregroundColor: const WidgetStatePropertyAll(AppColors.primaryPressed),
+          foregroundColor: const WidgetStatePropertyAll(
+            AppColors.primaryPressed,
+          ),
           side: const WidgetStatePropertyAll(
             BorderSide(color: AppColors.fieldBorder),
           ),
@@ -168,7 +173,9 @@ abstract final class AppTheme {
             EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 12),
           ),
           textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
-          foregroundColor: const WidgetStatePropertyAll(AppColors.primaryPressed),
+          foregroundColor: const WidgetStatePropertyAll(
+            AppColors.primaryPressed,
+          ),
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: radius),
           ),
@@ -189,16 +196,23 @@ abstract final class AppTheme {
         backgroundColor: AppColors.neutralSurface,
         selectedColor: AppColors.selectedSurface,
         disabledColor: AppColors.neutralSurface,
-        labelStyle: textTheme.labelMedium?.copyWith(color: AppColors.neutralText),
+        labelStyle: textTheme.labelMedium?.copyWith(
+          color: AppColors.neutralText,
+        ),
         secondaryLabelStyle: textTheme.labelMedium?.copyWith(
           color: AppColors.primaryPressed,
         ),
         side: const BorderSide(color: AppColors.divider),
         shape: RoundedRectangleBorder(borderRadius: radius),
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: 10,
+          vertical: 6,
+        ),
       ),
       dataTableTheme: DataTableThemeData(
-        headingTextStyle: textTheme.labelLarge?.copyWith(color: AppColors.heading),
+        headingTextStyle: textTheme.labelLarge?.copyWith(
+          color: AppColors.heading,
+        ),
         dataTextStyle: textTheme.bodyMedium,
         headingRowColor: const WidgetStatePropertyAll(AppColors.neutralSurface),
         dividerThickness: 1,
@@ -295,21 +309,76 @@ abstract final class AppTheme {
     }
 
     return TextTheme(
-      displayLarge: style(32, FontWeight.w700, color: AppColors.heading, height: 1.4),
-      displayMedium: style(30, FontWeight.w700, color: AppColors.heading, height: 1.4),
-      displaySmall: style(28, FontWeight.w700, color: AppColors.heading, height: 1.4),
-      headlineLarge: style(28, FontWeight.w700, color: AppColors.heading, height: 1.4),
-      headlineMedium: style(26, FontWeight.w700, color: AppColors.heading, height: 1.4),
-      headlineSmall: style(24, FontWeight.w700, color: AppColors.heading, height: 1.4),
-      titleLarge: style(20, FontWeight.w600, color: AppColors.heading, height: 1.45),
-      titleMedium: style(18, FontWeight.w600, color: AppColors.heading, height: 1.45),
-      titleSmall: style(16, FontWeight.w600, color: AppColors.heading, height: 1.45),
+      displayLarge: style(
+        32,
+        FontWeight.w700,
+        color: AppColors.heading,
+        height: 1.4,
+      ),
+      displayMedium: style(
+        30,
+        FontWeight.w700,
+        color: AppColors.heading,
+        height: 1.4,
+      ),
+      displaySmall: style(
+        28,
+        FontWeight.w700,
+        color: AppColors.heading,
+        height: 1.4,
+      ),
+      headlineLarge: style(
+        28,
+        FontWeight.w700,
+        color: AppColors.heading,
+        height: 1.4,
+      ),
+      headlineMedium: style(
+        26,
+        FontWeight.w700,
+        color: AppColors.heading,
+        height: 1.4,
+      ),
+      headlineSmall: style(
+        24,
+        FontWeight.w700,
+        color: AppColors.heading,
+        height: 1.4,
+      ),
+      titleLarge: style(
+        20,
+        FontWeight.w600,
+        color: AppColors.heading,
+        height: 1.45,
+      ),
+      titleMedium: style(
+        18,
+        FontWeight.w600,
+        color: AppColors.heading,
+        height: 1.45,
+      ),
+      titleSmall: style(
+        16,
+        FontWeight.w600,
+        color: AppColors.heading,
+        height: 1.45,
+      ),
       bodyLarge: style(16, FontWeight.w400, height: 1.55),
       bodyMedium: style(16, FontWeight.w400, height: 1.55),
-      bodySmall: style(14, FontWeight.w400, color: AppColors.secondaryText, height: 1.5),
+      bodySmall: style(
+        14,
+        FontWeight.w400,
+        color: AppColors.secondaryText,
+        height: 1.5,
+      ),
       labelLarge: style(15, FontWeight.w600, height: 1.4),
       labelMedium: style(14, FontWeight.w600, height: 1.4),
-      labelSmall: style(13, FontWeight.w500, color: AppColors.secondaryText, height: 1.4),
+      labelSmall: style(
+        13,
+        FontWeight.w500,
+        color: AppColors.secondaryText,
+        height: 1.4,
+      ),
     );
   }
 }
@@ -329,31 +398,34 @@ class StatusBadge extends StatelessWidget {
   final Color background;
 
   const StatusBadge.success({super.key, required this.label})
-      : icon = Icons.check_circle_outline,
-        foreground = AppColors.successText,
-        background = AppColors.successSurface;
+    : icon = Icons.check_circle_outline,
+      foreground = AppColors.successText,
+      background = AppColors.successSurface;
 
   const StatusBadge.warning({super.key, required this.label})
-      : icon = Icons.schedule_outlined,
-        foreground = AppColors.warningText,
-        background = AppColors.warningSurface;
+    : icon = Icons.schedule_outlined,
+      foreground = AppColors.warningText,
+      background = AppColors.warningSurface;
 
   const StatusBadge.error({super.key, required this.label})
-      : icon = Icons.error_outline,
-        foreground = AppColors.errorText,
-        background = AppColors.errorSurface;
+    : icon = Icons.error_outline,
+      foreground = AppColors.errorText,
+      background = AppColors.errorSurface;
 
   const StatusBadge.neutral({super.key, required this.label})
-      : icon = Icons.info_outline,
-        foreground = AppColors.neutralText,
-        background = AppColors.neutralSurface;
+    : icon = Icons.info_outline,
+      foreground = AppColors.neutralText,
+      background = AppColors.neutralSurface;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: label,
       child: Container(
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: 10,
+          vertical: 6,
+        ),
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(999),
@@ -367,9 +439,9 @@ class StatusBadge extends StatelessWidget {
             Flexible(
               child: Text(
                 label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: foreground,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: foreground),
               ),
             ),
           ],

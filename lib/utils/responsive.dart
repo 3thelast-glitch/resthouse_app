@@ -30,5 +30,6 @@ class Responsive {
 extension ResponsiveExt on num {
   double sp(BuildContext context) => Responsive.sp(context, toDouble());
 
-  double spChart(BuildContext context) => Responsive.spChart(context, toDouble());
+  double spChart(BuildContext context) =>
+      Responsive.spChart(context, toDouble());
 }

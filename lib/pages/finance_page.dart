@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../database_helper.dart';
@@ -172,6 +174,7 @@ class _FinancePageState extends State<FinancePage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
+          scrollable: true,
           title: const Text(
             'تسجيل مصروف جديد',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -250,7 +253,7 @@ class _FinancePageState extends State<FinancePage> {
                   const Icon(
                     Icons.calendar_today,
                     size: 20,
-                    color: Colors.grey,
+                    color: AppColors.secondaryText,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -290,7 +293,7 @@ class _FinancePageState extends State<FinancePage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('الرجاء إدخال وصف للمصروف'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -299,7 +302,7 @@ class _FinancePageState extends State<FinancePage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('الرجاء إدخال مبلغ المصروف'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -312,7 +315,7 @@ class _FinancePageState extends State<FinancePage> {
                       content: Text(
                         'الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -322,7 +325,7 @@ class _FinancePageState extends State<FinancePage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('المبلغ يجب أن يكون أكبر من الصفر'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -343,7 +346,7 @@ class _FinancePageState extends State<FinancePage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('إضافة'),
@@ -372,6 +375,7 @@ class _FinancePageState extends State<FinancePage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
+          scrollable: true,
           title: const Text(
             'تعديل المصروف',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -450,7 +454,7 @@ class _FinancePageState extends State<FinancePage> {
                   const Icon(
                     Icons.calendar_today,
                     size: 20,
-                    color: Colors.grey,
+                    color: AppColors.secondaryText,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -490,7 +494,7 @@ class _FinancePageState extends State<FinancePage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('الرجاء إدخال وصف للمصروف'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -499,7 +503,7 @@ class _FinancePageState extends State<FinancePage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('الرجاء إدخال مبلغ المصروف'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -512,7 +516,7 @@ class _FinancePageState extends State<FinancePage> {
                       content: Text(
                         'الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -522,7 +526,7 @@ class _FinancePageState extends State<FinancePage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('المبلغ يجب أن يكون أكبر من الصفر'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -544,7 +548,7 @@ class _FinancePageState extends State<FinancePage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('حفظ التعديلات'),
@@ -559,6 +563,7 @@ class _FinancePageState extends State<FinancePage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('تأكيد حذف المصروف'),
         content: const Text('هل أنت متأكد من رغبتك في حذف هذا المصروف؟'),
         actions: [
@@ -576,7 +581,10 @@ class _FinancePageState extends State<FinancePage> {
                 const SnackBar(content: Text('تم حذف المصروف بنجاح')),
               );
             },
-            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'حذف',
+              style: TextStyle(color: AppColors.errorText),
+            ),
           ),
         ],
       ),
@@ -602,7 +610,7 @@ class _FinancePageState extends State<FinancePage> {
 
     return catTotals.entries.map((entry) {
       final percentage = totalExp > 0 ? (entry.value / totalExp) * 100 : 0.0;
-      final color = colorsMap[entry.key] ?? const Color(0xFF64748B);
+      final color = colorsMap[entry.key] ?? AppColors.fieldBorder;
       return PieChartSectionData(
         color: color,
         value: entry.value,
@@ -625,7 +633,7 @@ class _FinancePageState extends State<FinancePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       children: catTotals.entries.map((entry) {
-        final color = colorsMap[entry.key] ?? const Color(0xFF64748B);
+        final color = colorsMap[entry.key] ?? AppColors.fieldBorder;
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(
@@ -643,7 +651,7 @@ class _FinancePageState extends State<FinancePage> {
                   style: TextStyle(
                     fontSize: 11.sp(context),
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF475569),
+                    color: AppColors.secondaryText,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -775,7 +783,7 @@ class _FinancePageState extends State<FinancePage> {
           ),
           BarChartRodData(
             toY: exp2[m] ?? 0.0,
-            color: const Color(0xFFFBBF24),
+            color: AppColors.warningText,
             width: 5,
             borderRadius: BorderRadius.circular(1),
           ),
@@ -808,7 +816,7 @@ class _FinancePageState extends State<FinancePage> {
           style: TextStyle(
             fontSize: 9.sp(context),
             fontWeight: FontWeight.bold,
-            color: Colors.grey,
+            color: AppColors.secondaryText,
           ),
         ),
       );
@@ -844,7 +852,7 @@ class _FinancePageState extends State<FinancePage> {
                 style: TextStyle(
                   fontSize: 18.sp(context),
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.heading,
                 ),
               ),
             ),
@@ -852,23 +860,21 @@ class _FinancePageState extends State<FinancePage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F766E).withAlpha(20),
+                color: AppColors.primary.withAlpha(20),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: const Color(0xFF0F766E).withAlpha(60),
-                ),
+                border: Border.all(color: AppColors.primary.withAlpha(60)),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<int>(
                   value: _selectedYear,
                   icon: const Icon(
                     Icons.keyboard_arrow_down,
-                    color: Color(0xFF0F766E),
+                    color: AppColors.primary,
                     size: 20,
                   ),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F766E),
+                    color: AppColors.primary,
                     fontSize: 14.sp(context),
                   ),
                   items: _getYearRange().map((year) {
@@ -922,7 +928,7 @@ class _FinancePageState extends State<FinancePage> {
                 'مقابل',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey,
+                  color: AppColors.secondaryText,
                   fontSize: 12.sp(context),
                 ),
               ),
@@ -989,12 +995,12 @@ class _FinancePageState extends State<FinancePage> {
                       fontSize: 12.sp(context),
                       color: _fullYearSelected
                           ? Colors.white
-                          : const Color(0xFF0F766E),
+                          : AppColors.primary,
                     ),
                   ),
                   selected: _fullYearSelected,
-                  selectedColor: const Color(0xFF0F766E),
-                  backgroundColor: const Color(0xFF0F766E).withAlpha(15),
+                  selectedColor: AppColors.primary,
+                  backgroundColor: AppColors.primary.withAlpha(15),
                   checkmarkColor: Colors.white,
                   onSelected: (val) {
                     setState(() {
@@ -1041,12 +1047,14 @@ class _FinancePageState extends State<FinancePage> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11.sp(context),
-                        color: isSelected ? Colors.white : Colors.grey.shade700,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.secondaryText,
                       ),
                     ),
                     selected: isSelected,
-                    selectedColor: const Color(0xFF0F766E),
-                    backgroundColor: Colors.grey.shade100,
+                    selectedColor: AppColors.primary,
+                    backgroundColor: AppColors.background,
                     checkmarkColor: Colors.white,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
@@ -1078,16 +1086,16 @@ class _FinancePageState extends State<FinancePage> {
   Widget build(BuildContext context) {
     if (!_isLoaded) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF0F766E)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
 
     final hasFinancialData = _allBookings.isNotEmpty || _allExpenses.isNotEmpty;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       // [تعديل] تم تغليف المحتوى الرئيسي بـ SingleChildScrollView للسماح بالتمرير على الشاشات الصغيرة
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -1124,7 +1132,7 @@ class _FinancePageState extends State<FinancePage> {
           children: [
             const Icon(
               Icons.account_balance_wallet_outlined,
-              color: Color(0xFF0F766E),
+              color: AppColors.primary,
               size: 52,
             ),
             const SizedBox(height: 16),
@@ -1134,7 +1142,7 @@ class _FinancePageState extends State<FinancePage> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18.sp(context),
-                color: const Color(0xFF1E293B),
+                color: AppColors.heading,
               ),
             ),
             const SizedBox(height: 8),
@@ -1142,7 +1150,7 @@ class _FinancePageState extends State<FinancePage> {
               'أضف حجزًا من شاشة الحجوزات أو سجّل أول مصروف. ستظهر التقارير والمقارنات تلقائيًا بعد حفظ بياناتك.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.secondaryText,
                 height: 1.5,
                 fontSize: 13.sp(context),
               ),
@@ -1153,7 +1161,7 @@ class _FinancePageState extends State<FinancePage> {
               icon: const Icon(Icons.add_circle_outline),
               label: const Text('تسجيل أول مصروف'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -1187,7 +1195,7 @@ class _FinancePageState extends State<FinancePage> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: _activeTab == 0
-                      ? const Color(0xFF0F766E)
+                      ? AppColors.primary
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -1197,7 +1205,7 @@ class _FinancePageState extends State<FinancePage> {
                   style: TextStyle(
                     color: _activeTab == 0
                         ? Colors.white
-                        : Colors.grey.shade700,
+                        : AppColors.secondaryText,
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp(context),
                   ),
@@ -1213,7 +1221,7 @@ class _FinancePageState extends State<FinancePage> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: _activeTab == 1
-                      ? const Color(0xFF0F766E)
+                      ? AppColors.primary
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -1223,7 +1231,7 @@ class _FinancePageState extends State<FinancePage> {
                   style: TextStyle(
                     color: _activeTab == 1
                         ? Colors.white
-                        : Colors.grey.shade700,
+                        : AppColors.secondaryText,
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp(context),
                   ),
@@ -1278,9 +1286,7 @@ class _FinancePageState extends State<FinancePage> {
                 child: _buildCard(
                   'صافي الأرباح',
                   netIncome,
-                  netIncome >= 0
-                      ? const Color(0xFF0D9488)
-                      : const Color(0xFFDC2626),
+                  netIncome >= 0 ? AppColors.primary : AppColors.errorText,
                   Icons.account_balance,
                 ),
               ),
@@ -1326,9 +1332,7 @@ class _FinancePageState extends State<FinancePage> {
                     child: _buildCard(
                       'صافي الأرباح',
                       netIncome,
-                      netIncome >= 0
-                          ? const Color(0xFF0D9488)
-                          : const Color(0xFFDC2626),
+                      netIncome >= 0 ? AppColors.primary : AppColors.errorText,
                       Icons.account_balance,
                     ),
                   ),
@@ -1460,20 +1464,20 @@ class _FinancePageState extends State<FinancePage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.compare_arrows, color: Color(0xFF0F766E)),
+                const Icon(Icons.compare_arrows, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
                   'تحديد خيارات المقارنة',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16.sp(context),
-                    color: const Color(0xFF1E293B),
+                    color: AppColors.heading,
                   ),
                 ),
                 const Spacer(),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppColors.background,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   padding: const EdgeInsets.all(2),
@@ -1496,7 +1500,7 @@ class _FinancePageState extends State<FinancePage> {
                       'السنة: ',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF475569),
+                        color: AppColors.secondaryText,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1512,7 +1516,7 @@ class _FinancePageState extends State<FinancePage> {
                       'الشهر الأول: ',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF475569),
+                        color: AppColors.secondaryText,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1529,7 +1533,7 @@ class _FinancePageState extends State<FinancePage> {
                       'الشهر الثاني: ',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF475569),
+                        color: AppColors.secondaryText,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1551,7 +1555,7 @@ class _FinancePageState extends State<FinancePage> {
                     'السنة الأولى: ',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF475569),
+                      color: AppColors.secondaryText,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1567,7 +1571,7 @@ class _FinancePageState extends State<FinancePage> {
                     'السنة الثانية: ',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF475569),
+                      color: AppColors.secondaryText,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1595,13 +1599,13 @@ class _FinancePageState extends State<FinancePage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0F766E) : Colors.transparent,
+          color: isSelected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey.shade700,
+            color: isSelected ? Colors.white : AppColors.secondaryText,
             fontWeight: FontWeight.bold,
             fontSize: 12.sp(context),
           ),
@@ -1619,17 +1623,17 @@ class _FinancePageState extends State<FinancePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F766E).withAlpha(15),
+        color: AppColors.primary.withAlpha(15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF0F766E).withAlpha(40)),
+        border: Border.all(color: AppColors.primary.withAlpha(40)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
-          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0F766E)),
+          icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF0F766E),
+            color: AppColors.primary,
             fontSize: 13.sp(context),
           ),
           items: items.map((item) {
@@ -1765,7 +1769,7 @@ class _FinancePageState extends State<FinancePage> {
           'إجمالي مبالغ الإيجار',
           dataA['revenue']!,
           dataB['revenue']!,
-          Colors.green,
+          AppColors.successText,
           Icons.monetization_on_outlined,
         ),
         const SizedBox(height: 12),
@@ -1773,7 +1777,7 @@ class _FinancePageState extends State<FinancePage> {
           'إجمالي مبالغ التأمين',
           dataA['security'] ?? 0.0,
           dataB['security'] ?? 0.0,
-          Colors.blue,
+          AppColors.primaryPressed,
           Icons.security_outlined,
         ),
         const SizedBox(height: 12),
@@ -1781,7 +1785,7 @@ class _FinancePageState extends State<FinancePage> {
           'إجمالي المصروفات',
           dataA['expenses']!,
           dataB['expenses']!,
-          Colors.red,
+          AppColors.errorText,
           Icons.arrow_downward,
         ),
         const SizedBox(height: 12),
@@ -1789,7 +1793,7 @@ class _FinancePageState extends State<FinancePage> {
           'صافي الأرباح',
           dataA['net']!,
           dataB['net']!,
-          const Color(0xFF0F766E),
+          AppColors.primary,
           Icons.account_balance,
         ),
         const SizedBox(height: 12),
@@ -1817,22 +1821,22 @@ class _FinancePageState extends State<FinancePage> {
     final percentDiff = valA > 0 ? (diff / valA) * 100 : 0.0;
 
     String diffText = '';
-    Color diffColor = Colors.grey;
+    Color diffColor = AppColors.secondaryText;
     IconData diffIcon = Icons.remove;
 
     if (diff > 0) {
       diffText =
           '+${diff.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""} (${percentDiff.toStringAsFixed(1)}%)';
-      diffColor = Colors.green.shade700;
+      diffColor = AppColors.successText;
       diffIcon = Icons.trending_up;
     } else if (diff < 0) {
       diffText =
           '${diff.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""} (${percentDiff.toStringAsFixed(1)}%)';
-      diffColor = Colors.red.shade700;
+      diffColor = AppColors.errorText;
       diffIcon = Icons.trending_down;
     } else {
       diffText = 'لا يوجد اختلاف (0%)';
-      diffColor = Colors.grey.shade600;
+      diffColor = AppColors.secondaryText;
       diffIcon = Icons.trending_flat;
     }
 
@@ -1859,7 +1863,7 @@ class _FinancePageState extends State<FinancePage> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: AppColors.secondaryText,
                       fontSize: 11.sp(context),
                       fontWeight: FontWeight.bold,
                     ),
@@ -1875,7 +1879,10 @@ class _FinancePageState extends State<FinancePage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text('➔', style: TextStyle(color: Colors.grey)),
+                      const Text(
+                        '➔',
+                        style: TextStyle(color: AppColors.secondaryText),
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '${valB.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""}',
@@ -1937,7 +1944,7 @@ class _FinancePageState extends State<FinancePage> {
 
     String title = '';
     String description = '';
-    Color highlightColor = Colors.grey;
+    Color highlightColor = AppColors.secondaryText;
 
     if (netDiff > 0) {
       title = 'أداء مالي أفضل لـ $labelB';
@@ -1951,7 +1958,7 @@ class _FinancePageState extends State<FinancePage> {
         description +=
             'بالإضافة إلى نجاحك في خفض المصروفات التشغيلية بقيمة ${(-expDiff).toStringAsFixed(0)} ر.س. ';
       }
-      highlightColor = const Color(0xFF0F766E);
+      highlightColor = AppColors.primary;
     } else if (netDiff < 0) {
       title = 'أداء مالي أفضل لـ $labelA';
       description =
@@ -1964,11 +1971,11 @@ class _FinancePageState extends State<FinancePage> {
         description +=
             'بالإضافة إلى ارتفاع المصاريف التشغيلية في $labelB بقيمة ${expDiff.toStringAsFixed(0)} ر.س. ';
       }
-      highlightColor = const Color(0xFFB91C1C);
+      highlightColor = AppColors.errorText;
     } else {
       title = 'أداء مالي متطابق';
       description = 'لا يوجد اختلاف في صافي الأرباح بين الفترتين المحددتين. ';
-      highlightColor = Colors.grey.shade700;
+      highlightColor = AppColors.secondaryText;
     }
 
     return Card(
@@ -2001,7 +2008,7 @@ class _FinancePageState extends State<FinancePage> {
               description,
               style: TextStyle(
                 fontSize: 13.sp(context),
-                color: Colors.grey.shade800,
+                color: AppColors.text,
                 height: 1.5,
               ),
             ),
@@ -2065,7 +2072,7 @@ class _FinancePageState extends State<FinancePage> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15.sp(context),
-                color: const Color(0xFF1E293B),
+                color: AppColors.heading,
               ),
               textAlign: TextAlign.center,
             ),
@@ -2154,7 +2161,7 @@ class _FinancePageState extends State<FinancePage> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: AppColors.secondaryText,
                       fontSize: 13.sp(context),
                       fontWeight: FontWeight.bold,
                     ),
@@ -2165,7 +2172,7 @@ class _FinancePageState extends State<FinancePage> {
                     style: TextStyle(
                       fontSize: 20.sp(context),
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
+                      color: AppColors.text,
                     ),
                   ),
                 ],
@@ -2187,14 +2194,14 @@ class _FinancePageState extends State<FinancePage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.list_alt, color: Color(0xFF0F766E)),
+                const Icon(Icons.list_alt, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
                   'سجل المصروفات التشغيلية',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16.sp(context),
-                    color: const Color(0xFF1E293B),
+                    color: AppColors.heading,
                   ),
                 ),
               ],
@@ -2204,7 +2211,7 @@ class _FinancePageState extends State<FinancePage> {
               icon: const Icon(Icons.add_circle_outline, size: 18),
               label: const Text('تسجيل مصروف جديد'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -2235,13 +2242,13 @@ class _FinancePageState extends State<FinancePage> {
                 const Icon(
                   Icons.pie_chart_outline,
                   size: 48,
-                  color: Colors.grey,
+                  color: AppColors.secondaryText,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'لا توجد عمليات مالية مسجلة للفترة المحددة',
                   style: TextStyle(
-                    color: Colors.grey,
+                    color: AppColors.secondaryText,
                     fontSize: 13.sp(context),
                   ),
                   textAlign: TextAlign.center,
@@ -2271,14 +2278,14 @@ class _FinancePageState extends State<FinancePage> {
       children: [
         Row(
           children: [
-            const Icon(Icons.analytics_outlined, color: Color(0xFF0F766E)),
+            const Icon(Icons.analytics_outlined, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
               'التحليل البياني المالي',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16.sp(context),
-                color: const Color(0xFF1E293B),
+                color: AppColors.heading,
               ),
             ),
           ],
@@ -2302,7 +2309,7 @@ class _FinancePageState extends State<FinancePage> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp(context),
-                    color: const Color(0xFF475569),
+                    color: AppColors.secondaryText,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -2358,7 +2365,7 @@ class _FinancePageState extends State<FinancePage> {
                         'إيرادات $_comparisonYear',
                       ),
                       _buildLegendItem(
-                        const Color(0xFFFBBF24),
+                        AppColors.warningText,
                         'مصروفات $_comparisonYear',
                       ),
                     ],
@@ -2380,7 +2387,7 @@ class _FinancePageState extends State<FinancePage> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp(context),
-                    color: const Color(0xFF475569),
+                    color: AppColors.secondaryText,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -2392,7 +2399,7 @@ class _FinancePageState extends State<FinancePage> {
                       child: Text(
                         'لا توجد مصروفات مسجلة لعرض تصنيفاتها للفترة المحددة',
                         style: TextStyle(
-                          color: Colors.grey,
+                          color: AppColors.secondaryText,
                           fontSize: 12.sp(context),
                         ),
                         textAlign: TextAlign.center,
@@ -2445,7 +2452,7 @@ class _FinancePageState extends State<FinancePage> {
           style: TextStyle(
             fontSize: 11.sp(context),
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF475569),
+            color: AppColors.secondaryText,
           ),
         ),
       ],
@@ -2458,12 +2465,15 @@ class _FinancePageState extends State<FinancePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColors.divider),
         ),
         child: Center(
           child: Text(
             'لا توجد مصروفات مسجلة بعد',
-            style: TextStyle(color: Colors.grey, fontSize: 14.sp(context)),
+            style: TextStyle(
+              color: AppColors.secondaryText,
+              fontSize: 14.sp(context),
+            ),
           ),
         ),
       );
@@ -2480,12 +2490,12 @@ class _FinancePageState extends State<FinancePage> {
       child: ListView.separated(
         itemCount: sorted.length,
         separatorBuilder: (context, index) =>
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const Divider(height: 1, color: AppColors.background),
         itemBuilder: (context, index) {
           final expense = sorted[index];
           final category =
               expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى';
-          final categoryColor = colorsMap[category] ?? const Color(0xFF64748B);
+          final categoryColor = colorsMap[category] ?? AppColors.fieldBorder;
 
           return ListTile(
             leading: CircleAvatar(
@@ -2501,7 +2511,7 @@ class _FinancePageState extends State<FinancePage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14.sp(context),
-                      color: const Color(0xFF1E293B),
+                      color: AppColors.heading,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2529,7 +2539,10 @@ class _FinancePageState extends State<FinancePage> {
             ),
             subtitle: Text(
               expense['date'].toString(),
-              style: TextStyle(fontSize: 12.sp(context), color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12.sp(context),
+                color: AppColors.secondaryText,
+              ),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -2546,7 +2559,7 @@ class _FinancePageState extends State<FinancePage> {
                 IconButton(
                   icon: const Icon(
                     Icons.edit_outlined,
-                    color: Colors.blue,
+                    color: AppColors.primaryPressed,
                     size: 20,
                   ),
                   onPressed: () => _showEditExpenseDialog(expense),
@@ -2554,7 +2567,7 @@ class _FinancePageState extends State<FinancePage> {
                 IconButton(
                   icon: const Icon(
                     Icons.delete_outline,
-                    color: Colors.red,
+                    color: AppColors.errorText,
                     size: 20,
                   ),
                   onPressed: () => _confirmDeleteExpense(expense['id']),

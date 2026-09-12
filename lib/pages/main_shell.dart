@@ -22,14 +22,14 @@ class _MainShellPageState extends State<MainShellPage> {
   }
 
   List<Widget> get _pages => [
-        UltimateDashboardPage(key: ValueKey('dashboard_$_dbSessionId')),
-        BookingManagerPage(key: ValueKey('bookings_$_dbSessionId')),
-        FinancePage(key: ValueKey('finance_$_dbSessionId')),
-        SettingsPage(
-          key: ValueKey('settings_$_dbSessionId'),
-          onDatabaseRestored: _handleDatabaseRestored,
-        ),
-      ];
+    UltimateDashboardPage(key: ValueKey('dashboard_$_dbSessionId')),
+    BookingManagerPage(key: ValueKey('bookings_$_dbSessionId')),
+    FinancePage(key: ValueKey('finance_$_dbSessionId')),
+    SettingsPage(
+      key: ValueKey('settings_$_dbSessionId'),
+      onDatabaseRestored: _handleDatabaseRestored,
+    ),
+  ];
 
   static const _titles = [
     'لوحة التحكم الإحصائية',
@@ -69,14 +69,17 @@ class _MainShellPageState extends State<MainShellPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.holiday_village_outlined, color: Colors.white),
+                  const Icon(
+                    Icons.holiday_village_outlined,
+                    color: Colors.white,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'استراحة نوره',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -86,7 +89,10 @@ class _MainShellPageState extends State<MainShellPage> {
               padding: EdgeInsetsDirectional.only(end: 8),
               child: Tooltip(
                 message: 'استراحة نوره',
-                child: Icon(Icons.holiday_village_outlined, color: Colors.white),
+                child: Icon(
+                  Icons.holiday_village_outlined,
+                  color: Colors.white,
+                ),
               ),
             ),
         ],
@@ -166,16 +172,16 @@ class _MainShellPageState extends State<MainShellPage> {
               children: [
                 Text(
                   'لوحة الإدارة',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'التحكم والمتابعة الفورية',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.white),
                 ),
               ],
             ),
@@ -279,12 +285,11 @@ class _MainShellPageState extends State<MainShellPage> {
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: isSelected
-                            ? AppColors.primaryPressed
-                            : AppColors.text,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
-                      ),
+                    color: isSelected
+                        ? AppColors.primaryPressed
+                        : AppColors.text,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],

@@ -181,9 +181,9 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                                   Expanded(
                                     child: Text(
                                       _money(payment['amount'] as num),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleLarge,
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.sm),
@@ -200,7 +200,9 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                                   alignment: AlignmentDirectional.centerEnd,
                                   child: Text(
                                     '${payment['paid_at']}',
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
                                   ),
                                 ),
                               ),
@@ -218,9 +220,7 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                                 const SizedBox(height: AppSpacing.sm),
                                 Text(
                                   'السبب: ${payment['void_reason']}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(color: AppColors.errorText),
                                 ),
                                 Directionality(
@@ -229,7 +229,9 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                                     alignment: AlignmentDirectional.centerEnd,
                                     child: Text(
                                       'تاريخ الإلغاء: ${payment['voided_at']}',
-                                      style: Theme.of(context).textTheme.bodySmall,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
                                     ),
                                   ),
                                 ),
@@ -295,9 +297,9 @@ class _SummaryAmount extends StatelessWidget {
       child: Text(
         '$label: $value',
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: foreground,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+          color: foreground,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
       ),
     );
   }

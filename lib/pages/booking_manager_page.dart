@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
 import '../utils/responsive.dart';
@@ -158,6 +160,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'اختر نوع التقويم',
@@ -183,7 +186,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   icon: const Icon(Icons.calendar_month, size: 18),
                   label: const Text('ميلادي'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F766E),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -199,7 +202,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   icon: const Icon(Icons.mosque, size: 18),
                   label: const Text('هجري'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF991B1B),
+                    backgroundColor: AppColors.primaryPressed,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -256,23 +259,24 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           backgroundColor: Colors.white,
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          titlePadding: const EdgeInsetsDirectional.fromSTEB(24, 24, 24, 0),
           title: Column(
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED),
+                  color: AppColors.warningSurface,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFFBBF24), width: 2),
+                  border: Border.all(color: AppColors.warningText, width: 2),
                 ),
                 child: const Icon(
                   Icons.account_balance_wallet,
-                  color: Color(0xFFD97706),
+                  color: AppColors.warningText,
                   size: 32,
                 ),
               ),
@@ -293,17 +297,15 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
+                  color: AppColors.selectedSurface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF0D9488).withAlpha(51),
-                  ),
+                  border: Border.all(color: AppColors.primary.withAlpha(51)),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.security,
-                      color: Color(0xFF0F766E),
+                      color: AppColors.primary,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -312,7 +314,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15.sp(context),
-                        color: const Color(0xFF0F766E),
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -322,7 +324,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               Text(
                 'من ${booking['start_date']} إلى ${booking['end_date']}',
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: AppColors.secondaryText,
                   fontSize: 13.sp(context),
                 ),
               ),
@@ -338,7 +340,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             ],
           ),
           actionsAlignment: MainAxisAlignment.center,
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actionsPadding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 16),
           actions: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -355,7 +357,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   icon: const Icon(Icons.check_circle_outline, size: 20),
                   label: const Text('تم إرجاع التأمين'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF059669),
+                    backgroundColor: AppColors.successText,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -376,7 +378,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   icon: const Icon(Icons.remove_circle_outline, size: 20),
                   label: const Text('تم خصم التأمين'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
+                    backgroundColor: AppColors.errorText,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -390,8 +392,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   icon: const Icon(Icons.schedule, size: 20),
                   label: const Text('تذكيرني لاحقاً'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey.shade700,
-                    side: BorderSide(color: Colors.grey.shade300),
+                    foregroundColor: AppColors.secondaryText,
+                    side: const BorderSide(color: AppColors.divider),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -433,6 +435,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text(
           'إضافة مستأجر جديد',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -459,6 +462,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               TextFormField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(10),
@@ -516,13 +520,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('خطأ: رقم الهاتف مسجل مسبقاً لمستأجر آخر!'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorText,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
             child: const Text('إضافة'),
@@ -541,6 +545,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text(
           'تعديل بيانات المستأجر',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -567,6 +572,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               TextFormField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(10),
@@ -637,13 +643,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     content: Text(
                       'خطأ: قد يكون الهاتف الجديد مستخدماً من عميل آخر',
                     ),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorText,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
             child: const Text('حفظ التعديلات'),
@@ -657,20 +663,21 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.red.shade50,
+        scrollable: true,
+        backgroundColor: AppColors.errorSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
+        title: const Row(
           children: [
             Icon(
               Icons.warning_amber_rounded,
-              color: Colors.red.shade700,
+              color: AppColors.errorText,
               size: 28,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               'تنبيه هام!',
               style: TextStyle(
-                color: Colors.red.shade900,
+                color: AppColors.errorText,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -679,7 +686,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         content: Text(
           'تنبيه: هذا العميل لديه ملاحظات سابقة:\n\n$notes',
           style: TextStyle(
-            color: Colors.red.shade900,
+            color: AppColors.errorText,
             fontSize: 16.sp(context),
             fontWeight: FontWeight.w600,
           ),
@@ -688,7 +695,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: AppColors.errorText,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -713,6 +720,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
+          scrollable: true,
           title: const Text(
             'إضافة حجز جديد',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -764,19 +772,19 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      border: Border.all(color: Colors.red.shade200),
+                      color: AppColors.errorSurface,
+                      border: Border.all(color: AppColors.errorText),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.warning, color: Colors.red.shade700),
+                        const Icon(Icons.warning, color: AppColors.errorText),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'تنبيه: هذا العميل لديه ملاحظات سابقة: $selectedRenterNotes',
                             style: TextStyle(
-                              color: Colors.red.shade900,
+                              color: AppColors.errorText,
                               fontWeight: FontWeight.bold,
                               fontSize: 12.sp(context),
                             ),
@@ -792,7 +800,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     const Icon(
                       Icons.calendar_today,
                       size: 20,
-                      color: Colors.grey,
+                      color: AppColors.secondaryText,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -829,7 +837,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     const Icon(
                       Icons.calendar_today,
                       size: 20,
-                      color: Colors.grey,
+                      color: AppColors.secondaryText,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -940,7 +948,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       content: Text(
                         'عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -967,7 +975,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 } on ArgumentError catch (error) {
@@ -977,13 +985,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       content: Text(
                         error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('حفظ الحجز'),
@@ -1014,6 +1022,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
+          scrollable: true,
           title: const Text(
             'تعديل الحجز الحالي',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -1026,13 +1035,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(
                     Icons.person_outline,
-                    color: Color(0xFF0F766E),
+                    color: AppColors.primary,
                   ),
                   title: Text(
                     'المستأجر',
                     style: TextStyle(
                       fontSize: 12.sp(context),
-                      color: Colors.grey,
+                      color: AppColors.secondaryText,
                     ),
                   ),
                   subtitle: Text(
@@ -1047,7 +1056,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     const Icon(
                       Icons.calendar_today,
                       size: 20,
-                      color: Colors.grey,
+                      color: AppColors.secondaryText,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -1083,7 +1092,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     const Icon(
                       Icons.calendar_today,
                       size: 20,
-                      color: Colors.grey,
+                      color: AppColors.secondaryText,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -1211,7 +1220,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         content: Text(
                           'عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!',
                         ),
-                        backgroundColor: Colors.red,
+                        backgroundColor: AppColors.errorText,
                       ),
                     );
                     return;
@@ -1242,7 +1251,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 } on ArgumentError catch (error) {
@@ -1252,13 +1261,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       content: Text(
                         error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('حفظ'),
@@ -1273,6 +1282,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('تأكيد الحذف'),
         content: const Text('هل تريد حذف هذا الحجز نهائياً من قاعدة البيانات؟'),
         actions: [
@@ -1295,11 +1305,15 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 if (!mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(error.message)));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(error.message)));
               }
             },
-            child: const Text('حذف الحجز', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'حذف الحجز',
+              style: TextStyle(color: AppColors.errorText),
+            ),
           ),
         ],
       ),
@@ -1310,6 +1324,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('تأكيد حذف المستأجر'),
         content: const Text(
           'تحذير: سيؤدي حذف المستأجر إلى إزالة بياناته فقط. إذا كان لديه حجوزات مرتبطة فقد تظهر كـ "غير معروف". هل تريد الاستمرار؟',
@@ -1340,7 +1355,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             },
             child: const Text(
               'حذف المستأجر',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppColors.errorText),
             ),
           ),
         ],
@@ -1358,28 +1373,31 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     final hijriDayStr = toArabicDigits(hijri.hDay);
     final gregorianDayStr = day.day.toString();
 
-    Color hijriColor = isSelected
-        ? Colors.white
-        : const Color(0xFF991B1B); // dark red
-    Color gregorianColor = isSelected
-        ? Colors.white.withValues(alpha: 0.7)
-        : Colors.grey.shade500;
+    final hasBooking = _getBookingsForDay(day).isNotEmpty;
+    final hijriColor = isSelected ? Colors.white : AppColors.heading;
+    final gregorianColor = isSelected ? Colors.white : AppColors.secondaryText;
 
     BoxDecoration? decoration;
     if (isSelected) {
       decoration = const BoxDecoration(
-        color: Color(0xFF0F766E), // Teal 700
+        color: AppColors.primary,
         shape: BoxShape.circle,
       );
     } else if (isToday) {
       decoration = BoxDecoration(
-        color: const Color(0xFF0F766E).withValues(alpha: 0.15),
+        color: AppColors.selectedSurface,
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF0F766E), width: 1.5),
+        border: Border.all(color: AppColors.primary, width: 2),
+      );
+    } else if (hasBooking) {
+      decoration = BoxDecoration(
+        color: AppColors.warningSurface,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.warningText, width: 1.5),
       );
     }
 
-    double opacity = isOutside ? 0.4 : 1.0;
+    final opacity = isOutside ? 0.55 : 1.0;
 
     return Opacity(
       opacity: opacity,
@@ -1421,447 +1439,471 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     final hasDirectoryData = _bookings.isNotEmpty || _renters.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Row(
-        children: [
-          // القسم الأيمن (تيل/سليت) - قائمة البيانات الإجمالية (الحجوزات أو المستأجرين)
-          Expanded(
-            flex: 2,
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  // أزرار التبديل
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () =>
-                                setState(() => _showRentersTab = false),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: !_showRentersTab
-                                    ? const Color(0xFF0F766E)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'الحجوزات (${_bookings.length})',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: !_showRentersTab
-                                      ? Colors.white
-                                      : Colors.grey.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.sp(context),
-                                ),
-                              ),
-                            ),
-                          ),
+      backgroundColor: AppColors.background,
+      body: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width < 900
+              ? 900
+              : MediaQuery.sizeOf(context).width,
+          child: Row(
+            children: [
+              // القسم الأيمن (تيل/سليت) - قائمة البيانات الإجمالية (الحجوزات أو المستأجرين)
+              Expanded(
+                flex: 2,
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      // أزرار التبديل
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setState(() => _showRentersTab = true),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _showRentersTab
-                                    ? const Color(0xFF0F766E)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'قائمة المستأجرين (${_renters.length})',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: _showRentersTab
-                                      ? Colors.white
-                                      : Colors.grey.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.sp(context),
+                        padding: const EdgeInsets.all(4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () =>
+                                    setState(() => _showRentersTab = false),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: !_showRentersTab
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'الحجوزات (${_bookings.length})',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: !_showRentersTab
+                                          ? Colors.white
+                                          : AppColors.secondaryText,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.sp(context),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () =>
+                                    setState(() => _showRentersTab = true),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _showRentersTab
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'قائمة المستأجرين (${_renters.length})',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: _showRentersTab
+                                          ? Colors.white
+                                          : AppColors.secondaryText,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.sp(context),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!_showRentersTab && _bookings.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () =>
+                                      setState(() => _bookingFilter = 'active'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _bookingFilter == 'active'
+                                          ? AppColors.primary
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'المؤكدة القادمة ($activeBookingsCount)',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: _bookingFilter == 'active'
+                                            ? Colors.white
+                                            : AppColors.secondaryText,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11.sp(context),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(
+                                    () => _bookingFilter = 'archived',
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _bookingFilter == 'archived'
+                                          ? AppColors.primary
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'السجل ($archivedBookingsCount)',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: _bookingFilter == 'archived'
+                                            ? Colors.white
+                                            : AppColors.secondaryText,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11.sp(context),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
+                      if (hasDirectoryData) ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          onChanged: (value) =>
+                              setState(() => _searchQuery = value),
+                          decoration: InputDecoration(
+                            labelText: 'بحث',
+                            hintText: _showRentersTab
+                                ? 'بالاسم أو رقم الهاتف'
+                                : 'عن حجز بالاسم أو رقم الهاتف',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _searchQuery.isEmpty
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () =>
+                                        setState(() => _searchQuery = ''),
+                                  ),
+                            filled: true,
+                            fillColor: AppColors.background,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                color: AppColors.divider,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: _showRentersTab
+                              ? _buildRentersList()
+                              : _buildBookingsList(),
+                        ),
+                      ] else
+                        Expanded(child: _buildDirectoryEmptyState()),
+                    ],
                   ),
-                  if (!_showRentersTab && _bookings.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      padding: const EdgeInsets.all(2),
-                      child: Row(
+                ),
+              ),
+              const VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: AppColors.neutralSurface,
+              ),
+              // القسم الأيسر - التقويم مع الحجوزات الخاصة باليوم المختار
+              Expanded(
+                flex: 3,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
                         children: [
                           Expanded(
-                            child: InkWell(
-                              onTap: () =>
-                                  setState(() => _bookingFilter = 'active'),
-                              child: Container(
+                            child: ElevatedButton.icon(
+                              onPressed: _showAddBookingDialog,
+                              icon: const Icon(Icons.add, size: 20),
+                              label: const Text('تسجيل حجز جديد'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 6,
+                                  vertical: 14,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: _bookingFilter == 'active'
-                                      ? const Color(0xFF0D9488)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'المؤكدة القادمة ($activeBookingsCount)',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: _bookingFilter == 'active'
-                                        ? Colors.white
-                                        : Colors.grey.shade600,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11.sp(context),
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                             ),
                           ),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: InkWell(
-                              onTap: () =>
-                                  setState(() => _bookingFilter = 'archived'),
-                              child: Container(
+                            child: OutlinedButton.icon(
+                              onPressed: _showAddRenterDialog,
+                              icon: const Icon(
+                                Icons.person_add_outlined,
+                                size: 20,
+                              ),
+                              label: const Text('مستأجر جديد'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 6,
+                                  vertical: 14,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: _bookingFilter == 'archived'
-                                      ? const Color(0xFF0D9488)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'السجل ($archivedBookingsCount)',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: _bookingFilter == 'archived'
-                                        ? Colors.white
-                                        : Colors.grey.shade600,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11.sp(context),
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                  if (hasDirectoryData) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: _showRentersTab
-                            ? 'ابحث بالاسم أو رقم الهاتف'
-                            : 'ابحث عن حجز بالاسم أو رقم الهاتف',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchQuery.isEmpty
-                            ? null
-                            : IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () =>
-                                    setState(() => _searchQuery = ''),
-                              ),
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
+                      const SizedBox(height: 16),
+                      // حاوية التقويم
+                      Card(
+                        color: Colors.white,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: _showRentersTab
-                          ? _buildRentersList()
-                          : _buildBookingsList(),
-                    ),
-                  ] else
-                    Expanded(child: _buildDirectoryEmptyState()),
-                ],
-              ),
-            ),
-          ),
-          const VerticalDivider(
-            width: 1,
-            thickness: 1,
-            color: Color(0xFFE2E8F0),
-          ),
-          // القسم الأيسر - التقويم مع الحجوزات الخاصة باليوم المختار
-          Expanded(
-            flex: 3,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _showAddBookingDialog,
-                          icon: const Icon(Icons.add, size: 20),
-                          label: const Text('تسجيل حجز جديد'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0F766E),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _showAddRenterDialog,
-                          icon: const Icon(Icons.person_add_outlined, size: 20),
-                          label: const Text('مستأجر جديد'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF0F766E),
-                            side: const BorderSide(color: Color(0xFF0F766E)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // حاوية التقويم
-                  Card(
-                    color: Colors.white,
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        children: [
-                          // Custom dual date header
-                          Builder(
-                            builder: (context) {
-                              final focusedHijri = HijriCalendar.fromDate(
-                                _focusedDay,
-                              );
-                              final lastDayNum = HijriCalendar().getDaysInMonth(
-                                focusedHijri.hYear,
-                                focusedHijri.hMonth,
-                              );
-                              final firstDayGregorian = HijriCalendar()
-                                  .hijriToGregorian(
-                                    focusedHijri.hYear,
-                                    focusedHijri.hMonth,
-                                    1,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            children: [
+                              // Custom dual date header
+                              Builder(
+                                builder: (context) {
+                                  final focusedHijri = HijriCalendar.fromDate(
+                                    _focusedDay,
                                   );
-                              final lastDayGregorian = HijriCalendar()
-                                  .hijriToGregorian(
-                                    focusedHijri.hYear,
-                                    focusedHijri.hMonth,
-                                    lastDayNum,
-                                  );
+                                  final lastDayNum = HijriCalendar()
+                                      .getDaysInMonth(
+                                        focusedHijri.hYear,
+                                        focusedHijri.hMonth,
+                                      );
+                                  final firstDayGregorian = HijriCalendar()
+                                      .hijriToGregorian(
+                                        focusedHijri.hYear,
+                                        focusedHijri.hMonth,
+                                        1,
+                                      );
+                                  final lastDayGregorian = HijriCalendar()
+                                      .hijriToGregorian(
+                                        focusedHijri.hYear,
+                                        focusedHijri.hMonth,
+                                        lastDayNum,
+                                      );
 
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8.0,
-                                  vertical: 4.0,
-                                ),
-                                child: Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.chevron_left,
-                                        color: Color(0xFF0F766E),
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _focusedDay = DateTime(
-                                            _focusedDay.year,
-                                            _focusedDay.month - 1,
-                                          );
-                                        });
-                                      },
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                      vertical: 4.0,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        "${firstDayGregorian.day}-${firstDayGregorian.month}-${firstDayGregorian.year} ➔ ${lastDayGregorian.day}-${lastDayGregorian.month}-${lastDayGregorian.year}",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF1E293B),
-                                          fontSize: 14.sp(context),
+                                    child: Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.chevron_left,
+                                            color: AppColors.primary,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _focusedDay = DateTime(
+                                                _focusedDay.year,
+                                                _focusedDay.month - 1,
+                                              );
+                                            });
+                                          },
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        "${getArabicHijriMonthName(focusedHijri.hMonth)} ${focusedHijri.hMonth}-${focusedHijri.hYear}",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.end,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF991B1B),
-                                          fontSize: 16.sp(context),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          flex: 3,
+                                          child: Text(
+                                            "${firstDayGregorian.day}-${firstDayGregorian.month}-${firstDayGregorian.year} ➔ ${lastDayGregorian.day}-${lastDayGregorian.month}-${lastDayGregorian.year}",
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.heading,
+                                              fontSize: 14.sp(context),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.chevron_right,
-                                        color: Color(0xFF0F766E),
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _focusedDay = DateTime(
-                                            _focusedDay.year,
-                                            _focusedDay.month + 1,
-                                          );
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                          const Divider(height: 16, thickness: 1),
-                          TableCalendar(
-                            firstDay: DateTime.utc(2020, 1, 1),
-                            lastDay: DateTime.utc(2050, 12, 31),
-                            focusedDay: _focusedDay,
-                            selectedDayPredicate: (day) =>
-                                isSameDay(_selectedDay, day),
-                            eventLoader: _getBookingsForDay,
-                            onDaySelected: (selectedDay, focusedDay) {
-                              setState(() {
-                                _selectedDay = selectedDay;
-                                _focusedDay = focusedDay;
-                              });
-                            },
-                            onPageChanged: (focusedDay) {
-                              setState(() {
-                                _focusedDay = focusedDay;
-                              });
-                            },
-                            calendarFormat: CalendarFormat.month,
-                            locale: 'ar_AE',
-                            startingDayOfWeek: StartingDayOfWeek.sunday,
-                            headerVisible: false,
-                            calendarBuilders: CalendarBuilders(
-                              defaultBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(
-                                  day,
-                                  isSelected: false,
-                                  isToday: false,
-                                  isOutside: false,
-                                );
-                              },
-                              selectedBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(
-                                  day,
-                                  isSelected: true,
-                                  isToday: false,
-                                  isOutside: false,
-                                );
-                              },
-                              todayBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(
-                                  day,
-                                  isSelected: false,
-                                  isToday: true,
-                                  isOutside: false,
-                                );
-                              },
-                              outsideBuilder: (context, day, focusedDay) {
-                                return _buildCalendarDayCell(
-                                  day,
-                                  isSelected: false,
-                                  isToday: false,
-                                  isOutside: true,
-                                );
-                              },
-                              markerBuilder: (context, date, events) {
-                                if (events.isNotEmpty) {
-                                  return Positioned(
-                                    bottom: 4,
-                                    child: Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFD97706),
-                                        shape: BoxShape.circle,
-                                      ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                            "${getArabicHijriMonthName(focusedHijri.hMonth)} ${focusedHijri.hMonth}-${focusedHijri.hYear}",
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.end,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primaryPressed,
+                                              fontSize: 16.sp(context),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.chevron_right,
+                                            color: AppColors.primary,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _focusedDay = DateTime(
+                                                _focusedDay.year,
+                                                _focusedDay.month + 1,
+                                              );
+                                            });
+                                          },
+                                        ),
+                                      ],
                                     ),
                                   );
-                                }
-                                return null;
-                              },
+                                },
+                              ),
+                              const Divider(height: 16, thickness: 1),
+                              TableCalendar(
+                                firstDay: DateTime.utc(2020, 1, 1),
+                                lastDay: DateTime.utc(2050, 12, 31),
+                                focusedDay: _focusedDay,
+                                selectedDayPredicate: (day) =>
+                                    isSameDay(_selectedDay, day),
+                                eventLoader: _getBookingsForDay,
+                                onDaySelected: (selectedDay, focusedDay) {
+                                  setState(() {
+                                    _selectedDay = selectedDay;
+                                    _focusedDay = focusedDay;
+                                  });
+                                },
+                                onPageChanged: (focusedDay) {
+                                  setState(() {
+                                    _focusedDay = focusedDay;
+                                  });
+                                },
+                                calendarFormat: CalendarFormat.month,
+                                locale: 'ar_AE',
+                                startingDayOfWeek: StartingDayOfWeek.sunday,
+                                headerVisible: false,
+                                calendarBuilders: CalendarBuilders(
+                                  defaultBuilder: (context, day, focusedDay) {
+                                    return _buildCalendarDayCell(
+                                      day,
+                                      isSelected: false,
+                                      isToday: false,
+                                      isOutside: false,
+                                    );
+                                  },
+                                  selectedBuilder: (context, day, focusedDay) {
+                                    return _buildCalendarDayCell(
+                                      day,
+                                      isSelected: true,
+                                      isToday: false,
+                                      isOutside: false,
+                                    );
+                                  },
+                                  todayBuilder: (context, day, focusedDay) {
+                                    return _buildCalendarDayCell(
+                                      day,
+                                      isSelected: false,
+                                      isToday: true,
+                                      isOutside: false,
+                                    );
+                                  },
+                                  outsideBuilder: (context, day, focusedDay) {
+                                    return _buildCalendarDayCell(
+                                      day,
+                                      isSelected: false,
+                                      isToday: false,
+                                      isOutside: true,
+                                    );
+                                  },
+                                  markerBuilder: (context, date, events) {
+                                    if (events.isNotEmpty) {
+                                      return const Positioned(
+                                        bottom: 1,
+                                        child: Icon(
+                                          Icons.event_available_outlined,
+                                          size: 12,
+                                          color: AppColors.warningText,
+                                        ),
+                                      );
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // عنوان حجوزات اليوم المحدد
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.bookmark_added_outlined,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _selectedDay == null
+                                ? 'الحجوزات اليومية'
+                                : 'الحجوزات في تاريخ ${_selectedDay.toString().split(' ')[0]}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15.sp(context),
+                              color: AppColors.heading,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // عنوان حجوزات اليوم المحدد
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.bookmark_added_outlined,
-                        color: Color(0xFF0D9488),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _selectedDay == null
-                            ? 'الحجوزات اليومية'
-                            : 'الحجوزات في تاريخ ${_selectedDay.toString().split(' ')[0]}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp(context),
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
+                      const SizedBox(height: 8),
+                      _buildDayBookingsListAdaptive(),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  _buildDayBookingsListAdaptive(),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1876,7 +1918,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             const Icon(
               Icons.people_outline,
               size: 44,
-              color: Color(0xFF0F766E),
+              color: AppColors.primary,
             ),
             const SizedBox(height: 12),
             Text(
@@ -1885,7 +1927,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15.sp(context),
-                color: const Color(0xFF1E293B),
+                color: AppColors.heading,
               ),
             ),
             const SizedBox(height: 8),
@@ -1893,7 +1935,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               'استخدم أزرار الإضافة لإدخال بياناتك. ستظهر القوائم هنا بعد حفظ أول مستأجر أو حجز.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.secondaryText,
                 height: 1.45,
                 fontSize: 12.sp(context),
               ),
@@ -1948,6 +1990,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
+          scrollable: true,
           title: const Text('تسجيل دفعة'),
           content: SingleChildScrollView(
             child: Column(
@@ -1962,7 +2005,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   'المتبقي: ${summary['remaining']!.toStringAsFixed(2)} ر.س',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F766E),
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2013,7 +2056,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('أدخل قيمة دفعة صحيحة.'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -2042,7 +2085,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       content: Text(
                         error.message?.toString() ?? 'تعذر تسجيل الدفعة.',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 } on StateError catch (error) {
@@ -2050,7 +2093,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 }
@@ -2061,6 +2104,19 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         ),
       ),
     );
+  }
+
+  Widget _bookingStatusBadge(String? status) {
+    switch (status) {
+      case DatabaseHelper.statusConfirmed:
+        return const StatusBadge.success(label: 'مؤكد');
+      case DatabaseHelper.statusPending:
+        return const StatusBadge.warning(label: 'قيد الانتظار');
+      case DatabaseHelper.statusCancelled:
+        return const StatusBadge.error(label: 'ملغي');
+      default:
+        return const StatusBadge.neutral(label: 'غير محدد');
+    }
   }
 
   // بناء قائمة الحجوزات العامة (مرتبة من الأحدث إلى الأقدم)
@@ -2089,7 +2145,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           _bookingFilter == 'archived'
               ? 'لا توجد حجوزات مؤرشفة'
               : 'لا توجد حجوزات نشطة حالياً',
-          style: const TextStyle(color: Colors.grey),
+          style: const TextStyle(color: AppColors.secondaryText),
         ),
       );
     }
@@ -2111,7 +2167,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
 
         final cardContent = Card(
           elevation: 0,
-          color: const Color(0xFFF8FAFC),
+          color: AppColors.background,
           margin: const EdgeInsets.symmetric(vertical: 4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -2148,14 +2204,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE2E8F0),
+                                color: AppColors.neutralSurface,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 'مكتمل',
                                 style: TextStyle(
                                   fontSize: 10.sp(context),
-                                  color: const Color(0xFF475569),
+                                  color: AppColors.secondaryText,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -2164,30 +2220,30 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: AlignmentDirectional.centerStart,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Text(
                           'من: ${_formatHijriDateOnlyArabic(booking['start_date'])}',
                           maxLines: 1,
+                          softWrap: false,
                           style: TextStyle(
                             fontSize: 13.sp(context),
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade700,
+                            color: AppColors.secondaryText,
                           ),
                         ),
                       ),
                       const SizedBox(height: 3),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: AlignmentDirectional.centerStart,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Text(
                           'إلى: ${_formatHijriDateOnlyArabic(booking['end_date'])}',
                           maxLines: 1,
+                          softWrap: false,
                           style: TextStyle(
                             fontSize: 13.sp(context),
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade700,
+                            color: AppColors.secondaryText,
                           ),
                         ),
                       ),
@@ -2201,13 +2257,51 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        '${booking['total_price']} ر.س',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F766E),
-                          fontSize: 12.sp(context),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: _bookingStatusBadge(
+                          booking['status']?.toString(),
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      FutureBuilder<Map<String, double>>(
+                        future: dbHelper.queryPaymentSummary(
+                          booking['id'] as int,
+                        ),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            );
+                          }
+                          final summary = snapshot.data!;
+                          final remaining = summary['remaining']!;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'الإجمالي: ${summary['total']!.toStringAsFixed(2)} ر.س',
+                                style: Theme.of(context).textTheme.labelMedium,
+                              ),
+                              Text(
+                                'المسدد: ${summary['paid']!.toStringAsFixed(2)} ر.س',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(color: AppColors.successText),
+                              ),
+                              Text(
+                                'المتبقي: ${remaining.toStringAsFixed(2)} ر.س',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: remaining > 0
+                                          ? AppColors.warningText
+                                          : AppColors.successText,
+                                    ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -2217,36 +2311,45 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                           IconButton(
                             icon: const Icon(
                               Icons.payments_outlined,
-                              color: Color(0xFF0F766E),
+                              color: AppColors.primary,
                               size: 18,
                             ),
                             tooltip: 'الدفعات',
                             onPressed: () => _showPaymentActions(booking),
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           IconButton(
                             icon: const Icon(
                               Icons.edit_outlined,
-                              color: Colors.blue,
+                              color: AppColors.primaryPressed,
                               size: 18,
                             ),
                             onPressed: () => _showEditBookingDialog(booking),
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           IconButton(
                             icon: const Icon(
                               Icons.delete_outline,
-                              color: Colors.red,
+                              color: AppColors.errorText,
                               size: 18,
                             ),
                             onPressed: () =>
                                 _confirmDeleteBooking(booking['id']),
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
                           ),
                         ],
                       ),
@@ -2291,7 +2394,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         final renter = sorted[index];
         return Card(
           elevation: 0,
-          color: const Color(0xFFF8FAFC),
+          color: AppColors.background,
           margin: const EdgeInsets.symmetric(vertical: 4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -2318,7 +2421,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     message: 'توجد ملاحظات على العميل',
                     child: Icon(
                       Icons.warning_amber_rounded,
-                      color: Colors.red,
+                      color: AppColors.errorText,
                       size: 16,
                     ),
                   ),
@@ -2329,7 +2432,11 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         (renter['rental_count'] as num) >= 3))
                   const Tooltip(
                     message: 'عميل مميز وموثوق',
-                    child: Icon(Icons.verified, color: Colors.green, size: 16),
+                    child: Icon(
+                      Icons.verified,
+                      color: AppColors.successText,
+                      size: 16,
+                    ),
                   ),
               ],
             ),
@@ -2343,23 +2450,29 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 IconButton(
                   icon: const Icon(
                     Icons.edit_outlined,
-                    color: Colors.blue,
+                    color: AppColors.primaryPressed,
                     size: 18,
                   ),
                   onPressed: () => _showEditRenterDialog(renter),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
                 ),
                 const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(
                     Icons.delete_outline,
-                    color: Colors.red,
+                    color: AppColors.errorText,
                     size: 18,
                   ),
                   onPressed: () => _confirmDeleteRenter(renter['phone']),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
                 ),
               ],
             ),
@@ -2376,12 +2489,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColors.divider),
         ),
         child: const Center(
           child: Text(
             'يرجى تحديد يوم من التقويم',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.secondaryText),
           ),
         ),
       );
@@ -2399,12 +2512,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColors.divider),
         ),
         child: const Center(
           child: Text(
             'لا توجد حجوزات في هذا اليوم',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.secondaryText),
           ),
         ),
       );
@@ -2424,7 +2537,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF0D9488).withAlpha(51),
+              color: AppColors.primary.withAlpha(51),
               width: 1,
             ),
             boxShadow: [
@@ -2444,7 +2557,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   Row(
                     children: [
                       const CircleAvatar(
-                        backgroundColor: Color(0xFF0F766E),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         radius: 18,
                         child: Icon(Icons.vpn_key_outlined, size: 18),
@@ -2471,10 +2584,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                     : 'مؤكد'),
                           style: TextStyle(
                             color: booking['status'] == 'cancelled'
-                                ? const Color(0xFFDC2626)
+                                ? AppColors.errorText
                                 : (booking['status'] == 'pending'
-                                      ? const Color(0xFFD97706)
-                                      : const Color(0xFF059669)),
+                                      ? AppColors.warningText
+                                      : AppColors.successText),
                             fontSize: 12.sp(context),
                             fontWeight: FontWeight.bold,
                           ),
@@ -2487,23 +2600,29 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       IconButton(
                         icon: const Icon(
                           Icons.edit_outlined,
-                          color: Colors.blue,
+                          color: AppColors.primaryPressed,
                           size: 20,
                         ),
                         onPressed: () => _showEditBookingDialog(booking),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       IconButton(
                         icon: const Icon(
                           Icons.delete_outline,
-                          color: Colors.red,
+                          color: AppColors.errorText,
                           size: 20,
                         ),
                         onPressed: () => _confirmDeleteBooking(booking['id']),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
                       ),
                     ],
                   ),
@@ -2517,7 +2636,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp(context),
-                      color: const Color(0xFF64748B),
+                      color: AppColors.fieldBorder,
                     ),
                   ),
                   Expanded(
@@ -2526,7 +2645,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18.sp(context),
-                        color: const Color(0xFF1E293B),
+                        color: AppColors.heading,
                       ),
                     ),
                   ),
@@ -2536,7 +2655,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       message: 'توجد ملاحظات على العميل',
                       child: Icon(
                         Icons.warning_amber_rounded,
-                        color: Colors.red,
+                        color: AppColors.errorText,
                         size: 20,
                       ),
                     ),
@@ -2549,7 +2668,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       message: 'عميل مميز وموثوق',
                       child: Icon(
                         Icons.verified,
-                        color: Colors.green,
+                        color: AppColors.successText,
                         size: 20,
                       ),
                     ),
@@ -2563,7 +2682,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp(context),
-                      color: const Color(0xFF64748B),
+                      color: AppColors.fieldBorder,
                     ),
                   ),
                   Text(
@@ -2571,7 +2690,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18.sp(context),
-                      color: const Color(0xFF0F766E),
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -2584,7 +2703,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp(context),
-                      color: const Color(0xFF64748B),
+                      color: AppColors.fieldBorder,
                     ),
                   ),
                   Expanded(
@@ -2596,7 +2715,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15.sp(context),
-                            color: const Color(0xFF475569),
+                            color: AppColors.secondaryText,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -2605,7 +2724,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15.sp(context),
-                            color: const Color(0xFF475569),
+                            color: AppColors.secondaryText,
                           ),
                         ),
                       ],
@@ -2621,7 +2740,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp(context),
-                      color: const Color(0xFF64748B),
+                      color: AppColors.fieldBorder,
                     ),
                   ),
                   Text(
@@ -2629,7 +2748,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18.sp(context),
-                      color: const Color(0xFF0F766E),
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -2642,7 +2761,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp(context),
-                      color: const Color(0xFF64748B),
+                      color: AppColors.fieldBorder,
                     ),
                   ),
                   Text(
@@ -2650,7 +2769,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18.sp(context),
-                      color: const Color(0xFF0F766E),
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -2745,6 +2864,7 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
     const weekdayNames = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'];
 
     return AlertDialog(
+      scrollable: true,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: Colors.white,
       titlePadding: const EdgeInsets.all(16),
@@ -2752,7 +2872,7 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: Color(0xFF0F766E)),
+            icon: const Icon(Icons.chevron_left, color: AppColors.primary),
             onPressed: _previousMonth,
           ),
           Text(
@@ -2760,11 +2880,11 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16.sp(context),
-              color: const Color(0xFF0F766E),
+              color: AppColors.primary,
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: Color(0xFF0F766E)),
+            icon: const Icon(Icons.chevron_right, color: AppColors.primary),
             onPressed: _nextMonth,
           ),
         ],
@@ -2784,7 +2904,7 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12.sp(context),
-                        color: Colors.grey.shade600,
+                        color: AppColors.secondaryText,
                       ),
                     ),
                   ),
@@ -2819,7 +2939,7 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
                     alignment: Alignment.center,
                     decoration: isSelected
                         ? const BoxDecoration(
-                            color: Color(0xFF0F766E),
+                            color: AppColors.primary,
                             shape: BoxShape.circle,
                           )
                         : null,
@@ -2841,7 +2961,10 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, null),
-          child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+          child: const Text(
+            'إلغاء',
+            style: TextStyle(color: AppColors.secondaryText),
+          ),
         ),
         ElevatedButton(
           onPressed: () {
@@ -2853,7 +2976,7 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
             Navigator.pop(context, targetGregorian);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0F766E),
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
