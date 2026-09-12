@@ -24,135 +24,68 @@ jobs:
           from pathlib import Path
 
           path = Path('lib/pages/booking_manager_page.dart')
-          text = path.read_text()
+          lines = path.read_text().splitlines()
 
-          replacements = []
+          def wrap_text_widget(marker: str, wrapper: str) -> None:
+              marker_indexes = [i for i, line in enumerate(lines) if marker in line]
+              if len(marker_indexes) != 1:
+                  raise SystemExit(f'{marker}: expected exactly one marker, got {len(marker_indexes)}')
+              marker_index = marker_indexes[0]
 
-          replacements.append((
-          """                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.payments_outlined,""",
-          """                      Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 12,
-                        runSpacing: 4,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.payments_outlined,"""
-          ))
+              start = marker_index
+              while start >= 0 and lines[start].strip() != 'Text(':
+                  start -= 1
+              if start < 0:
+                  raise SystemExit(f'{marker}: Text start not found')
 
-          replacements.append((
-          """                  Text(
-                    'اسم المستأجر: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp(context),
-                      color: AppColors.fieldBorder,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      renter['full_name'].toString(),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.sp(context),
-                        color: AppColors.heading,
-                      ),
-                    ),
-                  ),""",
-          """                  Expanded(
-                    child: Text(
-                      'اسم المستأجر: ${renter['full_name']}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.sp(context),
-                        color: AppColors.heading,
-                      ),
-                    ),
-                  ),"""
-          ))
+              balance = 0
+              end = start
+              while end < len(lines):
+                  balance += lines[end].count('(') - lines[end].count(')')
+                  if end > start and balance == 0:
+                      break
+                  end += 1
+              if balance != 0:
+                  raise SystemExit(f'{marker}: Text end not found')
 
-          replacements.append((
-          """                  Text(
-                    booking['phone'].toString(),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp(context),
-                      color: AppColors.primary,
-                    ),
-                  ),""",
-          """                  Expanded(
-                    child: Directionality(
-                      textDirection: TextDirection.ltr,
-                      child: Text(
-                        booking['phone'].toString(),
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18.sp(context),
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ),"""
-          ))
+              indent = lines[start][:len(lines[start]) - len(lines[start].lstrip())]
+              block = lines[start:end + 1]
+              wrapped = [f'{indent}{wrapper}(', f'{indent}  child: {block[0].lstrip()}']
+              wrapped.extend(f'  {line}' for line in block[1:])
+              wrapped.append(f'{indent}),')
+              lines[start:end + 1] = wrapped
 
-          replacements.append((
-          """                  Text(
-                    '${booking['total_price']} ر.س',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp(context),
-                      color: AppColors.primary,
-                    ),
-                  ),""",
-          """                  Expanded(
-                    child: Text(
-                      '${booking['total_price']} ر.س',
-                      textAlign: TextAlign.start,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.sp(context),
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),"""
-          ))
+          payment_indexes = [i for i, line in enumerate(lines) if 'Icons.payments_outlined' in line]
+          if len(payment_indexes) != 1:
+              raise SystemExit(f'payments action: expected one icon, got {len(payment_indexes)}')
+          row = payment_indexes[0]
+          while row >= 0 and lines[row].strip() != 'Row(':
+              row -= 1
+          if row < 0:
+              raise SystemExit('payments action: Row start not found')
+          indent = lines[row][:len(lines[row]) - len(lines[row].lstrip())]
+          expected = [
+              'mainAxisAlignment: MainAxisAlignment.end,',
+              'mainAxisSize: MainAxisSize.min,',
+              'children: [',
+          ]
+          actual = [lines[row + offset].strip() for offset in (1, 2, 3)]
+          if actual != expected:
+              raise SystemExit(f'payments action: unexpected Row shape {actual}')
+          lines[row:row + 4] = [
+              f'{indent}Wrap(',
+              f'{indent}  alignment: WrapAlignment.end,',
+              f'{indent}  spacing: 12,',
+              f'{indent}  runSpacing: 4,',
+              f'{indent}  children: [',
+          ]
 
-          replacements.append((
-          """                  Text(
-                    '${booking['security_deposit'] ?? 0.0} ر.س',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp(context),
-                      color: AppColors.primary,
-                    ),
-                  ),""",
-          """                  Expanded(
-                    child: Text(
-                      '${booking['security_deposit'] ?? 0.0} ر.س',
-                      textAlign: TextAlign.start,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.sp(context),
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),"""
-          ))
+          wrap_text_widget("'اسم المستأجر: '", 'Flexible')
+          wrap_text_widget("booking['phone'].toString()", 'Expanded')
+          wrap_text_widget("'${booking['total_price']} ر.س'", 'Expanded')
+          wrap_text_widget("'${booking['security_deposit'] ?? 0.0} ر.س'", 'Expanded')
 
-          for index, (old, new) in enumerate(replacements, 1):
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'replacement {index}: expected 1 match, got {count}')
-              text = text.replace(old, new, 1)
-
-          path.write_text(text)
+          path.write_text('\n'.join(lines) + '\n')
           PY
           dart format lib/pages/booking_manager_page.dart
       - name: Commit fixes and remove one-time workflow
