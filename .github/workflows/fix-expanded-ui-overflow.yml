@@ -1,0 +1,167 @@
+name: Fix expanded UI overflow
+
+on:
+  push:
+    branches: [test/expand-ui-accessibility]
+    paths:
+      - '.github/workflows/fix-expanded-ui-overflow.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/expand-ui-accessibility
+          fetch-depth: 0
+      - name: Make booking rows wrap-safe at 200% text
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/pages/booking_manager_page.dart')
+          text = path.read_text()
+
+          replacements = []
+
+          replacements.append((
+          """                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.payments_outlined,""",
+          """                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 12,
+                        runSpacing: 4,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.payments_outlined,"""
+          ))
+
+          replacements.append((
+          """                  Text(
+                    'اسم المستأجر: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp(context),
+                      color: AppColors.fieldBorder,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      renter['full_name'].toString(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp(context),
+                        color: AppColors.heading,
+                      ),
+                    ),
+                  ),""",
+          """                  Expanded(
+                    child: Text(
+                      'اسم المستأجر: ${renter['full_name']}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.sp(context),
+                        color: AppColors.heading,
+                      ),
+                    ),
+                  ),"""
+          ))
+
+          replacements.append((
+          """                  Text(
+                    booking['phone'].toString(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.sp(context),
+                      color: AppColors.primary,
+                    ),
+                  ),""",
+          """                  Expanded(
+                    child: Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Text(
+                        booking['phone'].toString(),
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18.sp(context),
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),"""
+          ))
+
+          replacements.append((
+          """                  Text(
+                    '${booking['total_price']} ر.س',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.sp(context),
+                      color: AppColors.primary,
+                    ),
+                  ),""",
+          """                  Expanded(
+                    child: Text(
+                      '${booking['total_price']} ر.س',
+                      textAlign: TextAlign.start,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp(context),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),"""
+          ))
+
+          replacements.append((
+          """                  Text(
+                    '${booking['security_deposit'] ?? 0.0} ر.س',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.sp(context),
+                      color: AppColors.primary,
+                    ),
+                  ),""",
+          """                  Expanded(
+                    child: Text(
+                      '${booking['security_deposit'] ?? 0.0} ر.س',
+                      textAlign: TextAlign.start,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp(context),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),"""
+          ))
+
+          for index, (old, new) in enumerate(replacements, 1):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'replacement {index}: expected 1 match, got {count}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+          dart format lib/pages/booking_manager_page.dart
+      - name: Commit fixes and remove one-time workflow
+        shell: bash
+        run: |
+          rm .github/workflows/fix-expanded-ui-overflow.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/pages/booking_manager_page.dart .github/workflows/fix-expanded-ui-overflow.yml
+          git commit -m 'fix(ui): prevent booking overflow at 200 percent text'
+          git pull --rebase origin test/expand-ui-accessibility
+          git push origin HEAD:test/expand-ui-accessibility
