@@ -56,8 +56,21 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: Format Dart sources
-        run: dart format lib test
+      - name: Apply safe Dart const fixes
+        run: dart fix --apply
+
+      - name: Format changed UI sources
+        run: |
+          dart format \
+            lib/main.dart \
+            lib/theme/app_theme.dart \
+            lib/utils/responsive.dart \
+            lib/pages/main_shell.dart \
+            lib/pages/booking_manager_page.dart \
+            lib/pages/booking_payments_dialog.dart \
+            lib/pages/finance_page.dart \
+            lib/pages/settings_page.dart \
+            lib/pages/ultimate_dashboard_page.dart
 
       - name: Static analysis
         run: flutter analyze
