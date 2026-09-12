@@ -1,0 +1,41 @@
+name: Validate Arabic UI accessibility
+
+on:
+  push:
+    branches: [feat/arabic-ui-clarity]
+    paths:
+      - 'test/ui_accessibility_test.dart'
+      - '.github/workflows/validate-ui-accessibility.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Static analysis
+        run: flutter analyze
+      - name: Full tests including 200% UI coverage
+        run: flutter test
+      - name: Remove one-time validator after success
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/validate-ui-accessibility.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'ci(ui): remove one-time accessibility validator'
+          git pull --rebase origin feat/arabic-ui-clarity
+          git push origin HEAD:feat/arabic-ui-clarity
