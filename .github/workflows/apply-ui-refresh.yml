@@ -1,0 +1,81 @@
+name: Apply Arabic UI refresh
+
+on:
+  push:
+    branches: [feat/arabic-ui-clarity]
+    paths:
+      - 'tool/apply_ui_consistency.py'
+      - '.github/workflows/apply-ui-refresh.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Vendor IBM Plex Sans Arabic from the official IBM repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/fonts
+          base='https://raw.githubusercontent.com/IBM/plex/master/packages/plex-sans-arabic/fonts/complete/ttf'
+          curl --fail --location --retry 3 "$base/IBMPlexSansArabic-Regular.ttf" -o assets/fonts/IBMPlexSansArabic-Regular.ttf
+          curl --fail --location --retry 3 "$base/IBMPlexSansArabic-Medium.ttf" -o assets/fonts/IBMPlexSansArabic-Medium.ttf
+          curl --fail --location --retry 3 "$base/IBMPlexSansArabic-SemiBold.ttf" -o assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          curl --fail --location --retry 3 "$base/IBMPlexSansArabic-Bold.ttf" -o assets/fonts/IBMPlexSansArabic-Bold.ttf
+          curl --fail --location --retry 3 'https://raw.githubusercontent.com/IBM/plex/master/packages/plex-sans-arabic/LICENSE.txt' -o assets/fonts/IBM_PLEX_LICENSE.txt
+          test "$(stat -c%s assets/fonts/IBMPlexSansArabic-Regular.ttf)" -gt 200000
+          test "$(stat -c%s assets/fonts/IBMPlexSansArabic-Bold.ttf)" -gt 200000
+
+      - name: Apply consistency migration
+        run: python3 tool/apply_ui_consistency.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Format Dart sources
+        run: dart format lib test
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android release build check
+        env:
+          ORG_GRADLE_PROJECT_resthouseUnsignedRelease: 'true'
+          ORG_GRADLE_PROJECT_resthouseApplicationId: 'sa.norah.resthouse'
+        run: flutter build apk --release
+
+      - name: Commit verified UI refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f tool/apply_ui_consistency.py .github/workflows/apply-ui-refresh.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --stat
+          git commit -m 'feat(ui): improve Arabic typography colors and readability'
+          git push origin HEAD:feat/arabic-ui-clarity
