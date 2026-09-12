@@ -2316,9 +2316,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                         },
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 12,
+                        runSpacing: 4,
                         children: [
                           IconButton(
                             icon: const Icon(
@@ -2643,12 +2644,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               const Divider(height: 24),
               Row(
                 children: [
-                  Text(
-                    'اسم المستأجر: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp(context),
-                      color: AppColors.fieldBorder,
+                  Flexible(
+                    child: Text(
+                      'اسم المستأجر: ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.sp(context),
+                        color: AppColors.fieldBorder,
+                      ),
                     ),
                   ),
                   Expanded(
@@ -2697,12 +2700,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       color: AppColors.fieldBorder,
                     ),
                   ),
-                  Text(
-                    booking['phone'].toString(),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp(context),
-                      color: AppColors.primary,
+                  Expanded(
+                    child: Text(
+                      booking['phone'].toString(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp(context),
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ],
@@ -2755,12 +2760,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       color: AppColors.fieldBorder,
                     ),
                   ),
-                  Text(
-                    '${booking['total_price']} ر.س',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp(context),
-                      color: AppColors.primary,
+                  Expanded(
+                    child: Text(
+                      '${booking['total_price']} ر.س',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp(context),
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ],
@@ -2776,12 +2783,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       color: AppColors.fieldBorder,
                     ),
                   ),
-                  Text(
-                    '${booking['security_deposit'] ?? 0.0} ر.س',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp(context),
-                      color: AppColors.primary,
+                  Expanded(
+                    child: Text(
+                      '${booking['security_deposit'] ?? 0.0} ر.س',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp(context),
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ],
