@@ -1437,6 +1437,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         .where((b) => !BookingStatusService.isActive(b, todayStr))
         .length;
     final hasDirectoryData = _bookings.isNotEmpty || _renters.isNotEmpty;
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final calendarRowHeight = (52.0 * textScale).clamp(52.0, 104.0).toDouble();
+    final calendarDowHeight = (28.0 * textScale).clamp(28.0, 56.0).toDouble();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -1822,6 +1825,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                                 locale: 'ar_AE',
                                 startingDayOfWeek: StartingDayOfWeek.sunday,
                                 headerVisible: false,
+                                rowHeight: calendarRowHeight,
+                                daysOfWeekHeight: calendarDowHeight,
                                 calendarBuilders: CalendarBuilders(
                                   defaultBuilder: (context, day, focusedDay) {
                                     return _buildCalendarDayCell(
@@ -1877,20 +1882,24 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       const SizedBox(height: 16),
                       // عنوان حجوزات اليوم المحدد
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Icon(
                             Icons.bookmark_added_outlined,
                             color: AppColors.primary,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            _selectedDay == null
-                                ? 'الحجوزات اليومية'
-                                : 'الحجوزات في تاريخ ${_selectedDay.toString().split(' ')[0]}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15.sp(context),
-                              color: AppColors.heading,
+                          Expanded(
+                            child: Text(
+                              _selectedDay == null
+                                  ? 'الحجوزات اليومية'
+                                  : 'الحجوزات في تاريخ ${_selectedDay.toString().split(' ')[0]}',
+                              softWrap: true,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15.sp(context),
+                                color: AppColors.heading,
+                              ),
                             ),
                           ),
                         ],
@@ -1909,9 +1918,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   }
 
   Widget _buildDirectoryEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
