@@ -10,11 +10,27 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
-  testWidgets('App loads and renders main shell', (WidgetTester tester) async {
+  testWidgets('App shell keeps the sidebar usable on short screens', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(const ResthouseApp());
 
     // Verify that the application structure is rendered.
     expect(find.byType(MaterialApp), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.drag(
+      find.byKey(const ValueKey('mainSidebar')),
+      const Offset(0, -500),
+    );
+    await tester.pump();
+
+    expect(find.text('إعدادات النظام والنسخ').hitTestable(), findsOneWidget);
+    expect(find.text('الإصدار 1.0.0 (تجريبي)').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

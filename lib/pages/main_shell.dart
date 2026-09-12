@@ -139,8 +139,10 @@ class _MainShellPageState extends State<MainShellPage> {
       width: 250,
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: ListView(
+        key: const ValueKey('mainSidebar'),
+        primary: false,
+        padding: EdgeInsets.zero,
         children: [
           // Header section inside sidebar
           Container(
@@ -203,7 +205,7 @@ class _MainShellPageState extends State<MainShellPage> {
             activeIcon: Icons.settings,
             label: 'إعدادات النظام والنسخ',
           ),
-          const Spacer(),
+          const SizedBox(height: 24),
           // Info Footer
           Container(
             padding: const EdgeInsets.all(12),
