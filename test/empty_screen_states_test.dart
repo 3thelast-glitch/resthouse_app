@@ -32,17 +32,24 @@ void main() {
   });
 
   testWidgets('تعرض لوحة التحكم حالة بدء فارغة', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: UltimateDashboardPage()));
-    await tester.pump();
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 200)),
-    );
-    await tester.pump();
+    await tester.runAsync(() async {
+      await tester.pumpWidget(const MaterialApp(home: UltimateDashboardPage()));
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('لا توجد بيانات لعرض لوحة التحكم بعد'), findsNothing);
 
-    expect(find.text('لا توجد بيانات لعرض لوحة التحكم بعد'), findsOneWidget);
-    expect(find.text('إجمالي الإيرادات'), findsNothing);
+      final deadline = DateTime.now().add(const Duration(seconds: 5));
+      while (find.byType(CircularProgressIndicator).evaluate().isNotEmpty &&
+          DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      }
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('لا توجد بيانات لعرض لوحة التحكم بعد'), findsOneWidget);
+      expect(find.text('إجمالي الإيرادات'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
   });
 }

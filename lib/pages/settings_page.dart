@@ -3,6 +3,8 @@ import 'dart:io' as io;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+
+import '../theme/app_theme.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart' as pp;
 
@@ -91,6 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -111,7 +114,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -127,7 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطأ أثناء تصدير البيانات: $error'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorText,
           ),
         );
       }
@@ -140,10 +143,15 @@ class _SettingsPageState extends State<SettingsPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.warningText,
+              size: 28,
+            ),
             SizedBox(width: 8),
             Text('تأكيد استيراد البيانات'),
           ],
@@ -189,6 +197,7 @@ class _SettingsPageState extends State<SettingsPage> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -210,7 +219,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 widget.onDatabaseRestored();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -226,12 +235,13 @@ class _SettingsPageState extends State<SettingsPage> {
         await showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
+            scrollable: true,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
             title: const Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.red, size: 28),
+                Icon(Icons.error_outline, color: AppColors.errorText, size: 28),
                 SizedBox(width: 8),
                 Text('فشل استيراد البيانات'),
               ],
@@ -259,12 +269,13 @@ class _SettingsPageState extends State<SettingsPage> {
         await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
+            scrollable: true,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
             title: const Row(
               children: [
-                Icon(Icons.delete_forever, color: Colors.red),
+                Icon(Icons.delete_forever, color: AppColors.errorText),
                 SizedBox(width: 8),
                 Expanded(child: Text('مسح جميع البيانات المحلية')),
               ],
@@ -281,7 +292,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: AppColors.errorText,
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('مسح جميع البيانات'),
@@ -300,6 +311,7 @@ class _SettingsPageState extends State<SettingsPage> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -320,7 +332,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('موافق'),
@@ -334,7 +346,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تعذر مسح البيانات المحلية: $error'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorText,
           ),
         );
       }
@@ -346,7 +358,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -375,7 +387,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: const Icon(
                           Icons.settings_backup_restore_outlined,
                           size: 48,
-                          color: Color(0xFF0F766E),
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -386,7 +398,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       style: TextStyle(
                         fontSize: 20.sp(context),
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1E293B),
+                        color: AppColors.heading,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -395,7 +407,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13.sp(context),
-                        color: Colors.grey,
+                        color: AppColors.secondaryText,
                         height: 1.5,
                       ),
                     ),
@@ -408,7 +420,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           padding: EdgeInsets.all(16.0),
                           child: CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF0F766E),
+                              AppColors.primary,
                             ),
                           ),
                         ),
@@ -423,7 +435,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F766E),
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
@@ -445,9 +457,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0D9488),
+                          foregroundColor: AppColors.primary,
                           side: const BorderSide(
-                            color: Color(0xFF0D9488),
+                            color: AppColors.primary,
                             width: 1.5,
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 18),
@@ -465,8 +477,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red, width: 1.5),
+                          foregroundColor: AppColors.errorText,
+                          side: const BorderSide(
+                            color: AppColors.errorText,
+                            width: 1.5,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -479,7 +494,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
+                        color: AppColors.warningSurface,
                         border: Border.all(color: Colors.amber.shade200),
                         borderRadius: BorderRadius.circular(10),
                       ),

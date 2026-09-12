@@ -270,8 +270,11 @@ void main() {
     );
     expect(await helper.queryPaymentsForBooking(bookingId), hasLength(1));
 
-    await helper.deleteBooking(bookingId);
-    expect(await helper.queryPaymentsForBooking(bookingId), isEmpty);
+    await expectLater(
+      helper.deleteBooking(bookingId),
+      throwsA(isA<StateError>()),
+    );
+    expect(await helper.queryPaymentsForBooking(bookingId), hasLength(1));
   });
 
   test('يسجل أحداث تدقيق للحجز والدفعة والتأمين', () async {
@@ -371,15 +374,13 @@ void main() {
     },
   );
 
-  test(
-    'يرقي قاعدة الإصدار السابق ويحافظ على الحجوزات اليتيمة كسجلات قابلة للإدارة',
-    () async {
-      final databasePath = await helper.getDatabasePath();
-      final legacyDatabase = await openDatabase(
-        databasePath,
-        version: 3,
-        onCreate: (db, version) async {
-          await db.execute('''
+  test('يرقي قاعدة الإصدار السابق ويحافظ على الحجوزات اليتيمة كسجلات قابلة للإدارة', () async {
+    final databasePath = await helper.getDatabasePath();
+    final legacyDatabase = await openDatabase(
+      databasePath,
+      version: 3,
+      onCreate: (db, version) async {
+        await db.execute('''
           CREATE TABLE renters (
             phone TEXT PRIMARY KEY NOT NULL,
             full_name TEXT NOT NULL,
@@ -388,7 +389,7 @@ void main() {
             rental_count INTEGER DEFAULT 0
           )
         ''');
-          await db.execute('''
+        await db.execute('''
           CREATE TABLE bookings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             phone TEXT NOT NULL,
@@ -401,7 +402,7 @@ void main() {
             FOREIGN KEY (phone) REFERENCES renters(phone)
           )
         ''');
-          await db.execute('''
+        await db.execute('''
           CREATE TABLE expenses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             description TEXT,
@@ -410,35 +411,34 @@ void main() {
             category TEXT DEFAULT 'مصاريف تشغيلية أخرى'
           )
         ''');
-        },
-      );
-      await legacyDatabase.insert('bookings', {
-        'phone': '0599999999',
-        'start_date': '2026-10-10',
-        'end_date': '2026-10-11',
-        'total_price': 1200.0,
-        'security_deposit': 300.0,
-        'status': 'confirmed',
-        'deposit_status': 'pending',
-      });
-      await legacyDatabase.close();
+      },
+    );
+    await legacyDatabase.insert('bookings', {
+      'phone': '0599999999',
+      'start_date': '2026-10-10',
+      'end_date': '2026-10-11',
+      'total_price': 1200.0,
+      'security_deposit': 300.0,
+      'status': 'confirmed',
+      'deposit_status': 'pending',
+    });
+    await legacyDatabase.close();
 
-      final migratedRenters = await helper.queryAllRenters();
-      expect(migratedRenters, hasLength(1));
-      expect(migratedRenters.single['phone'], '0599999999');
-      expect(migratedRenters.single['full_name'], 'مستأجر مستورد غير معروف');
+    final migratedRenters = await helper.queryAllRenters();
+    expect(migratedRenters, hasLength(1));
+    expect(migratedRenters.single['phone'], '0599999999');
+    expect(migratedRenters.single['full_name'], 'مستأجر مستورد غير معروف');
 
-      await helper.updateRenter(
-        renter('0588888888', 'مستأجر مستورد غير معروف'),
-        oldPhone: '0599999999',
-      );
-      final migratedBookings = await helper.queryAllBookings();
-      expect(migratedBookings.single['phone'], '0588888888');
-      expect(migratedBookings.single['is_demo'], 0);
-      await expectLater(
-        helper.deleteRenter('0588888888'),
-        throwsA(isA<StateError>()),
-      );
-    },
-  );
+    await helper.updateRenter(
+      renter('0588888888', 'مستأجر مستورد غير معروف'),
+      oldPhone: '0599999999',
+    );
+    final migratedBookings = await helper.queryAllBookings();
+    expect(migratedBookings.single['phone'], '0588888888');
+    expect(migratedBookings.single['is_demo'], 0);
+    await expectLater(
+      helper.deleteRenter('0588888888'),
+      throwsA(isA<StateError>()),
+    );
+  });
 }

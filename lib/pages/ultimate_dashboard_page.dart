@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
 import '../utils/responsive.dart';
@@ -37,6 +39,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   int _rentersCount = 0;
   int _activeBookingsCount = 0;
   bool _hasRecordedData = false;
+  bool _isLoading = true;
+  String? _loadError;
 
   List<DashboardActivity> _recentActivities = [];
   List<String> _sortedMonths = [];
@@ -50,6 +54,23 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      await _readDashboardData();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loadError = 'تعذر تحميل بيانات لوحة التحكم.');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _readDashboardData() async {
     final bookings = await dbHelper.queryAllBookings();
     final expenses = await dbHelper.queryAllExpenses();
     final payments = await dbHelper.queryAllPayments();
@@ -140,6 +161,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text(
           'إضافة مستأجر سريع',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -162,6 +184,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               TextFormField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(10),
@@ -212,13 +235,13 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('خطأ: رقم الهاتف مسجل مسبقاً لمستأجر آخر!'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorText,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
             child: const Text('إضافة'),
@@ -232,20 +255,21 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.red.shade50,
+        scrollable: true,
+        backgroundColor: AppColors.errorSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
+        title: const Row(
           children: [
             Icon(
               Icons.warning_amber_rounded,
-              color: Colors.red.shade700,
+              color: AppColors.errorText,
               size: 28,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               'تنبيه هام!',
               style: TextStyle(
-                color: Colors.red.shade900,
+                color: AppColors.errorText,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -254,7 +278,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
         content: Text(
           'تنبيه: هذا العميل لديه ملاحظات سابقة:\n\n$notes',
           style: TextStyle(
-            color: Colors.red.shade900,
+            color: AppColors.errorText,
             fontSize: 16.sp(context),
             fontWeight: FontWeight.w600,
           ),
@@ -263,7 +287,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: AppColors.errorText,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -300,6 +324,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
+          scrollable: true,
           title: const Text(
             'تسجيل حجز سريع',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -347,19 +372,19 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      border: Border.all(color: Colors.red.shade200),
+                      color: AppColors.errorSurface,
+                      border: Border.all(color: AppColors.errorText),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.warning, color: Colors.red.shade700),
+                        const Icon(Icons.warning, color: AppColors.errorText),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'تنبيه: هذا العميل لديه ملاحظات سابقة: $selectedRenterNotes',
                             style: TextStyle(
-                              color: Colors.red.shade900,
+                              color: AppColors.errorText,
                               fontWeight: FontWeight.bold,
                               fontSize: 12.sp(context),
                             ),
@@ -465,7 +490,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                       content: Text(
                         'عذراً، الاستراحة محجوزة بالفعل في هذه الفترة!',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                   return;
@@ -491,7 +516,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 } on ArgumentError catch (error) {
@@ -501,13 +526,13 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                       content: Text(
                         error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorText,
                     ),
                   );
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('حفظ الحجز'),
@@ -525,6 +550,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text(
           'تسجيل مصروف سريع',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -557,7 +583,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('الرجاء إدخال وصف للمصروف'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorText,
                   ),
                 );
                 return;
@@ -566,7 +592,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('الرجاء إدخال مبلغ المصروف'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorText,
                   ),
                 );
                 return;
@@ -579,7 +605,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                     content: Text(
                       'الرجاء إدخال أرقام صالحة فقط في حقل المبلغ!',
                     ),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorText,
                   ),
                 );
                 return;
@@ -589,7 +615,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('المبلغ يجب أن يكون أكبر من الصفر'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorText,
                   ),
                 );
                 return;
@@ -608,7 +634,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
             child: const Text('حفظ'),
@@ -620,71 +646,144 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_loadError!),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _loadDashboardData,
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final netProfit = _totalRevenue - _totalExpenses;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // أزرار العمليات السريعة (تلتف تلقائياً لتفادي الطفح)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _showQuickAddBooking,
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('تسجيل حجز سريع'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F766E),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+              // أزرار العمليات السريعة: صف مرن على الشاشات الواسعة،
+              // وعمود بعرض كامل على الهواتف أو عند تكبير النص.
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isLargeText =
+                      MediaQuery.textScalerOf(context).scale(14) >= 20;
+                  final stackActions =
+                      constraints.maxWidth < 520 || isLargeText;
+
+                  Widget actionContent(IconData icon, String label) {
+                    if (stackActions) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 20),
+                          const SizedBox(height: 4),
+                          Text(label, textAlign: TextAlign.center),
+                        ],
+                      );
+                    }
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 18),
+                        const SizedBox(width: 8),
+                        Text(label),
+                      ],
+                    );
+                  }
+
+                  final actions = <Widget>[
+                    ElevatedButton(
+                      onPressed: _showQuickAddBooking,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                      child: actionContent(Icons.add, 'تسجيل حجز سريع'),
+                    ),
+                    OutlinedButton(
+                      onPressed: _showQuickAddExpense,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryPressed,
+                        side: const BorderSide(color: AppColors.fieldBorder),
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: actionContent(Icons.money, 'تسجيل مصروف سريع'),
+                    ),
+                    OutlinedButton(
+                      onPressed: _showQuickAddRenter,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryPressed,
+                        side: const BorderSide(color: AppColors.fieldBorder),
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: actionContent(
+                        Icons.person_add_outlined,
+                        'عميل جديد',
                       ),
                     ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _showQuickAddExpense,
-                    icon: const Icon(Icons.money, size: 16),
-                    label: const Text('تسجيل مصروف سريع'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0F766E),
-                      side: const BorderSide(color: Color(0xFF0F766E)),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _showQuickAddRenter,
-                    icon: const Icon(Icons.person_add_outlined, size: 16),
-                    label: const Text('عميل جديد'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0D9488),
-                      side: const BorderSide(color: Color(0xFF0D9488)),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ],
+                  ];
+
+                  if (stackActions) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (
+                          var index = 0;
+                          index < actions.length;
+                          index++
+                        ) ...[
+                          if (index > 0) const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: actions[index],
+                          ),
+                        ],
+                      ],
+                    );
+                  }
+
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: actions,
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
@@ -718,8 +817,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         value: '${netProfit.toStringAsFixed(0)} ر.س',
                         icon: Icons.account_balance_wallet,
                         color: netProfit >= 0
-                            ? const Color(0xFF0D9488)
-                            : const Color(0xFFDC2626),
+                            ? AppColors.primary
+                            : AppColors.errorText,
                       ),
                     ),
                   ],
@@ -741,7 +840,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         title: 'الحجوزات النشطة حالياً',
                         value: '$_activeBookingsCount حجز نشط',
                         icon: Icons.timer,
-                        color: const Color(0xFFD97706),
+                        color: AppColors.warningText,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -750,7 +849,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                         title: 'العملاء المسجلين',
                         value: '$_rentersCount مستأجر',
                         icon: Icons.people,
-                        color: Colors.blueGrey,
+                        color: AppColors.secondaryText,
                       ),
                     ),
                   ],
@@ -780,7 +879,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15.sp(context),
-                                  color: const Color(0xFF1E293B),
+                                  color: AppColors.heading,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -862,7 +961,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15.sp(context),
-                                  color: const Color(0xFF1E293B),
+                                  color: AppColors.heading,
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -894,7 +993,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
             const Icon(
               Icons.space_dashboard_outlined,
               size: 52,
-              color: Color(0xFF0F766E),
+              color: AppColors.primary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -903,7 +1002,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18.sp(context),
-                color: const Color(0xFF1E293B),
+                color: AppColors.heading,
               ),
             ),
             const SizedBox(height: 8),
@@ -911,7 +1010,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               'ابدأ بإضافة مستأجر أو تسجيل حجز أو مصروف. ستظهر التقارير والأرقام تلقائيًا بعد إدخال بياناتك الفعلية.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.secondaryText,
                 height: 1.5,
                 fontSize: 13.sp(context),
               ),
@@ -950,7 +1049,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: AppColors.secondaryText,
                       fontSize: 11.sp(context),
                       fontWeight: FontWeight.bold,
                     ),
@@ -961,7 +1060,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                     style: TextStyle(
                       fontSize: 15.sp(context),
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
+                      color: AppColors.text,
                     ),
                   ),
                 ],
@@ -987,7 +1086,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
           text,
           style: TextStyle(
             fontSize: 12.sp(context),
-            color: Colors.grey,
+            color: AppColors.secondaryText,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1038,7 +1137,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
             style: TextStyle(
               fontSize: 10.sp(context),
               fontWeight: FontWeight.bold,
-              color: Colors.grey,
+              color: AppColors.secondaryText,
             ),
           ),
         );
@@ -1055,7 +1154,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
         child: Center(
           child: Text(
             'لا توجد أنشطة مسجلة بعد',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.secondaryText),
           ),
         ),
       );
@@ -1066,7 +1165,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _recentActivities.length,
       separatorBuilder: (context, index) =>
-          const Divider(height: 12, color: Color(0xFFF1F5F9)),
+          const Divider(height: 12, color: AppColors.background),
       itemBuilder: (context, index) {
         final act = _recentActivities[index];
         final isBooking = act.type == 'booking';
@@ -1098,7 +1197,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13.sp(context),
-                      color: const Color(0xFF1E293B),
+                      color: AppColors.heading,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1106,7 +1205,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                     act.date,
                     style: TextStyle(
                       fontSize: 10.sp(context),
-                      color: Colors.grey,
+                      color: AppColors.secondaryText,
                     ),
                   ),
                 ],

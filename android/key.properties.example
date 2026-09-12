@@ -1,0 +1,7 @@
+# Copy to key.properties (ignored by git). Never commit real keys/passwords.
+# Use an application ID you own. Keep the original ID/key when upgrading an app.
+applicationId=sa.norah.resthouse
+storeFile=/absolute/path/to/resthouse-release.jks
+storePassword=REPLACE_LOCALLY
+keyAlias=resthouse
+keyPassword=REPLACE_LOCALLY

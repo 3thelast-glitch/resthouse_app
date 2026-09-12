@@ -1,6 +1,7 @@
 // منطق موحد للتقارير: الحجوزات المؤكدة فقط، والمقبوضات الفعلية، والتأمينات غير المسوّاة.
 // لا يعتمد على واجهة Flutter، لذلك يمكن اختباره وإعادة استخدامه في اللوحة والتقارير.
 import '../database_helper.dart';
+import '../utils/money.dart';
 
 class FinancialSummary {
   const FinancialSummary({
@@ -42,31 +43,32 @@ class FinancialSummaryService {
         .whereType<int>()
         .toSet();
     final validPayments = payments
-        .where((payment) => confirmedBookingIds.contains(payment['booking_id']))
+        .where(
+          (payment) =>
+              confirmedBookingIds.contains(payment['booking_id']) &&
+              (payment['status'] ?? 'confirmed') == 'confirmed',
+        )
         .toList();
 
-    final revenue = _sum(confirmedBookings, 'total_price');
-    final received = _sum(validPayments, 'amount');
-    final expenseTotal = _sum(expenses, 'amount');
-    final pendingDeposits = confirmedBookings
-        .where(
-          (booking) =>
-              booking['deposit_status'] == DatabaseHelper.depositPending &&
-              ((booking['security_deposit'] as num?)?.toDouble() ?? 0) > 0,
-        )
-        .fold<double>(
-          0,
-          (sum, booking) =>
-              sum + ((booking['security_deposit'] as num?)?.toDouble() ?? 0),
-        );
+    final revenue = Money.sumMinor(confirmedBookings, 'total_price');
+    final received = Money.sumMinor(validPayments, 'amount');
+    final expenseTotal = Money.sumMinor(expenses, 'amount');
+    final pendingDeposits = Money.sumMinor(
+      confirmedBookings.where(
+        (booking) =>
+            booking['deposit_status'] == DatabaseHelper.depositPending &&
+            ((booking['security_deposit'] as num?)?.toDouble() ?? 0) > 0,
+      ),
+      'security_deposit',
+    );
 
     return FinancialSummary(
-      bookingRevenue: revenue,
-      receivedPayments: received,
-      outstandingBalance: revenue - received,
-      pendingDeposits: pendingDeposits,
-      expenses: expenseTotal,
-      netCash: received - expenseTotal,
+      bookingRevenue: Money.fromMinor(revenue),
+      receivedPayments: Money.fromMinor(received),
+      outstandingBalance: Money.fromMinor(revenue - received),
+      pendingDeposits: Money.fromMinor(pendingDeposits),
+      expenses: Money.fromMinor(expenseTotal),
+      netCash: Money.fromMinor(received - expenseTotal),
       confirmedBookings: confirmedBookings.length,
       monthlyRevenue: _monthlyTotals(
         confirmedBookings,
@@ -77,26 +79,19 @@ class FinancialSummaryService {
     );
   }
 
-  static double _sum(Iterable<Map<String, dynamic>> rows, String field) {
-    return rows.fold<double>(
-      0,
-      (sum, row) => sum + ((row[field] as num?)?.toDouble() ?? 0),
-    );
-  }
-
   static Map<String, double> _monthlyTotals(
     Iterable<Map<String, dynamic>> rows,
     String dateField,
     String amountField,
   ) {
-    final totals = <String, double>{};
+    final totals = <String, int>{};
     for (final row in rows) {
       final date = row[dateField]?.toString() ?? '';
       if (date.length < 7) continue;
       final month = date.substring(0, 7);
       totals[month] =
-          (totals[month] ?? 0) + ((row[amountField] as num?)?.toDouble() ?? 0);
+          (totals[month] ?? 0) + Money.toMinor((row[amountField] as num?) ?? 0);
     }
-    return totals;
+    return totals.map((key, value) => MapEntry(key, Money.fromMinor(value)));
   }
 }

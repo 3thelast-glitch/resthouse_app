@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../utils/responsive.dart';
-import 'ultimate_dashboard_page.dart';
+
+import '../theme/app_theme.dart';
 import 'booking_manager_page.dart';
 import 'finance_page.dart';
 import 'settings_page.dart';
+import 'ultimate_dashboard_page.dart';
 
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
@@ -17,9 +18,7 @@ class _MainShellPageState extends State<MainShellPage> {
   int _dbSessionId = 0;
 
   void _handleDatabaseRestored() {
-    setState(() {
-      _dbSessionId++;
-    });
+    setState(() => _dbSessionId++);
   }
 
   List<Widget> get _pages => [
@@ -32,101 +31,110 @@ class _MainShellPageState extends State<MainShellPage> {
     ),
   ];
 
-  final List<String> _titles = [
+  static const _titles = [
     'لوحة التحكم الإحصائية',
     'إدارة الحجوزات والتقويم',
     'الملخص المالي والمصروفات',
     'الإعدادات والنسخ الاحتياطي',
   ];
 
+  static const _compactTitles = [
+    'لوحة التحكم',
+    'الحجوزات',
+    'المالية',
+    'الإعدادات',
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 750;
+    final width = MediaQuery.sizeOf(context).width;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final isWide = width >= 800;
+    final isCompact = width < 600;
+    final isLargeText = textScaler.scale(14) >= 20;
+    final showPropertyName = !isCompact && !isLargeText;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        toolbarHeight: isLargeText ? 88 : 68,
+        titleSpacing: 16,
         title: Text(
-          _titles[_selectedIndex],
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontSize: 20.sp(context),
-          ),
+          isCompact ? _compactTitles[_selectedIndex] : _titles[_selectedIndex],
+          maxLines: isLargeText ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        centerTitle: false,
-        backgroundColor: const Color(0xFF0F766E), // Teal 700
-        elevation: 2,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.holiday_village_outlined, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(
-                  'استراحة نوره',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w600,
+        actions: showPropertyName
+            ? [
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.holiday_village_outlined,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'استراحة نوره',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
+              ]
+            : null,
       ),
       body: isWide
           ? Row(
               children: [
-                _buildSidebar(),
-                const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                _buildSidebar(isLargeText: isLargeText),
+                const VerticalDivider(width: 1),
                 Expanded(
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
+                    duration: const Duration(milliseconds: 200),
                     child: _pages[_selectedIndex],
                   ),
                 ),
               ],
             )
           : AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
+              duration: const Duration(milliseconds: 200),
               child: _pages[_selectedIndex],
             ),
       bottomNavigationBar: isWide
           ? null
-          : BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
+          : NavigationBar(
+              height: isLargeText ? 84 : 72,
+              selectedIndex: _selectedIndex,
+              labelBehavior: isLargeText
+                  ? NavigationDestinationLabelBehavior.onlyShowSelected
+                  : NavigationDestinationLabelBehavior.alwaysShow,
+              onDestinationSelected: (index) {
+                setState(() => _selectedIndex = index);
               },
-              selectedItemColor: const Color(0xFF0D9488),
-              unselectedItemColor: Colors.grey.shade500,
-              backgroundColor: Colors.white,
-              elevation: 8,
-              type: BottomNavigationBarType.fixed,
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-              items: const [
-                BottomNavigationBarItem(
+              destinations: const [
+                NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined),
-                  activeIcon: Icon(Icons.dashboard),
+                  selectedIcon: Icon(Icons.dashboard),
                   label: 'لوحة التحكم',
                 ),
-                BottomNavigationBarItem(
+                NavigationDestination(
                   icon: Icon(Icons.calendar_month_outlined),
-                  activeIcon: Icon(Icons.calendar_month),
+                  selectedIcon: Icon(Icons.calendar_month),
                   label: 'الحجوزات',
                 ),
-                BottomNavigationBarItem(
+                NavigationDestination(
                   icon: Icon(Icons.account_balance_wallet_outlined),
-                  activeIcon: Icon(Icons.account_balance_wallet),
+                  selectedIcon: Icon(Icons.account_balance_wallet),
                   label: 'المالية',
                 ),
-                BottomNavigationBarItem(
+                NavigationDestination(
                   icon: Icon(Icons.settings_outlined),
-                  activeIcon: Icon(Icons.settings),
+                  selectedIcon: Icon(Icons.settings),
                   label: 'الإعدادات',
                 ),
               ],
@@ -134,43 +142,37 @@ class _MainShellPageState extends State<MainShellPage> {
     );
   }
 
-  Widget _buildSidebar() {
+  Widget _buildSidebar({required bool isLargeText}) {
     return Container(
-      width: 250,
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      width: isLargeText ? 290 : 260,
+      color: AppColors.surface,
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 24, 12, 16),
+      child: ListView(
+        key: const ValueKey('mainSidebar'),
+        primary: false,
+        padding: EdgeInsets.zero,
         children: [
-          // Header section inside sidebar
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0F766E), Color(0xFF0D9488)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(AppRadius.large),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'لوحة الإدارة',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp(context),
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(color: Colors.white),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
                   'التحكم والمتابعة الفورية',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11.sp(context),
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.white),
                 ),
               ],
             ),
@@ -203,22 +205,26 @@ class _MainShellPageState extends State<MainShellPage> {
             activeIcon: Icons.settings,
             label: 'إعدادات النظام والنسخ',
           ),
-          const Spacer(),
-          // Info Footer
+          const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(AppRadius.medium),
+              border: Border.all(color: AppColors.divider),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, size: 16, color: Color(0xFF0D9488)),
+                const Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: AppColors.primaryPressed,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'الإصدار 1.0.0 (تجريبي)',
-                    style: TextStyle(fontSize: 10.sp(context), color: Colors.grey),
+                    style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ),
               ],
@@ -240,34 +246,40 @@ class _MainShellPageState extends State<MainShellPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() => _selectedIndex = index),
+        borderRadius: BorderRadius.circular(AppRadius.medium),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          duration: const Duration(milliseconds: 160),
+          constraints: const BoxConstraints(minHeight: 52),
+          padding: const EdgeInsetsDirectional.symmetric(
+            vertical: 12,
+            horizontal: 16,
+          ),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFECFDF5) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            color: isSelected ? AppColors.selectedSurface : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.medium),
+            border: Border.all(
+              color: isSelected ? AppColors.primaryPressed : Colors.transparent,
+            ),
           ),
           child: Row(
             children: [
               Icon(
                 isSelected ? activeIcon : icon,
-                color: isSelected ? const Color(0xFF0D9488) : Colors.grey.shade600,
+                color: isSelected
+                    ? AppColors.primaryPressed
+                    : AppColors.secondaryText,
                 size: 22,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(
-                    color: isSelected ? const Color(0xFF0D9488) : Colors.grey.shade800,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 14.sp(context),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: isSelected
+                        ? AppColors.primaryPressed
+                        : AppColors.text,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
               ),

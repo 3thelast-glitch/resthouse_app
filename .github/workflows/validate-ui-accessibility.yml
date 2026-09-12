@@ -1,0 +1,38 @@
+name: Validate Arabic UI accessibility
+
+on:
+  push:
+    branches: [feat/arabic-ui-clarity]
+    paths:
+      - 'test/ui_accessibility_test.dart'
+      - 'lib/**'
+      - '.github/workflows/validate-ui-accessibility.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Static analysis
+        run: flutter analyze --no-fatal-infos
+      - name: Full tests including 200% UI coverage
+        run: flutter test
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android release build check
+        env:
+          ORG_GRADLE_PROJECT_resthouseUnsignedRelease: 'true'
+          ORG_GRADLE_PROJECT_resthouseApplicationId: 'sa.norah.resthouse'
+        run: flutter build apk --release
