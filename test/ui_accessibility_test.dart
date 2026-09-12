@@ -1,0 +1,109 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:resthouse_app/database_helper.dart';
+import 'package:resthouse_app/main.dart';
+
+Future<void> _settleDatabaseUi(WidgetTester tester) async {
+  await tester.pump();
+  await tester.runAsync(() async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+  });
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+void _expectNoLayoutException(WidgetTester tester, String reason) {
+  final exception = tester.takeException();
+  expect(exception, isNull, reason: reason);
+  while (tester.takeException() != null) {}
+}
+
+void main() {
+  late Directory tempDirectory;
+  final db = DatabaseHelper.instance;
+
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
+  setUp(() async {
+    tempDirectory = await Directory.systemTemp.createTemp('resthouse_a11y_');
+    await db.configureDatabasePathForTesting(
+      p.join(tempDirectory.path, 'accessibility.db'),
+    );
+  });
+
+  tearDown(() async {
+    await db.clearTestingDatabase();
+    if (tempDirectory.existsSync()) {
+      tempDirectory.deleteSync(recursive: true);
+    }
+  });
+
+  testWidgets('200% system text scaling stays usable on target widths', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    const sizes = <Size>[
+      Size(360, 800),
+      Size(390, 844),
+      Size(430, 900),
+      Size(800, 600),
+      Size(800, 400),
+    ];
+
+    for (final size in sizes) {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(const ResthouseApp());
+      await _settleDatabaseUi(tester);
+      _expectNoLayoutException(
+        tester,
+        'Unexpected layout exception at ${size.width}x${size.height} with 200% text scaling.',
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('booking form remains reachable and scrollable at 200%', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.binding.setSurfaceSize(const Size(390, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const ResthouseApp());
+    await _settleDatabaseUi(tester);
+
+    await tester.tap(find.text('الحجوزات').last, warnIfMissed: false);
+    await _settleDatabaseUi(tester);
+
+    final addBooking = find.text('تسجيل حجز جديد');
+    expect(addBooking, findsOneWidget);
+    await tester.ensureVisible(addBooking);
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.tap(addBooking, warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('إضافة حجز جديد'), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+    _expectNoLayoutException(
+      tester,
+      'Booking dialog overflowed on a short phone viewport with 200% text scaling.',
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+}
