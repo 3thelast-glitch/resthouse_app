@@ -85,6 +85,7 @@ Future<void> _openShellSection(
   required String sectionName,
   required Size size,
 }) async {
+  debugPrint('[a11y] ${size.width}x${size.height}: opening $sectionName');
   final navigationBar = find.byType(NavigationBar);
   final sidebar = find.byKey(const ValueKey('mainSidebar'));
 
@@ -120,6 +121,7 @@ Future<void> _openShellSection(
     tester,
     '$sectionName overflowed at ${size.width}x${size.height} with 200% text scaling.',
   );
+  debugPrint('[a11y] ${size.width}x${size.height}: $sectionName ready');
 }
 
 Widget _bookingTestApp() {
@@ -165,7 +167,9 @@ void main() {
     (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = 2.0;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      debugPrint('[a11y] seeding data');
       await _seedAccessibilityData(db);
+      debugPrint('[a11y] data seeded');
 
       const sizes = <Size>[
         Size(360, 800),
@@ -176,6 +180,7 @@ void main() {
       ];
 
       for (final size in sizes) {
+        debugPrint('[a11y] ${size.width}x${size.height}: mounting app');
         await tester.binding.setSurfaceSize(size);
         await tester.pumpWidget(const ResthouseApp());
         await _settleDatabaseUi(tester);
@@ -183,6 +188,7 @@ void main() {
           tester,
           'Dashboard overflowed at ${size.width}x${size.height} with 200% text scaling.',
         );
+        debugPrint('[a11y] ${size.width}x${size.height}: dashboard ready');
 
         await _openShellSection(
           tester,
@@ -200,6 +206,7 @@ void main() {
           tester,
           'Calendar overflowed at ${size.width}x${size.height} with 200% text scaling.',
         );
+        debugPrint('[a11y] ${size.width}x${size.height}: calendar ready');
 
         await _openShellSection(
           tester,
@@ -217,8 +224,10 @@ void main() {
           size: size,
         );
 
+        debugPrint('[a11y] ${size.width}x${size.height}: unmounting app');
         await tester.pumpWidget(const SizedBox.shrink());
         await _settleDatabaseUi(tester);
+        debugPrint('[a11y] ${size.width}x${size.height}: complete');
       }
 
       await tester.binding.setSurfaceSize(null);
