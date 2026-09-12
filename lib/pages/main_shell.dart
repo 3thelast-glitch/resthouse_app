@@ -49,7 +49,7 @@ class _MainShellPageState extends State<MainShellPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final textScaler = MediaQuery.textScalerOf(context);
-    final isWide = width >= 900;
+    final isWide = width >= 800;
     final isCompact = width < 600;
     final isLargeText = textScaler.scale(14) >= 20;
 
