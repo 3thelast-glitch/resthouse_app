@@ -9,6 +9,81 @@ PAGE_FILES = [
     ROOT / 'lib/pages/settings_page.dart',
 ]
 
+COLOR_MAP = {
+    'F8FAFC': 'AppColors.background',
+    'FFFFFF': 'AppColors.surface',
+    '111827': 'AppColors.text',
+    '0F172A': 'AppColors.heading',
+    '1E293B': 'AppColors.heading',
+    '334155': 'AppColors.secondaryText',
+    '475569': 'AppColors.secondaryText',
+    '0F766E': 'AppColors.primary',
+    '0D9488': 'AppColors.primary',
+    '115E59': 'AppColors.primaryPressed',
+    'CCFBF1': 'AppColors.selectedSurface',
+    'D1D9E0': 'AppColors.divider',
+    '64748B': 'AppColors.fieldBorder',
+    '166534': 'AppColors.successText',
+    'DCFCE7': 'AppColors.successSurface',
+    '059669': 'AppColors.successText',
+    '92400E': 'AppColors.warningText',
+    'FEF3C7': 'AppColors.warningSurface',
+    'FFF7ED': 'AppColors.warningSurface',
+    'D97706': 'AppColors.warningText',
+    'FBBF24': 'AppColors.warningText',
+    'B91C1C': 'AppColors.errorText',
+    'FEE2E2': 'AppColors.errorSurface',
+    'DC2626': 'AppColors.errorText',
+    '991B1B': 'AppColors.primaryPressed',
+    'E2E8F0': 'AppColors.neutralSurface',
+    'F0FDFA': 'AppColors.selectedSurface',
+    'F1F5F9': 'AppColors.background',
+}
+
+SHADE_REPLACEMENTS = {
+    'Colors.grey.shade50': 'AppColors.background',
+    'Colors.grey.shade100': 'AppColors.background',
+    'Colors.grey.shade200': 'AppColors.divider',
+    'Colors.grey.shade300': 'AppColors.divider',
+    'Colors.grey.shade400': 'AppColors.fieldBorder',
+    'Colors.grey.shade500': 'AppColors.secondaryText',
+    'Colors.grey.shade600': 'AppColors.secondaryText',
+    'Colors.grey.shade700': 'AppColors.secondaryText',
+    'Colors.grey.shade800': 'AppColors.text',
+    'Colors.grey.shade900': 'AppColors.heading',
+    'Colors.red.shade50': 'AppColors.errorSurface',
+    'Colors.red.shade100': 'AppColors.errorSurface',
+    'Colors.red.shade200': 'AppColors.errorText',
+    'Colors.red.shade600': 'AppColors.errorText',
+    'Colors.red.shade700': 'AppColors.errorText',
+    'Colors.red.shade800': 'AppColors.errorText',
+    'Colors.red.shade900': 'AppColors.errorText',
+    'Colors.green.shade50': 'AppColors.successSurface',
+    'Colors.green.shade100': 'AppColors.successSurface',
+    'Colors.green.shade600': 'AppColors.successText',
+    'Colors.green.shade700': 'AppColors.successText',
+    'Colors.green.shade800': 'AppColors.successText',
+    'Colors.orange.shade50': 'AppColors.warningSurface',
+    'Colors.orange.shade100': 'AppColors.warningSurface',
+    'Colors.orange.shade600': 'AppColors.warningText',
+    'Colors.orange.shade700': 'AppColors.warningText',
+    'Colors.amber.shade50': 'AppColors.warningSurface',
+    'Colors.amber.shade100': 'AppColors.warningSurface',
+    'Colors.amber.shade600': 'AppColors.warningText',
+    'Colors.amber.shade700': 'AppColors.warningText',
+}
+
+EXACT_COLOR_TOKENS = {
+    'Colors.grey': 'AppColors.secondaryText',
+    'Colors.red': 'AppColors.errorText',
+    'Colors.green': 'AppColors.successText',
+    'Colors.orange': 'AppColors.warningText',
+    'Colors.amber': 'AppColors.warningText',
+    'Colors.blue': 'AppColors.primaryPressed',
+    'Colors.black54': 'AppColors.secondaryText',
+    'Colors.white70': 'Colors.white',
+}
+
 
 def add_theme_import(text: str) -> str:
     line = "import '../theme/app_theme.dart';"
@@ -20,99 +95,52 @@ def add_theme_import(text: str) -> str:
     return text.replace(material, material + '\n\n' + line, 1)
 
 
-COMMON_REPLACEMENTS = {
-    'const Color(0xFFF8FAFC)': 'AppColors.background',
-    'const Color(0xFFFFFFFF)': 'AppColors.surface',
-    'const Color(0xFF111827)': 'AppColors.text',
-    'const Color(0xFF0F172A)': 'AppColors.heading',
-    'const Color(0xFF1E293B)': 'AppColors.heading',
-    'const Color(0xFF334155)': 'AppColors.secondaryText',
-    'const Color(0xFF475569)': 'AppColors.secondaryText',
-    'const Color(0xFF0F766E)': 'AppColors.primary',
-    'const Color(0xFF0D9488)': 'AppColors.primary',
-    'const Color(0xFF115E59)': 'AppColors.primaryPressed',
-    'const Color(0xFFCCFBF1)': 'AppColors.selectedSurface',
-    'const Color(0xFFD1D9E0)': 'AppColors.divider',
-    'const Color(0xFF64748B)': 'AppColors.fieldBorder',
-    'const Color(0xFF166534)': 'AppColors.successText',
-    'const Color(0xFFDCFCE7)': 'AppColors.successSurface',
-    'const Color(0xFF059669)': 'AppColors.successText',
-    'const Color(0xFF92400E)': 'AppColors.warningText',
-    'const Color(0xFFFEF3C7)': 'AppColors.warningSurface',
-    'const Color(0xFFFFF7ED)': 'AppColors.warningSurface',
-    'const Color(0xFFD97706)': 'AppColors.warningText',
-    'const Color(0xFFFBBF24)': 'AppColors.warningText',
-    'const Color(0xFFB91C1C)': 'AppColors.errorText',
-    'const Color(0xFFFEE2E2)': 'AppColors.errorSurface',
-    'const Color(0xFFDC2626)': 'AppColors.errorText',
-    # Red was also used as a decorative Hijri accent; use the calm brand dark teal instead.
-    'const Color(0xFF991B1B)': 'AppColors.primaryPressed',
-    'const Color(0xFFE2E8F0)': 'AppColors.neutralSurface',
-    'const Color(0xFFF0FDFA)': 'AppColors.selectedSurface',
-    'const Color(0xFFF1F5F9)': 'AppColors.background',
-    'Colors.grey.shade50': 'AppColors.background',
-    'Colors.grey.shade100': 'AppColors.background',
-    'Colors.grey.shade200': 'AppColors.divider',
-    'Colors.grey.shade300': 'AppColors.divider',
-    'Colors.grey.shade400': 'AppColors.fieldBorder',
-    'Colors.grey.shade500': 'AppColors.secondaryText',
-    'Colors.grey.shade600': 'AppColors.secondaryText',
-    'Colors.grey.shade700': 'AppColors.secondaryText',
-    'Colors.grey.shade800': 'AppColors.text',
-    'Colors.grey': 'AppColors.secondaryText',
-    'Colors.red.shade50': 'AppColors.errorSurface',
-    'Colors.red.shade100': 'AppColors.errorSurface',
-    'Colors.red.shade200': 'AppColors.errorText',
-    'Colors.red.shade700': 'AppColors.errorText',
-    'Colors.red.shade900': 'AppColors.errorText',
-    'Colors.red': 'AppColors.errorText',
-    'Colors.green.shade50': 'AppColors.successSurface',
-    'Colors.green.shade700': 'AppColors.successText',
-    'Colors.green': 'AppColors.successText',
-    'Colors.orange.shade50': 'AppColors.warningSurface',
-    'Colors.orange.shade700': 'AppColors.warningText',
-    'Colors.orange': 'AppColors.warningText',
-    'Colors.blue': 'AppColors.primaryPressed',
-    'Colors.white70': 'Colors.white',
-    'Colors.black54': 'AppColors.secondaryText',
-    'Alignment.centerLeft': 'AlignmentDirectional.centerStart',
-    'Alignment.centerRight': 'AlignmentDirectional.centerEnd',
-    'Alignment.topLeft': 'AlignmentDirectional.topStart',
-    'Alignment.topRight': 'AlignmentDirectional.topEnd',
-    'EdgeInsets.fromLTRB(': 'EdgeInsetsDirectional.fromSTEB(',
-}
-
-
 def normalize_page(path: Path) -> None:
-    text = path.read_text(encoding='utf-8')
-    text = add_theme_import(text)
-    for old, new in COMMON_REPLACEMENTS.items():
-        text = text.replace(old, new)
+    text = add_theme_import(path.read_text(encoding='utf-8'))
 
-    # Never allow tiny direct text sizes. Existing .sp(context) values are
-    # protected by Responsive.sp's readable floor.
+    # Replace both `const Color(...)` and `Color(...)` so values inside an
+    # already-const parent are centralized too.
+    for hex_value, replacement in COLOR_MAP.items():
+        text = re.sub(
+            rf'(?:const\s+)?Color\(0xFF{hex_value}\)',
+            replacement,
+            text,
+        )
+
+    for old, new in SHADE_REPLACEMENTS.items():
+        text = text.replace(old, new)
+    for old, new in EXACT_COLOR_TOKENS.items():
+        text = re.sub(rf'{re.escape(old)}(?!\.)', new, text)
+
+    text = text.replace('Alignment.centerLeft', 'AlignmentDirectional.centerStart')
+    text = text.replace('Alignment.centerRight', 'AlignmentDirectional.centerEnd')
+    text = text.replace('Alignment.topLeft', 'AlignmentDirectional.topStart')
+    text = text.replace('Alignment.topRight', 'AlignmentDirectional.topEnd')
+    text = text.replace('EdgeInsets.fromLTRB(', 'EdgeInsetsDirectional.fromSTEB(')
+
+    # Direct legacy sizes below 13 are raised. Sizes using `.sp(context)` are
+    # protected by Responsive.sp's readable floor and still honor TextScaler.
     text = re.sub(
         r'fontSize:\s*(?:8|9|10|11|12)(?:\.0)?\s*,',
         'fontSize: 13,',
         text,
     )
 
-    # AlertDialog can scroll its title/content/actions together when a short
-    # window or software keyboard leaves little vertical room.
+    # Allow dialogs to remain usable with the keyboard, short windows and 200%
+    # accessibility text. Existing scrollable dialogs are left untouched.
     text = re.sub(
         r'AlertDialog\(\n(?!\s*scrollable:)',
         'AlertDialog(\n          scrollable: true,',
         text,
     )
 
-    # Preserve readable touch targets even where old code explicitly removed
-    # IconButton constraints.
+    # Old icon buttons explicitly removed Material's minimum target size.
     text = text.replace(
         'constraints: const BoxConstraints(),',
         'constraints: const BoxConstraints(minWidth: 48, minHeight: 48),',
     )
 
-    # Phone input must not be visually reversed by the app-wide RTL direction.
+    # Keep Saudi phone numbers visually LTR inside the Arabic UI.
     text = text.replace(
         'keyboardType: TextInputType.phone,',
         'keyboardType: TextInputType.phone,\n                textDirection: TextDirection.ltr,',
@@ -127,49 +155,53 @@ for page in PAGE_FILES:
 booking = ROOT / 'lib/pages/booking_manager_page.dart'
 text = booking.read_text(encoding='utf-8')
 
-# Keep the two-pane workflow usable on narrow phones without RenderFlex
-# overflow. The business UI remains unchanged and can be horizontally panned;
-# at 900dp+ it uses the full available width with no extra scroll.
+# The legacy booking screen is a two-pane desktop composition. On phones and
+# 800dp tablets, make the whole composition pannable rather than letting Flex
+# children overflow or clip. At 900dp+ it uses the full available width.
 old_body = """      body: Row(\n        children: ["""
 new_body = """      body: SingleChildScrollView(\n        scrollDirection: Axis.horizontal,\n        child: SizedBox(\n          width: MediaQuery.sizeOf(context).width < 900\n              ? 900\n              : MediaQuery.sizeOf(context).width,\n          child: Row(\n            children: ["""
 if old_body not in text:
     raise RuntimeError('booking main Row marker not found')
 text = text.replace(old_body, new_body, 1)
+
 old_tail = """        ],\n      ),\n    );\n  }\n\n  Widget _buildDirectoryEmptyState()"""
 new_tail = """            ],\n          ),\n        ),\n      ),\n    );\n  }\n\n  Widget _buildDirectoryEmptyState()"""
 if old_tail not in text:
     raise RuntimeError('booking main Row closing marker not found')
 text = text.replace(old_tail, new_tail, 1)
 
-# Calendar cells: selected, today and booked are distinct while both Hijri and
-# Gregorian day numbers keep high-contrast foregrounds.
-old_calendar_colors = """    Color hijriColor = isSelected\n        ? Colors.white\n        : AppColors.primaryPressed; // dark red\n    Color gregorianColor = isSelected\n        ? Colors.white.withValues(alpha: 0.7)\n        : AppColors.secondaryText;\n\n    BoxDecoration? decoration;\n    if (isSelected) {\n      decoration = const BoxDecoration(\n        color: AppColors.primary, // Teal 700\n        shape: BoxShape.circle,\n      );\n    } else if (isToday) {\n      decoration = BoxDecoration(\n        color: AppColors.primary.withValues(alpha: 0.15),\n        shape: BoxShape.circle,\n        border: Border.all(color: AppColors.primary, width: 1.5),\n      );\n    }\n\n    double opacity = isOutside ? 0.4 : 1.0;"""
-new_calendar_colors = """    final hasBooking = _getBookingsForDay(day).isNotEmpty;\n    final hijriColor = isSelected ? Colors.white : AppColors.heading;\n    final gregorianColor = isSelected ? Colors.white : AppColors.secondaryText;\n\n    BoxDecoration? decoration;\n    if (isSelected) {\n      decoration = const BoxDecoration(\n        color: AppColors.primary,\n        shape: BoxShape.circle,\n      );\n    } else if (isToday) {\n      decoration = BoxDecoration(\n        color: AppColors.selectedSurface,\n        shape: BoxShape.circle,\n        border: Border.all(color: AppColors.primary, width: 2),\n      );\n    } else if (hasBooking) {\n      decoration = BoxDecoration(\n        color: AppColors.warningSurface,\n        shape: BoxShape.circle,\n        border: Border.all(color: AppColors.warningText, width: 1.5),\n      );\n    }\n\n    final opacity = isOutside ? 0.55 : 1.0;"""
-if old_calendar_colors in text:
-    text = text.replace(old_calendar_colors, new_calendar_colors, 1)
-else:
+# Selected, current and booked days are visually distinct. Booked days also
+# receive an event icon below, so color is not the only status cue.
+calendar_pattern = re.compile(
+    r'    Color hijriColor = isSelected.*?'
+    r'    (?:double|final) opacity = isOutside \? 0\.4 : 1\.0;',
+    re.S,
+)
+calendar_replacement = """    final hasBooking = _getBookingsForDay(day).isNotEmpty;\n    final hijriColor = isSelected ? Colors.white : AppColors.heading;\n    final gregorianColor = isSelected ? Colors.white : AppColors.secondaryText;\n\n    BoxDecoration? decoration;\n    if (isSelected) {\n      decoration = const BoxDecoration(\n        color: AppColors.primary,\n        shape: BoxShape.circle,\n      );\n    } else if (isToday) {\n      decoration = BoxDecoration(\n        color: AppColors.selectedSurface,\n        shape: BoxShape.circle,\n        border: Border.all(color: AppColors.primary, width: 2),\n      );\n    } else if (hasBooking) {\n      decoration = BoxDecoration(\n        color: AppColors.warningSurface,\n        shape: BoxShape.circle,\n        border: Border.all(color: AppColors.warningText, width: 1.5),\n      );\n    }\n\n    final opacity = isOutside ? 0.55 : 1.0;"""
+text, calendar_count = calendar_pattern.subn(calendar_replacement, text, count=1)
+if calendar_count != 1:
     raise RuntimeError('calendar color block not found')
 
-# Replace scale-down date text with horizontal scrolling so accessibility text
-# stays at its requested size rather than being silently shrunk.
-for label in ('start_date', 'end_date'):
-    prefix = 'من' if label == 'start_date' else 'إلى'
+marker_pattern = re.compile(
+    r"markerBuilder: \(context, date, events\) \{\n"
+    r"\s*if \(events\.isNotEmpty\) \{\n"
+    r"\s*return Positioned\(.*?\n\s*\}\n"
+    r"\s*return null;\n\s*\},",
+    re.S,
+)
+marker_replacement = """markerBuilder: (context, date, events) {\n                                if (events.isNotEmpty) {\n                                  return const Positioned(\n                                    bottom: 1,\n                                    child: Icon(\n                                      Icons.event_available_outlined,\n                                      size: 12,\n                                      color: AppColors.warningText,\n                                    ),\n                                  );\n                                }\n                                return null;\n                              },"""
+text, marker_count = marker_pattern.subn(marker_replacement, text, count=1)
+if marker_count != 1:
+    raise RuntimeError('calendar marker block not found')
+
+# Never shrink booking dates with FittedBox; let the user pan the long date at
+# the requested accessibility size.
+for label, prefix in (('start_date', 'من'), ('end_date', 'إلى')):
     old = f"""FittedBox(\n                        fit: BoxFit.scaleDown,\n                        alignment: AlignmentDirectional.centerStart,\n                        child: Text(\n                          '{prefix}: ${{_formatHijriDateOnlyArabic(booking['{label}'])}}',\n                          maxLines: 1,"""
     new = f"""SingleChildScrollView(\n                        scrollDirection: Axis.horizontal,\n                        child: Text(\n                          '{prefix}: ${{_formatHijriDateOnlyArabic(booking['{label}'])}}',\n                          maxLines: 1,\n                          softWrap: false,"""
-    if old in text:
-        text = text.replace(old, new, 1)
-    # FittedBox and SingleChildScrollView both close with the same final child
-    # parenthesis shape, so no closing-delimiter change is needed.
-
-# Replace the archived-only color chip with a status that is always textual.
-archived_block = """                          if (_bookingFilter == 'archived') ...[\n                            const SizedBox(width: 8),\n                            Container(\n                              padding: const EdgeInsets.symmetric(\n                                horizontal: 6,\n                                vertical: 2,\n                              ),\n                              decoration: BoxDecoration(\n                                color: AppColors.neutralSurface,\n                                borderRadius: BorderRadius.circular(6),\n                              ),\n                              child: Text(\n                                'مكتمل',\n                                style: TextStyle(\n                                  fontSize: 10.sp(context),\n                                  color: AppColors.secondaryText,\n                                  fontWeight: FontWeight.bold,\n                                ),\n                              ),\n                            ),\n                          ],"""
-status_block = """                          const SizedBox(width: 8),\n                          _bookingStatusBadge(booking['status']?.toString()),"""
-if archived_block in text:
-    text = text.replace(archived_block, status_block, 1)
-else:
-    # The readable-floor migration may already have changed the 10.sp source;
-    # handle that form too.
-    alt = archived_block.replace('fontSize: 10.sp(context)', 'fontSize: 10.sp(context)')
+    if old not in text:
+        raise RuntimeError(f'{label} FittedBox not found')
+    text = text.replace(old, new, 1)
 
 status_helper_marker = """  // بناء قائمة الحجوزات العامة (مرتبة من الأحدث إلى الأقدم)\n  Widget _buildBookingsList()"""
 status_helper = """  Widget _bookingStatusBadge(String? status) {\n    switch (status) {\n      case DatabaseHelper.statusConfirmed:\n        return const StatusBadge.success(label: 'مؤكد');\n      case DatabaseHelper.statusPending:\n        return const StatusBadge.warning(label: 'قيد الانتظار');\n      case DatabaseHelper.statusCancelled:\n        return const StatusBadge.error(label: 'ملغي');\n      default:\n        return const StatusBadge.neutral(label: 'غير محدد');\n    }\n  }\n\n  // بناء قائمة الحجوزات العامة (مرتبة من الأحدث إلى الأقدم)\n  Widget _buildBookingsList()"""
@@ -177,13 +209,21 @@ if status_helper_marker not in text:
     raise RuntimeError('booking status helper marker not found')
 text = text.replace(status_helper_marker, status_helper, 1)
 
-# Show total, paid and remaining values from the existing payment summary API.
+# Expose total/paid/remaining on every booking card through the existing,
+# cent-safe payment summary API. This changes presentation only.
 old_total = """                      Text(\n                        '${booking['total_price']} ر.س',\n                        style: TextStyle(\n                          fontWeight: FontWeight.bold,\n                          color: AppColors.primary,\n                          fontSize: 12.sp(context),\n                        ),\n                      ),"""
-new_total = """                      FutureBuilder<Map<String, double>>(\n                        future: dbHelper.queryPaymentSummary(booking['id'] as int),\n                        builder: (context, snapshot) {\n                          if (!snapshot.hasData) {\n                            return const SizedBox(\n                              width: 24,\n                              height: 24,\n                              child: CircularProgressIndicator(strokeWidth: 2),\n                            );\n                          }\n                          final summary = snapshot.data!;\n                          final remaining = summary['remaining']!;\n                          return Column(\n                            crossAxisAlignment: CrossAxisAlignment.end,\n                            children: [\n                              Text(\n                                'الإجمالي: ${summary['total']!.toStringAsFixed(2)} ر.س',\n                                style: Theme.of(context).textTheme.labelMedium,\n                              ),\n                              Text(\n                                'المسدد: ${summary['paid']!.toStringAsFixed(2)} ر.س',\n                                style: Theme.of(context).textTheme.labelMedium?.copyWith(\n                                      color: AppColors.successText,\n                                    ),\n                              ),\n                              Text(\n                                'المتبقي: ${remaining.toStringAsFixed(2)} ر.س',\n                                style: Theme.of(context).textTheme.labelMedium?.copyWith(\n                                      color: remaining > 0\n                                          ? AppColors.warningText\n                                          : AppColors.successText,\n                                    ),\n                              ),\n                            ],\n                          );\n                        },\n                      ),"""
-if old_total in text:
-    text = text.replace(old_total, new_total, 1)
-else:
+new_total = """                      Align(\n                        alignment: AlignmentDirectional.centerEnd,\n                        child: _bookingStatusBadge(booking['status']?.toString()),\n                      ),\n                      const SizedBox(height: 8),\n                      FutureBuilder<Map<String, double>>(\n                        future: dbHelper.queryPaymentSummary(booking['id'] as int),\n                        builder: (context, snapshot) {\n                          if (!snapshot.hasData) {\n                            return const SizedBox(\n                              width: 24,\n                              height: 24,\n                              child: CircularProgressIndicator(strokeWidth: 2),\n                            );\n                          }\n                          final summary = snapshot.data!;\n                          final remaining = summary['remaining']!;\n                          return Column(\n                            crossAxisAlignment: CrossAxisAlignment.end,\n                            children: [\n                              Text(\n                                'الإجمالي: ${summary['total']!.toStringAsFixed(2)} ر.س',\n                                style: Theme.of(context).textTheme.labelMedium,\n                              ),\n                              Text(\n                                'المسدد: ${summary['paid']!.toStringAsFixed(2)} ر.س',\n                                style: Theme.of(context).textTheme.labelMedium?.copyWith(\n                                      color: AppColors.successText,\n                                    ),\n                              ),\n                              Text(\n                                'المتبقي: ${remaining.toStringAsFixed(2)} ر.س',\n                                style: Theme.of(context).textTheme.labelMedium?.copyWith(\n                                      color: remaining > 0\n                                          ? AppColors.warningText\n                                          : AppColors.successText,\n                                    ),\n                              ),\n                            ],\n                          );\n                        },\n                      ),"""
+if old_total not in text:
     raise RuntimeError('booking card total block not found')
+text = text.replace(old_total, new_total, 1)
+
+# Search is not a data-entry form, but a persistent label still makes its
+# purpose clear after the user types a query.
+text = text.replace(
+    "hintText: _showRentersTab\n                            ? 'ابحث بالاسم أو رقم الهاتف'\n                            : 'ابحث عن حجز بالاسم أو رقم الهاتف',",
+    "labelText: 'بحث',\n                        hintText: _showRentersTab\n                            ? 'بالاسم أو رقم الهاتف'\n                            : 'عن حجز بالاسم أو رقم الهاتف',",
+    1,
+)
 
 booking.write_text(text, encoding='utf-8')
 
