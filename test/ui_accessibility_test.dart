@@ -5,9 +5,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'package:resthouse_app/database_helper.dart';
 import 'package:resthouse_app/main.dart';
 import 'package:resthouse_app/pages/booking_manager_page.dart';
+import 'package:resthouse_app/pages/finance_page.dart';
+import 'package:resthouse_app/pages/settings_page.dart';
 import 'package:resthouse_app/theme/app_theme.dart';
 
 Future<void> _settleDatabaseUi(WidgetTester tester) async {
@@ -31,6 +34,92 @@ void _expectNoLayoutException(WidgetTester tester, String reason) {
   final exception = tester.takeException();
   expect(exception, isNull, reason: reason);
   while (tester.takeException() != null) {}
+}
+
+String _dateOnly(DateTime date) {
+  return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+}
+
+Future<void> _seedAccessibilityData(DatabaseHelper db) async {
+  final today = DateTime.now();
+  final tomorrow = today.add(const Duration(days: 1));
+
+  await db.insertRenter({
+    'phone': '0500000001',
+    'full_name': 'أحمد العتيبي',
+    'notes': 'بيانات اختبار إمكانية الوصول',
+    'rating': 5,
+    'rental_count': 0,
+  });
+
+  final bookingId = await db.insertBooking({
+    'phone': '0500000001',
+    'start_date': _dateOnly(today),
+    'end_date': _dateOnly(tomorrow),
+    'total_price': 1800.0,
+    'security_deposit': 500.0,
+    'status': DatabaseHelper.statusConfirmed,
+    'deposit_status': DatabaseHelper.depositPending,
+  });
+
+  await db.insertPayment({
+    'booking_id': bookingId,
+    'amount': 800.0,
+    'paid_at': _dateOnly(today),
+    'method': 'transfer',
+    'note': 'دفعة اختبار',
+  });
+
+  await db.insertExpense({
+    'description': 'كهرباء وصيانة',
+    'amount': 250.0,
+    'date': _dateOnly(today),
+    'category': 'مصاريف تشغيلية أخرى',
+  });
+}
+
+Future<void> _openShellSection(
+  WidgetTester tester, {
+  required IconData icon,
+  required Finder expectedPage,
+  required String sectionName,
+  required Size size,
+}) async {
+  final navigationBar = find.byType(NavigationBar);
+  final sidebar = find.byKey(const ValueKey('mainSidebar'));
+
+  final Finder target;
+  if (navigationBar.evaluate().isNotEmpty) {
+    target = find.descendant(of: navigationBar, matching: find.byIcon(icon));
+  } else {
+    expect(
+      sidebar,
+      findsOneWidget,
+      reason: 'Expected the wide sidebar at ${size.width}x${size.height}.',
+    );
+    target = find.descendant(of: sidebar, matching: find.byIcon(icon));
+  }
+
+  expect(
+    target,
+    findsOneWidget,
+    reason: 'Could not find the $sectionName navigation target at ${size.width}x${size.height}.',
+  );
+
+  await tester.ensureVisible(target);
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.tap(target);
+  await _settleDatabaseUi(tester);
+
+  expect(
+    expectedPage,
+    findsOneWidget,
+    reason: '$sectionName did not open at ${size.width}x${size.height}.',
+  );
+  _expectNoLayoutException(
+    tester,
+    '$sectionName overflowed at ${size.width}x${size.height} with 200% text scaling.',
+  );
 }
 
 Widget _bookingTestApp() {
@@ -71,34 +160,70 @@ void main() {
     }
   });
 
-  testWidgets('200% system text scaling stays usable on target widths', (
-    tester,
-  ) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  testWidgets(
+    '200% scaling visits bookings, calendar, finance and settings on target widths',
+    (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _seedAccessibilityData(db);
 
-    const sizes = <Size>[
-      Size(360, 800),
-      Size(390, 844),
-      Size(430, 900),
-      Size(800, 600),
-      Size(800, 400),
-    ];
+      const sizes = <Size>[
+        Size(360, 800),
+        Size(390, 844),
+        Size(430, 900),
+        Size(800, 600),
+        Size(800, 400),
+      ];
 
-    for (final size in sizes) {
-      await tester.binding.setSurfaceSize(size);
-      await tester.pumpWidget(const ResthouseApp());
-      await _settleDatabaseUi(tester);
-      _expectNoLayoutException(
-        tester,
-        'Unexpected layout exception at ${size.width}x${size.height} with 200% text scaling.',
-      );
-      await tester.pumpWidget(const SizedBox.shrink());
-      await _settleDatabaseUi(tester);
-    }
+      for (final size in sizes) {
+        await tester.binding.setSurfaceSize(size);
+        await tester.pumpWidget(const ResthouseApp());
+        await _settleDatabaseUi(tester);
+        _expectNoLayoutException(
+          tester,
+          'Dashboard overflowed at ${size.width}x${size.height} with 200% text scaling.',
+        );
 
-    await tester.binding.setSurfaceSize(null);
-  });
+        await _openShellSection(
+          tester,
+          icon: Icons.calendar_month_outlined,
+          expectedPage: find.byType(BookingManagerPage),
+          sectionName: 'Bookings',
+          size: size,
+        );
+        expect(
+          find.byType(TableCalendar),
+          findsOneWidget,
+          reason: 'Calendar was not rendered at ${size.width}x${size.height}.',
+        );
+        _expectNoLayoutException(
+          tester,
+          'Calendar overflowed at ${size.width}x${size.height} with 200% text scaling.',
+        );
+
+        await _openShellSection(
+          tester,
+          icon: Icons.account_balance_wallet_outlined,
+          expectedPage: find.byType(FinancePage),
+          sectionName: 'Finance',
+          size: size,
+        );
+
+        await _openShellSection(
+          tester,
+          icon: Icons.settings_outlined,
+          expectedPage: find.byType(SettingsPage),
+          sectionName: 'Settings',
+          size: size,
+        );
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await _settleDatabaseUi(tester);
+      }
+
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 
   testWidgets('booking form remains reachable and scrollable at 200%', (
     tester,
