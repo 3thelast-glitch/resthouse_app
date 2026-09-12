@@ -37,6 +37,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   int _rentersCount = 0;
   int _activeBookingsCount = 0;
   bool _hasRecordedData = false;
+  bool _isLoading = true;
+  String? _loadError;
 
   List<DashboardActivity> _recentActivities = [];
   List<String> _sortedMonths = [];
@@ -50,6 +52,23 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      await _readDashboardData();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loadError = 'تعذر تحميل بيانات لوحة التحكم.');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _readDashboardData() async {
     final bookings = await dbHelper.queryAllBookings();
     final expenses = await dbHelper.queryAllExpenses();
     final payments = await dbHelper.queryAllPayments();
@@ -620,6 +639,27 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_loadError!),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _loadDashboardData,
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final netProfit = _totalRevenue - _totalExpenses;
 
     return Scaffold(
