@@ -14,13 +14,17 @@ Future<void> _settleDatabaseUi(WidgetTester tester) async {
   await tester.pump();
 
   // sqflite_common_ffi runs database work on a real isolate. Advancing the
-  // widget-test clock alone does not wait for that isolate, so give the first
-  // load a short real-time window before asking Flutter to settle frames.
+  // widget-test clock alone does not wait for that isolate. Use bounded real
+  // waits and fixed pumps so persistent animations cannot make this helper
+  // time out like pumpAndSettle can.
   await tester.runAsync(() async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
   });
-
-  await tester.pumpAndSettle(const Duration(milliseconds: 100));
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.runAsync(() async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+  });
+  await tester.pump(const Duration(milliseconds: 100));
 }
 
 void _expectNoLayoutException(WidgetTester tester, String reason) {
