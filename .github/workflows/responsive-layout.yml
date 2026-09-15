@@ -48,6 +48,7 @@ jobs:
 
           payments = Path('lib/pages/booking_payments_dialog.dart')
           source = payments.read_text(encoding='utf-8')
+          source = source.replace("import '../widgets/adaptive_content.dart';\n", '')
           old = """                              AmountText(\n                                payment['amount'] as num,\n                                style: Theme.of(context).textTheme.titleLarge,\n                              ),"""
           new = """                              _PaymentAmount(\n                                amount: payment['amount'] as num,\n                              ),"""
           if source.count(old) not in (0, 1):
@@ -71,7 +72,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/pages/booking_manager_page.dart lib/pages/booking_payments_dialog.dart
-          git commit -m "fix(ui): resolve calendar and payment dialog accessibility overflow"
+          git commit -m "fix(ui): finish calendar and payment dialog accessibility fixes"
           git push origin HEAD:${GITHUB_REF_NAME}
       - run: flutter pub get
       - name: Verify formatting
