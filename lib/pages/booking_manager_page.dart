@@ -77,7 +77,6 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     super.dispose();
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -89,7 +88,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     try {
       final bookings = await dbHelper.queryAllBookings();
       final renters = await dbHelper.queryAllRenters();
-      if (!mounted) { return; }
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _bookings = bookings;
         _renters = renters;
@@ -99,17 +100,21 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       });
       _checkPendingDeposits();
     } catch (_) {
-      if (mounted) { setState(() {
-        _loading = false;
-        _loadError = 'تعذر تحميل الحجوزات. حاول مرة أخرى.';
-      }); }
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadError = 'تعذر تحميل الحجوزات. حاول مرة أخرى.';
+        });
+      }
     }
   }
 
   /// Formats a date showing both Gregorian and Hijri side-by-side
   /// Example: "البداية: 2026-06-13 | ١٩ ذو الحجة ١٤٤٧"
   String _formatDualDate(DateTime? date, String label) {
-    if (date == null) { return label; }
+    if (date == null) {
+      return label;
+    }
     final gregorian = date.toString().split(' ')[0];
     final hijri = HijriCalendar.fromDate(date);
     final hijriStr =
@@ -118,9 +123,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   }
 
   String _formatHijriDateOnlyArabic(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) { return ''; }
+    if (dateStr == null || dateStr.isEmpty) {
+      return '';
+    }
     final parsed = DateTime.tryParse(dateStr);
-    if (parsed == null) { return dateStr; }
+    if (parsed == null) {
+      return dateStr;
+    }
 
     final hijri = HijriCalendar.fromDate(parsed);
     final hDay = hijri.hDay;
@@ -195,7 +204,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     );
 
     if (choice == 'gregorian') {
-      if (!context.mounted) { return null; }
+      if (!context.mounted) {
+        return null;
+      }
       return await showDatePicker(
         context: context,
         initialDate: initialDate,
@@ -203,7 +214,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         lastDate: DateTime(2050),
       );
     } else if (choice == 'hijri') {
-      if (!context.mounted) { return null; }
+      if (!context.mounted) {
+        return null;
+      }
       return await showDialog<DateTime>(
         context: context,
         builder: (ctx) => HijriDatePickerDialog(
@@ -221,10 +234,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   Future<void> _checkPendingDeposits() async {
     final pendingBookings = await dbHelper
         .queryEndedBookingsWithPendingDeposit();
-    if (pendingBookings.isEmpty || !mounted) { return; }
+    if (pendingBookings.isEmpty || !mounted) {
+      return;
+    }
 
     for (final booking in pendingBookings) {
-      if (!mounted) { return; }
+      if (!mounted) {
+        return;
+      }
       final renter = _renters.firstWhere(
         (r) => r['phone'] == booking['phone'],
         orElse: () => {'full_name': 'مستأجر غير معروف'},
@@ -328,7 +345,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       booking['id'],
                       'returned',
                     );
-                    if (!dialogContext.mounted) { return; }
+                    if (!dialogContext.mounted) {
+                      return;
+                    }
                     Navigator.pop(dialogContext);
                   },
                   icon: const Icon(Icons.check_circle_outline, size: 20),
@@ -349,7 +368,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       booking['id'],
                       'deducted',
                     );
-                    if (!dialogContext.mounted) { return; }
+                    if (!dialogContext.mounted) {
+                      return;
+                    }
                     Navigator.pop(dialogContext);
                   },
                   icon: const Icon(Icons.remove_circle_outline, size: 20),
@@ -387,7 +408,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     if (mounted) {
       final bookings = await dbHelper.queryAllBookings();
       final renters = await dbHelper.queryAllRenters();
-      if (!mounted) { return; }
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _bookings = bookings;
         _renters = renters;
@@ -487,13 +510,17 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   'rental_count': 0,
                 });
                 await _loadData();
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تمت إضافة المستأجر بنجاح')),
                 );
               } catch (e) {
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('خطأ: رقم الهاتف مسجل مسبقاً لمستأجر آخر!'),
@@ -606,7 +633,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   'rental_count': renter['rental_count'] ?? 0,
                 }, oldPhone: renter['phone']);
                 await _loadData();
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
@@ -614,7 +643,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ),
                 );
               } catch (e) {
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text(
@@ -789,7 +820,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             startDate ?? DateTime.now(),
                           );
-                          if (!dialogContext.mounted) { return; }
+                          if (!dialogContext.mounted) {
+                            return;
+                          }
                           if (date != null) {
                             setDialogState(() {
                               startDate = date;
@@ -834,7 +867,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             initialDate,
                           );
-                          if (!dialogContext.mounted) { return; }
+                          if (!dialogContext.mounted) {
+                            return;
+                          }
                           if (date != null) {
                             setDialogState(() {
                               endDate = date;
@@ -921,7 +956,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   endDate!.toString().split(' ')[0],
                 );
                 if (conflict) {
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text(
@@ -944,13 +981,17 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   });
 
                   await _loadData();
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(content: Text('تم تسجيل الحجز بنجاح')),
                   );
                 } on StateError catch (error) {
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
@@ -958,7 +999,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on ArgumentError catch (error) {
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -1045,7 +1088,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             startDate ?? DateTime.now(),
                           );
-                          if (!dialogContext.mounted) { return; }
+                          if (!dialogContext.mounted) {
+                            return;
+                          }
                           if (date != null) {
                             setDialogState(() {
                               startDate = date;
@@ -1088,7 +1133,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             initialDate,
                           );
-                          if (!dialogContext.mounted) { return; }
+                          if (!dialogContext.mounted) {
+                            return;
+                          }
                           if (date != null) {
                             setDialogState(() {
                               endDate = date;
@@ -1195,7 +1242,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     excludeId: booking['id'],
                   );
                   if (conflict) {
-                    if (!dialogContext.mounted) { return; }
+                    if (!dialogContext.mounted) {
+                      return;
+                    }
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -1220,7 +1269,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   });
 
                   await _loadData();
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
@@ -1228,7 +1279,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on StateError catch (error) {
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
@@ -1236,7 +1289,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on ArgumentError catch (error) {
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -1275,17 +1330,25 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             onPressed: () async {
               try {
                 await dbHelper.deleteBooking(id);
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 await _loadData();
-                if (!mounted) { return; }
+                if (!mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('تم حذف الحجز بنجاح')),
                 );
               } on StateError catch (error) {
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
-                if (!mounted) { return; }
+                if (!mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(SnackBar(content: Text(error.message)));
@@ -1320,13 +1383,17 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               try {
                 await dbHelper.deleteRenter(phone);
                 await _loadData();
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم حذف المستأجر بنجاح')),
                 );
               } catch (e) {
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('تعذر الحذف لوجود قيود على البيانات'),
@@ -1344,185 +1411,414 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     );
   }
 
-  Widget _buildCalendarDayCell(DateTime day, {
-    required bool isSelected, required bool isToday, required bool isOutside,
+  Widget _buildCalendarDayCell(
+    DateTime day, {
+    required bool isSelected,
+    required bool isToday,
+    required bool isOutside,
   }) {
     final hijri = HijriCalendar.fromDate(day);
     final color = isSelected ? Colors.white : AppColors.heading;
     return Semantics(
-      label: '${DateFormat('yyyy-MM-dd').format(day)}، ${hijri.hDay} ${getArabicHijriMonthName(hijri.hMonth)} ${hijri.hYear}',
+      label:
+          '${DateFormat('yyyy-MM-dd').format(day)}، ${hijri.hDay} ${getArabicHijriMonthName(hijri.hMonth)} ${hijri.hYear}',
       selected: isSelected,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 3),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : isToday ? AppColors.selectedSurface : null,
+          color: isSelected
+              ? AppColors.primary
+              : isToday
+              ? AppColors.selectedSurface
+              : null,
           borderRadius: BorderRadius.circular(8),
           border: isToday ? Border.all(color: AppColors.primary) : null,
         ),
         alignment: Alignment.center,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(toArabicDigits(hijri.hDay), textDirection: TextDirection.ltr,
-            style: TextStyle(fontSize: 14, height: 1.5, color: color, fontWeight: FontWeight.w600)),
-          Text('${day.day}', textDirection: TextDirection.ltr,
-            style: TextStyle(fontSize: 12, height: 1.5,
-              color: isSelected ? Colors.white : AppColors.secondaryText)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              toArabicDigits(hijri.hDay),
+              textDirection: TextDirection.ltr,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              '${day.day}',
+              textDirection: TextDirection.ltr,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: isSelected ? Colors.white : AppColors.secondaryText,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) { return const Center(child: CircularProgressIndicator()); }
-    if (_loadError != null) { return Center(child: SingleChildScrollView(child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [Text(_loadError!), TextButton(onPressed: _loadData, child: const Text('إعادة المحاولة'))],
-    ))); }
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_loadError!),
+              TextButton(
+                onPressed: _loadData,
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final rows = _showRentersTab ? _matchingRenters() : _matchingBookings();
     Widget directorySliver() => rows.isEmpty
-      ? SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(24),
-          child: Text(_showRentersTab ? 'لا توجد مستأجرين مسجلين بعد' : 'لا توجد حجوزات مطابقة')))
-      : SliverList(delegate: SliverChildBuilderDelegate((context, index) =>
-          _showRentersTab ? _buildRenterCard(rows[index]) : _buildBookingCard(rows[index]), childCount: rows.length));
+        ? SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                _showRentersTab
+                    ? 'لا توجد مستأجرين مسجلين بعد'
+                    : 'لا توجد حجوزات مطابقة',
+              ),
+            ),
+          )
+        : SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _showRentersTab
+                  ? _buildRenterCard(rows[index])
+                  : _buildBookingCard(rows[index]),
+              childCount: rows.length,
+            ),
+          );
     Widget scroller(List<Widget> slivers, String name) => CustomScrollView(
       key: PageStorageKey(name),
-      slivers: [SliverPadding(padding: const EdgeInsets.all(16), sliver: SliverMainAxisGroup(slivers: slivers))],
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverMainAxisGroup(slivers: slivers),
+        ),
+      ],
     );
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: ContentWidth(child: LayoutBuilder(builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 1024 * ContentLayout.textScale(context);
-        if (wide) {
-          return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Expanded(child: scroller([
-              SliverToBoxAdapter(child: _buildDirectoryControls()), directorySliver(),
-            ], 'booking-directory-wide')),
-            const VerticalDivider(width: 1),
-            Expanded(child: scroller([
-              SliverToBoxAdapter(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                _buildBookingActions(), const SizedBox(height: 16),
-                _buildCalendar(), const SizedBox(height: 16), _buildDayBookingsListAdaptive(),
-              ])),
-            ], 'booking-calendar-wide')),
-          ]);
-        }
-        return scroller([
-          SliverToBoxAdapter(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            _buildBookingActions(), const SizedBox(height: 16),
-            _buildDirectoryControls(),
-            if (!_showRentersTab) ...[
-              _buildCalendar(), const SizedBox(height: 16),
-              _buildDayBookingsListAdaptive(), const SizedBox(height: 16),
-            ],
-            Text(_showRentersTab ? 'قائمة المستأجرين' : 'قائمة الحجوزات', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-          ])),
-          directorySliver(),
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        ], 'booking-page-scroll');
-      })),
+      body: ContentWidth(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide =
+                constraints.maxWidth >= 1024 * ContentLayout.textScale(context);
+            if (wide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: scroller([
+                      SliverToBoxAdapter(child: _buildDirectoryControls()),
+                      directorySliver(),
+                    ], 'booking-directory-wide'),
+                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    child: scroller([
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildBookingActions(),
+                            const SizedBox(height: 16),
+                            _buildCalendar(),
+                            const SizedBox(height: 16),
+                            _buildDayBookingsListAdaptive(),
+                          ],
+                        ),
+                      ),
+                    ], 'booking-calendar-wide'),
+                  ),
+                ],
+              );
+            }
+            return scroller([
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildBookingActions(),
+                    const SizedBox(height: 16),
+                    _buildDirectoryControls(),
+                    if (!_showRentersTab) ...[
+                      _buildCalendar(),
+                      const SizedBox(height: 16),
+                      _buildDayBookingsListAdaptive(),
+                      const SizedBox(height: 16),
+                    ],
+                    Text(
+                      _showRentersTab ? 'قائمة المستأجرين' : 'قائمة الحجوزات',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+              directorySliver(),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            ], 'booking-page-scroll');
+          },
+        ),
+      ),
     );
   }
 
-  Widget _buildBookingActions() => AdaptiveItems(minItemWidth: 230, maxColumns: 2, children: [
-    FilledButton(key: const ValueKey('add-booking'), onPressed: _showAddBookingDialog,
-      child: const ActionLabel(Icons.add, 'تسجيل حجز جديد')),
-    OutlinedButton(onPressed: _showAddRenterDialog,
-      child: const ActionLabel(Icons.person_add_outlined, 'مستأجر جديد')),
-  ]);
+  Widget _buildBookingActions() => AdaptiveItems(
+    minItemWidth: 230,
+    maxColumns: 2,
+    children: [
+      FilledButton(
+        key: const ValueKey('add-booking'),
+        onPressed: _showAddBookingDialog,
+        child: const ActionLabel(Icons.add, 'تسجيل حجز جديد'),
+      ),
+      OutlinedButton(
+        onPressed: _showAddRenterDialog,
+        child: const ActionLabel(Icons.person_add_outlined, 'مستأجر جديد'),
+      ),
+    ],
+  );
 
   Widget _buildDirectoryControls() {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final active = _bookings.where((b) => BookingStatusService.isActive(b, today)).length;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      AdaptiveItems(minItemWidth: 200, maxColumns: 2, children: [
-        ChoiceChip(label: Text('الحجوزات (${_bookings.length})'), selected: !_showRentersTab,
-          onSelected: (_) => setState(() => _showRentersTab = false)),
-        ChoiceChip(label: Text('قائمة المستأجرين (${_renters.length})'), selected: _showRentersTab,
-          onSelected: (_) => setState(() => _showRentersTab = true)),
-      ]),
-      if (!_showRentersTab) ...[
-        const SizedBox(height: 8),
-        AdaptiveItems(minItemWidth: 200, maxColumns: 2, children: [
-          ChoiceChip(key: const ValueKey('filter-active'), label: Text('المؤكدة القادمة ($active)'),
-            selected: _bookingFilter == 'active', onSelected: (_) => setState(() => _bookingFilter = 'active')),
-          ChoiceChip(key: const ValueKey('filter-archived'), label: Text('السجل (${_bookings.length - active})'),
-            selected: _bookingFilter == 'archived', onSelected: (_) => setState(() => _bookingFilter = 'archived')),
-        ]),
+    final active = _bookings
+        .where((b) => BookingStatusService.isActive(b, today))
+        .length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AdaptiveItems(
+          minItemWidth: 200,
+          maxColumns: 2,
+          children: [
+            ChoiceChip(
+              label: Text('الحجوزات (${_bookings.length})'),
+              selected: !_showRentersTab,
+              onSelected: (_) => setState(() => _showRentersTab = false),
+            ),
+            ChoiceChip(
+              label: Text('قائمة المستأجرين (${_renters.length})'),
+              selected: _showRentersTab,
+              onSelected: (_) => setState(() => _showRentersTab = true),
+            ),
+          ],
+        ),
+        if (!_showRentersTab) ...[
+          const SizedBox(height: 8),
+          AdaptiveItems(
+            minItemWidth: 200,
+            maxColumns: 2,
+            children: [
+              ChoiceChip(
+                key: const ValueKey('filter-active'),
+                label: Text('المؤكدة القادمة ($active)'),
+                selected: _bookingFilter == 'active',
+                onSelected: (_) => setState(() => _bookingFilter = 'active'),
+              ),
+              ChoiceChip(
+                key: const ValueKey('filter-archived'),
+                label: Text('السجل (${_bookings.length - active})'),
+                selected: _bookingFilter == 'archived',
+                onSelected: (_) => setState(() => _bookingFilter = 'archived'),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
+        TextField(
+          key: const ValueKey('booking-search'),
+          controller: _searchController,
+          onChanged: (value) => setState(() => _searchQuery = value),
+          decoration: InputDecoration(
+            labelText: 'بحث',
+            hintText: 'الاسم أو رقم الهاتف',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchQuery.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'مسح البحث',
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  ),
+          ),
+        ),
+        const SizedBox(height: 16),
       ],
-      const SizedBox(height: 12),
-      TextField(key: const ValueKey('booking-search'), controller: _searchController,
-        onChanged: (value) => setState(() => _searchQuery = value),
-        decoration: InputDecoration(labelText: 'بحث بالاسم أو رقم الهاتف',
-          prefixIcon: const Icon(Icons.search), suffixIcon: _searchQuery.isEmpty ? null : IconButton(
-            tooltip: 'مسح البحث', icon: const Icon(Icons.clear), onPressed: () {
-              _searchController.clear(); setState(() => _searchQuery = '');
-            }))),
-      const SizedBox(height: 16),
-    ]);
+    );
   }
 
   Widget _buildCalendar() {
     final scale = ContentLayout.textScale(context);
-    final first = HijriCalendar.fromDate(DateTime(_focusedDay.year, _focusedDay.month));
-    final last = HijriCalendar.fromDate(DateTime(_focusedDay.year, _focusedDay.month + 1, 0));
-    return Card(margin: EdgeInsets.zero, child: ExpansionTile(
-      key: const PageStorageKey('booking-calendar-expanded'),
-      initiallyExpanded: _calendarExpanded,
-      onExpansionChanged: (value) => setState(() => _calendarExpanded = value),
-      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-      title: Text('التقويم', style: Theme.of(context).textTheme.titleMedium),
-      subtitle: Text('المحدد: \u2066${DateFormat('yyyy-MM-dd').format(_selectedDay ?? _focusedDay)}\u2069'),
-      childrenPadding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
-      children: [
-        Row(children: [
-          IconButton(tooltip: 'الشهر السابق', icon: const Icon(Icons.chevron_right),
-            onPressed: () => _changeCalendarMonth(-1)),
-          Expanded(child: Text(DateFormat.yMMMM('ar_SA').format(_focusedDay), textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall)),
-          IconButton(tooltip: 'الشهر التالي', icon: const Icon(Icons.chevron_left),
-            onPressed: () => _changeCalendarMonth(1)),
-        ]),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('${getArabicHijriMonthName(first.hMonth)} ${first.hYear} — ${getArabicHijriMonthName(last.hMonth)} ${last.hYear}',
-            textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall)),
-        const SizedBox(height: 8),
-        TableCalendar(
-          key: const ValueKey('booking-calendar'),
-          firstDay: DateTime.utc(2020), lastDay: DateTime.utc(2050, 12, 31),
-          focusedDay: _focusedDay, selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-          eventLoader: _getBookingsForDay,
-          onDaySelected: (selectedDay, focusedDay) => setState(() { _selectedDay = selectedDay; _focusedDay = focusedDay; }),
-          onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
-          calendarFormat: CalendarFormat.month, locale: 'ar_SA',
-          startingDayOfWeek: StartingDayOfWeek.sunday, headerVisible: false,
-          rowHeight: 40 * scale + 24, daysOfWeekHeight: 24 * scale + 12,
-          calendarStyle: const CalendarStyle(cellMargin: EdgeInsets.zero),
-          calendarBuilders: CalendarBuilders(
-            dowBuilder: (context, day) => LayoutBuilder(builder: (context, constraints) {
-              const names = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
-              const short = ['ن', 'ث', 'ر', 'خ', 'ج', 'س', 'ح'];
-              final name = names[day.weekday - 1];
-              final style = Theme.of(context).textTheme.labelSmall!;
-              return Tooltip(message: name, child: Center(child: Text(
-                ContentLayout.textWidth(context, name, style) + 4 <= constraints.maxWidth ? name : short[day.weekday - 1], style: style)));
-            }),
-            defaultBuilder: (context, day, _) => _buildCalendarDayCell(day, isSelected: false, isToday: false, isOutside: false),
-            selectedBuilder: (context, day, _) => _buildCalendarDayCell(day, isSelected: true, isToday: false, isOutside: false),
-            todayBuilder: (context, day, _) => _buildCalendarDayCell(day, isSelected: false, isToday: true, isOutside: false),
-            outsideBuilder: (context, day, _) => _buildCalendarDayCell(day, isSelected: false, isToday: false, isOutside: true),
-            markerBuilder: (context, date, events) => events.isEmpty ? null : const Positioned(
-              bottom: 2, child: Icon(Icons.event_available_outlined, size: 12, color: AppColors.warningText)),
-          ),
+    final first = HijriCalendar.fromDate(
+      DateTime(_focusedDay.year, _focusedDay.month),
+    );
+    final last = HijriCalendar.fromDate(
+      DateTime(_focusedDay.year, _focusedDay.month + 1, 0),
+    );
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ExpansionTile(
+        key: const PageStorageKey('booking-calendar-expanded'),
+        initiallyExpanded: _calendarExpanded,
+        onExpansionChanged: (value) =>
+            setState(() => _calendarExpanded = value),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        title: Text('التقويم', style: Theme.of(context).textTheme.titleMedium),
+        subtitle: Text(
+          'المحدد: \u2066${DateFormat('yyyy-MM-dd').format(_selectedDay ?? _focusedDay)}\u2069',
         ),
-        Text('الأعلى: هجري • الأسفل: ميلادي', style: Theme.of(context).textTheme.bodySmall),
-      ],
-    ));
+        childrenPadding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+        children: [
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'الشهر السابق',
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => _changeCalendarMonth(-1),
+              ),
+              Expanded(
+                child: Text(
+                  DateFormat.yMMMM('ar_SA').format(_focusedDay),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              IconButton(
+                tooltip: 'الشهر التالي',
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => _changeCalendarMonth(1),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              '${getArabicHijriMonthName(first.hMonth)} ${first.hYear} — ${getArabicHijriMonthName(last.hMonth)} ${last.hYear}',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TableCalendar(
+            key: const ValueKey('booking-calendar'),
+            firstDay: DateTime.utc(2020),
+            lastDay: DateTime.utc(2050, 12, 31),
+            focusedDay: _focusedDay,
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            eventLoader: _getBookingsForDay,
+            onDaySelected: (selectedDay, focusedDay) => setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            }),
+            onPageChanged: (focusedDay) =>
+                setState(() => _focusedDay = focusedDay),
+            calendarFormat: CalendarFormat.month,
+            locale: 'ar_SA',
+            startingDayOfWeek: StartingDayOfWeek.sunday,
+            headerVisible: false,
+            rowHeight: 40 * scale + 24,
+            daysOfWeekHeight: 24 * scale + 12,
+            calendarStyle: const CalendarStyle(cellMargin: EdgeInsets.zero),
+            calendarBuilders: CalendarBuilders(
+              dowBuilder: (context, day) => LayoutBuilder(
+                builder: (context, constraints) {
+                  const names = [
+                    'الاثنين',
+                    'الثلاثاء',
+                    'الأربعاء',
+                    'الخميس',
+                    'الجمعة',
+                    'السبت',
+                    'الأحد',
+                  ];
+                  const short = ['ن', 'ث', 'ر', 'خ', 'ج', 'س', 'ح'];
+                  final name = names[day.weekday - 1];
+                  final style = Theme.of(context).textTheme.labelSmall!;
+                  return Tooltip(
+                    message: name,
+                    child: Center(
+                      child: Text(
+                        ContentLayout.textWidth(context, name, style) + 4 <=
+                                constraints.maxWidth
+                            ? name
+                            : short[day.weekday - 1],
+                        style: style,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              defaultBuilder: (context, day, _) => _buildCalendarDayCell(
+                day,
+                isSelected: false,
+                isToday: false,
+                isOutside: false,
+              ),
+              selectedBuilder: (context, day, _) => _buildCalendarDayCell(
+                day,
+                isSelected: true,
+                isToday: false,
+                isOutside: false,
+              ),
+              todayBuilder: (context, day, _) => _buildCalendarDayCell(
+                day,
+                isSelected: false,
+                isToday: true,
+                isOutside: false,
+              ),
+              outsideBuilder: (context, day, _) => _buildCalendarDayCell(
+                day,
+                isSelected: false,
+                isToday: false,
+                isOutside: true,
+              ),
+              markerBuilder: (context, date, events) => events.isEmpty
+                  ? null
+                  : const Positioned(
+                      bottom: 2,
+                      child: Icon(
+                        Icons.event_available_outlined,
+                        size: 12,
+                        color: AppColors.warningText,
+                      ),
+                    ),
+            ),
+          ),
+          Text(
+            'الأعلى: هجري • الأسفل: ميلادي',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
   }
 
   void _changeCalendarMonth(int delta) {
     final day = DateTime(_focusedDay.year, _focusedDay.month + delta);
-    if (day.year >= 2020 && day.year <= 2050) { setState(() => _focusedDay = day); }
+    if (day.year >= 2020 && day.year <= 2050) {
+      setState(() => _focusedDay = day);
+    }
   }
 
   Future<void> _showPaymentActions(Map<String, dynamic> booking) async {
@@ -1546,7 +1842,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         ),
       ),
     );
-    if (!mounted) { return; }
+    if (!mounted) {
+      return;
+    }
     if (action == 'add') {
       await _showAddPaymentDialog(booking);
     } else if (action == 'history') {
@@ -1560,7 +1858,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   Future<void> _showAddPaymentDialog(Map<String, dynamic> booking) async {
     final bookingId = booking['id'] as int;
     final summary = await dbHelper.queryPaymentSummary(bookingId);
-    if (!mounted) { return; }
+    if (!mounted) {
+      return;
+    }
     final amountController = TextEditingController();
     final noteController = TextEditingController();
     String method = 'cash';
@@ -1653,14 +1953,20 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     'method': method,
                     'note': noteController.text.trim(),
                   });
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   Navigator.pop(dialogContext);
-                  if (!mounted) { return; }
+                  if (!mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('تم تسجيل الدفعة بنجاح.')),
                   );
                 } on ArgumentError catch (error) {
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -1670,7 +1976,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on StateError catch (error) {
-                  if (!dialogContext.mounted) { return; }
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
@@ -1705,116 +2013,229 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     final query = _searchQuery.trim().toLowerCase();
     return _bookings.where((booking) {
       final renter = _renterFor(booking);
-      final matches = query.isEmpty || booking['phone'].toString().contains(query) ||
+      final matches =
+          query.isEmpty ||
+          booking['phone'].toString().contains(query) ||
           renter['full_name'].toString().toLowerCase().contains(query);
       final active = BookingStatusService.isActive(booking, today);
       return matches && (_bookingFilter == 'archived' ? !active : active);
-    }).toList()..sort((a, b) => b['start_date'].toString().compareTo(a['start_date'].toString()));
+    }).toList()..sort(
+      (a, b) =>
+          b['start_date'].toString().compareTo(a['start_date'].toString()),
+    );
   }
 
-  Map<String, dynamic> _renterFor(Map<String, dynamic> booking) => _renters.firstWhere(
-    (r) => r['phone'] == booking['phone'], orElse: () => {'full_name': 'مستأجر غير معروف'});
+  Map<String, dynamic> _renterFor(Map<String, dynamic> booking) =>
+      _renters.firstWhere(
+        (r) => r['phone'] == booking['phone'],
+        orElse: () => {'full_name': 'مستأجر غير معروف'},
+      );
 
   List<Map<String, dynamic>> _matchingRenters() {
     final query = _searchQuery.trim().toLowerCase();
-    return _renters.where((r) => query.isEmpty || r['full_name'].toString().toLowerCase().contains(query) ||
-      r['phone'].toString().contains(query)).toList()
-      ..sort((a, b) => ((b['rental_count'] as num?) ?? 0).compareTo((a['rental_count'] as num?) ?? 0));
+    return _renters
+        .where(
+          (r) =>
+              query.isEmpty ||
+              r['full_name'].toString().toLowerCase().contains(query) ||
+              r['phone'].toString().contains(query),
+        )
+        .toList()
+      ..sort(
+        (a, b) => ((b['rental_count'] as num?) ?? 0).compareTo(
+          (a['rental_count'] as num?) ?? 0,
+        ),
+      );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking, {bool details = false}) {
+  Widget _buildBookingCard(
+    Map<String, dynamic> booking, {
+    bool details = false,
+  }) {
     final id = booking['id'] as int;
     final renter = _renterFor(booking);
     return Card(
       key: ValueKey('${details ? 'day' : 'directory'}-booking-$id'),
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(padding: const EdgeInsets.all(16), child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(renter['full_name'].toString(), style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Align(alignment: AlignmentDirectional.centerStart, child: _bookingStatusBadge(booking['status']?.toString())),
-          const SizedBox(height: 12),
-          _bookingDate(booking['start_date'].toString(), 'من'),
-          _bookingDate(booking['end_date'].toString(), 'إلى'),
-          if (details) ...[
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              renter['full_name'].toString(),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
-            Text('رقم التواصل', style: Theme.of(context).textTheme.bodySmall),
-            Text(booking['phone'].toString(), textDirection: TextDirection.ltr, textAlign: TextAlign.end),
-            if ((renter['notes'] ?? '').toString().trim().isNotEmpty)
-              Text('ملاحظات العميل: ${renter['notes']}'),
-            LabelledAmount('قيمة التأمين', (booking['security_deposit'] as num?) ?? 0),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: _bookingStatusBadge(booking['status']?.toString()),
+            ),
+            const SizedBox(height: 12),
+            _bookingDate(booking['start_date'].toString(), 'من'),
+            _bookingDate(booking['end_date'].toString(), 'إلى'),
+            if (details) ...[
+              const SizedBox(height: 8),
+              Text('رقم التواصل', style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                booking['phone'].toString(),
+                textDirection: TextDirection.ltr,
+                textAlign: TextAlign.end,
+              ),
+              if ((renter['notes'] ?? '').toString().trim().isNotEmpty)
+                Text('ملاحظات العميل: ${renter['notes']}'),
+              LabelledAmount(
+                'قيمة التأمين',
+                (booking['security_deposit'] as num?) ?? 0,
+              ),
+            ],
+            const Divider(height: 24),
+            FutureBuilder<Map<String, double>>(
+              future: _paymentSummaries.putIfAbsent(
+                id,
+                () => dbHelper.queryPaymentSummary(id),
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Text('تعذر تحميل ملخص الدفعات.');
+                }
+                if (!snapshot.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: LinearProgressIndicator(),
+                  );
+                }
+                final summary = snapshot.data!;
+                return AdaptiveItems(
+                  minItemWidth: 180,
+                  children: [
+                    LabelledAmount('الإجمالي', summary['total']!),
+                    LabelledAmount(
+                      'المسدد',
+                      summary['paid']!,
+                      color: AppColors.successText,
+                    ),
+                    LabelledAmount(
+                      'المتبقي',
+                      summary['remaining']!,
+                      color: AppColors.warningText,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () => _showPaymentActions(booking),
+                  child: const ActionLabel(Icons.payments_outlined, 'الدفعات'),
+                ),
+                TextButton(
+                  onPressed: () => _showEditBookingDialog(booking),
+                  child: const ActionLabel(Icons.edit_outlined, 'تعديل'),
+                ),
+                TextButton(
+                  onPressed: () => _confirmDeleteBooking(id),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.errorText,
+                  ),
+                  child: const ActionLabel(Icons.delete_outline, 'حذف'),
+                ),
+              ],
+            ),
           ],
-          const Divider(height: 24),
-          FutureBuilder<Map<String, double>>(
-            future: _paymentSummaries.putIfAbsent(id, () => dbHelper.queryPaymentSummary(id)),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) { return const Text('تعذر تحميل ملخص الدفعات.'); }
-              if (!snapshot.hasData) { return const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator()); }
-              final summary = snapshot.data!;
-              return AdaptiveItems(minItemWidth: 180, children: [
-                LabelledAmount('الإجمالي', summary['total']!),
-                LabelledAmount('المسدد', summary['paid']!, color: AppColors.successText),
-                LabelledAmount('المتبقي', summary['remaining']!, color: AppColors.warningText),
-              ]);
-            },
-          ),
-          const SizedBox(height: 12),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            TextButton(onPressed: () => _showPaymentActions(booking),
-              child: const ActionLabel(Icons.payments_outlined, 'الدفعات')),
-            TextButton(onPressed: () => _showEditBookingDialog(booking),
-              child: const ActionLabel(Icons.edit_outlined, 'تعديل')),
-            TextButton(onPressed: () => _confirmDeleteBooking(id),
-              style: TextButton.styleFrom(foregroundColor: AppColors.errorText),
-              child: const ActionLabel(Icons.delete_outline, 'حذف')),
-          ]),
-        ],
-      )),
+        ),
+      ),
     );
   }
 
   Widget _bookingDate(String date, String label) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text('$label: ${_formatHijriDateOnlyArabic(date)}', style: Theme.of(context).textTheme.bodySmall),
-      Text(date, textDirection: TextDirection.ltr, textAlign: TextAlign.end),
-    ]),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '$label: ${_formatHijriDateOnlyArabic(date)}',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        Text(date, textDirection: TextDirection.ltr, textAlign: TextAlign.end),
+      ],
+    ),
   );
 
   Widget _buildRenterCard(Map<String, dynamic> renter) => Card(
     margin: const EdgeInsets.only(bottom: 12),
-    child: Padding(padding: const EdgeInsets.all(16), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(renter['full_name'].toString(), style: Theme.of(context).textTheme.titleMedium),
-        Text(renter['phone'].toString(), textDirection: TextDirection.ltr, textAlign: TextAlign.end),
-        Text('مرات التأجير: ${renter['rental_count'] ?? 0}'),
-        if ((renter['notes'] ?? '').toString().trim().isNotEmpty)
-          Text('ملاحظات: ${renter['notes']}', style: Theme.of(context).textTheme.bodySmall),
-        if (((renter['rating'] as num?) ?? 0) >= 4 || ((renter['rental_count'] as num?) ?? 0) >= 3)
-          const StatusBadge.success(label: 'عميل مميز وموثوق'),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          TextButton(onPressed: () => _showEditRenterDialog(renter), child: const ActionLabel(Icons.edit_outlined, 'تعديل')),
-          TextButton(onPressed: () => _confirmDeleteRenter(renter['phone']),
-            style: TextButton.styleFrom(foregroundColor: AppColors.errorText),
-            child: const ActionLabel(Icons.delete_outline, 'حذف')),
-        ]),
-      ],
-    )),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            renter['full_name'].toString(),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Text(
+            renter['phone'].toString(),
+            textDirection: TextDirection.ltr,
+            textAlign: TextAlign.end,
+          ),
+          Text('مرات التأجير: ${renter['rental_count'] ?? 0}'),
+          if ((renter['notes'] ?? '').toString().trim().isNotEmpty)
+            Text(
+              'ملاحظات: ${renter['notes']}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          if (((renter['rating'] as num?) ?? 0) >= 4 ||
+              ((renter['rental_count'] as num?) ?? 0) >= 3)
+            const StatusBadge.success(label: 'عميل مميز وموثوق'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              TextButton(
+                onPressed: () => _showEditRenterDialog(renter),
+                child: const ActionLabel(Icons.edit_outlined, 'تعديل'),
+              ),
+              TextButton(
+                onPressed: () => _confirmDeleteRenter(renter['phone']),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.errorText,
+                ),
+                child: const ActionLabel(Icons.delete_outline, 'حذف'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
   );
 
   Widget _buildDayBookingsListAdaptive() {
     final selected = _selectedDay;
-    if (selected == null) { return const Text('يرجى تحديد يوم من التقويم'); }
+    if (selected == null) {
+      return const Text('يرجى تحديد يوم من التقويم');
+    }
     final bookings = _getBookingsForDay(selected)
-      ..sort((a, b) => b['start_date'].toString().compareTo(a['start_date'].toString()));
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text('حجوزات اليوم المحدد', style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: 8),
-      if (bookings.isEmpty) const Text('لا توجد حجوزات في هذا اليوم'),
-      for (final booking in bookings) _buildBookingCard(booking, details: true),
-    ]);
+      ..sort(
+        (a, b) =>
+            b['start_date'].toString().compareTo(a['start_date'].toString()),
+      );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'حجوزات اليوم المحدد',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        if (bookings.isEmpty) const Text('لا توجد حجوزات في هذا اليوم'),
+        for (final booking in bookings)
+          _buildBookingCard(booking, details: true),
+      ],
+    );
   }
 }
 
@@ -1911,11 +2332,17 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
             icon: const Icon(Icons.chevron_left, color: AppColors.primary),
             onPressed: _previousMonth,
           ),
-          Expanded(child: Text(
-            '${getArabicHijriMonthName(_selectedMonth)} ${toArabicDigits(_selectedYear)}',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp(context), color: AppColors.primary),
-          )),
+          Expanded(
+            child: Text(
+              '${getArabicHijriMonthName(_selectedMonth)} ${toArabicDigits(_selectedYear)}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16.sp(context),
+                color: AppColors.primary,
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.chevron_right, color: AppColors.primary),
             onPressed: _nextMonth,
