@@ -8,6 +8,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:resthouse_app/database_helper.dart';
 import 'package:resthouse_app/main.dart';
 import 'package:resthouse_app/pages/booking_manager_page.dart';
+import 'package:resthouse_app/pages/finance_page.dart';
+import 'package:resthouse_app/pages/settings_page.dart';
 import 'package:resthouse_app/theme/app_theme.dart';
 
 Future<void> settleDatabaseUi(WidgetTester tester) async {
@@ -27,6 +29,36 @@ void expectNoLayoutException(WidgetTester tester, String reason) {
     exceptions.add(exception!);
   }
   expect(exceptions, isEmpty, reason: '$reason\n$exceptions');
+}
+
+Widget financeTestApp() {
+  return MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    locale: const Locale('ar', 'SA'),
+    supportedLocales: const [Locale('ar', 'SA')],
+    localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: const FinancePage(),
+  );
+}
+
+Widget settingsTestApp() {
+  return MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    locale: const Locale('ar', 'SA'),
+    supportedLocales: const [Locale('ar', 'SA')],
+    localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: SettingsPage(onDatabaseRestored: () {}),
+  );
 }
 
 Widget bookingTestApp() {
@@ -167,6 +199,52 @@ void main() {
 
     tester.platformDispatcher.clearTextScaleFactorTestValue();
     await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('finance remains usable with seeded data and large text', (
+    tester,
+  ) async {
+    const cases = <(Size, double)>[
+      (Size(320, 800), 1.0),
+      (Size(390, 844), 2.0),
+      (Size(600, 850), 1.5),
+      (Size(1024, 900), 1.0),
+    ];
+    for (final entry in cases) {
+      final (size, scale) = entry;
+      await tester.binding.setSurfaceSize(size);
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      await tester.pumpWidget(financeTestApp());
+      await settleDatabaseUi(tester);
+      expect(find.text('التقرير والتحليل المالي العام'), findsOneWidget);
+      expect(find.text('إجمالي مبالغ الإيجار'), findsOneWidget);
+      expectNoLayoutException(
+        tester,
+        'Finance overflow at ${size.width}x${size.height}, text scale $scale',
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+    tester.platformDispatcher.clearTextScaleFactorTestValue();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('settings remains readable at 320px and 200% text', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 600));
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(() async {
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+      await tester.binding.setSurfaceSize(null);
+    });
+    await tester.pumpWidget(settingsTestApp());
+    await tester.pump();
+    expect(find.text('إدارة البيانات والنسخ الاحتياطي'), findsOneWidget);
+    expectNoLayoutException(
+      tester,
+      'Settings overflowed at 320x600 with 200% text scaling.',
+    );
   });
 
   testWidgets('booking page reaches content below calendar on short phone', (
