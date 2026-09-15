@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../widgets/adaptive_content.dart';
+import '../widgets/responsive_bar_chart.dart';
 import 'package:flutter/services.dart';
 
 import '../utils/responsive.dart';
@@ -334,6 +336,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
+                  isDense: false,
+                  itemHeight: null,
                   decoration: const InputDecoration(labelText: 'المستأجر'),
                   initialValue: selectedPhone,
                   items: renters.map((renter) {
@@ -668,318 +672,135 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
       );
     }
     final netProfit = _totalRevenue - _totalExpenses;
-
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+      body: ContentWidth(
+        child: SingleChildScrollView(
+          key: const PageStorageKey('dashboard-scroll'),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // أزرار العمليات السريعة: صف مرن على الشاشات الواسعة،
-              // وعمود بعرض كامل على الهواتف أو عند تكبير النص.
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isLargeText =
-                      MediaQuery.textScalerOf(context).scale(14) >= 20;
-                  final stackActions =
-                      constraints.maxWidth < 520 || isLargeText;
-
-                  Widget actionContent(IconData icon, String label) {
-                    if (stackActions) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(icon, size: 20),
-                          const SizedBox(height: 4),
-                          Text(label, textAlign: TextAlign.center),
-                        ],
-                      );
-                    }
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(icon, size: 18),
-                        const SizedBox(width: 8),
-                        Text(label),
-                      ],
-                    );
-                  }
-
-                  final actions = <Widget>[
-                    ElevatedButton(
-                      onPressed: _showQuickAddBooking,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: actionContent(Icons.add, 'تسجيل حجز سريع'),
+              AdaptiveItems(
+                minItemWidth: 220,
+                children: [
+                  FilledButton(
+                    onPressed: _showQuickAddBooking,
+                    child: const ActionLabel(Icons.add, 'تسجيل حجز سريع'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _showQuickAddExpense,
+                    child: const ActionLabel(Icons.money, 'تسجيل مصروف سريع'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _showQuickAddRenter,
+                    child: const ActionLabel(
+                      Icons.person_add_outlined,
+                      'عميل جديد',
                     ),
-                    OutlinedButton(
-                      onPressed: _showQuickAddExpense,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryPressed,
-                        side: const BorderSide(color: AppColors.fieldBorder),
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: actionContent(Icons.money, 'تسجيل مصروف سريع'),
-                    ),
-                    OutlinedButton(
-                      onPressed: _showQuickAddRenter,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryPressed,
-                        side: const BorderSide(color: AppColors.fieldBorder),
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: actionContent(
-                        Icons.person_add_outlined,
-                        'عميل جديد',
-                      ),
-                    ),
-                  ];
-
-                  if (stackActions) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (
-                          var index = 0;
-                          index < actions.length;
-                          index++
-                        ) ...[
-                          if (index > 0) const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: actions[index],
-                          ),
-                        ],
-                      ],
-                    );
-                  }
-
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.end,
-                    children: actions,
-                  );
-                },
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-
               if (!_hasRecordedData)
                 _buildDashboardEmptyState()
               else ...[
-                // بطاقات الإحصائيات الفوقية الملونة
-                Row(
+                AdaptiveItems(
+                  key: const ValueKey('dashboard-metrics'),
+                  minItemWidth: 210,
                   children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'إجمالي الإيرادات',
-                        value: '${_totalRevenue.toStringAsFixed(0)} ر.س',
-                        icon: Icons.monetization_on,
-                        color: const Color(0xFF10B981),
-                      ),
+                    MetricCard(
+                      title: 'إجمالي الإيرادات',
+                      value: _totalRevenue,
+                      icon: Icons.monetization_on,
+                      color: AppColors.successText,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'إجمالي المصاريف',
-                        value: '${_totalExpenses.toStringAsFixed(0)} ر.س',
-                        icon: Icons.payment,
-                        color: const Color(0xFFEF4444),
-                      ),
+                    MetricCard(
+                      title: 'إجمالي المصاريف',
+                      value: _totalExpenses,
+                      icon: Icons.payment,
+                      color: AppColors.errorText,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'صافي الأرباح',
-                        value: '${netProfit.toStringAsFixed(0)} ر.س',
-                        icon: Icons.account_balance_wallet,
-                        color: netProfit >= 0
-                            ? AppColors.primary
-                            : AppColors.errorText,
-                      ),
+                    MetricCard(
+                      title: 'صافي الأرباح',
+                      value: netProfit,
+                      icon: Icons.account_balance_wallet,
+                      color: netProfit >= 0
+                          ? AppColors.primary
+                          : AppColors.errorText,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'عدد الحجوزات الكلي',
-                        value: '$_bookingsCount حجز',
-                        icon: Icons.calendar_month,
-                        color: Colors.indigo,
-                      ),
+                    MetricCard(
+                      title: 'عدد الحجوزات الكلي',
+                      value: _bookingsCount,
+                      icon: Icons.calendar_month,
+                      color: Colors.indigo,
+                      isMoney: false,
+                      unit: 'حجز',
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'الحجوزات النشطة حالياً',
-                        value: '$_activeBookingsCount حجز نشط',
-                        icon: Icons.timer,
-                        color: AppColors.warningText,
-                      ),
+                    MetricCard(
+                      title: 'الحجوزات النشطة حالياً',
+                      value: _activeBookingsCount,
+                      icon: Icons.timer,
+                      color: AppColors.warningText,
+                      isMoney: false,
+                      unit: 'حجز نشط',
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'العملاء المسجلين',
-                        value: '$_rentersCount مستأجر',
-                        icon: Icons.people,
-                        color: AppColors.secondaryText,
-                      ),
+                    MetricCard(
+                      title: 'العملاء المسجلين',
+                      value: _rentersCount,
+                      icon: Icons.people,
+                      color: AppColors.secondaryText,
+                      isMoney: false,
+                      unit: 'مستأجر',
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // القسم السفلي: الرسم البياني على اليمين والأنشطة الأخيرة على اليسار
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                AdaptiveItems(
+                  minItemWidth: 480,
+                  maxColumns: 2,
                   children: [
-                    // الرسم البياني (الإيرادات والمصروفات شهرياً)
-                    Expanded(
-                      flex: 3,
-                      child: Card(
-                        color: Colors.white,
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'تقرير الأداء المالي (آخر 5 أشهر)',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15.sp(context),
-                                  color: AppColors.heading,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Wrap(
-                                spacing: 16,
-                                runSpacing: 4,
-                                children: [
-                                  _buildLegendIndicator(
-                                    const Color(0xFF10B981),
-                                    'الإيرادات',
-                                  ),
-                                  _buildLegendIndicator(
-                                    const Color(0xFFEF4444),
-                                    'المصروفات',
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              SizedBox(
-                                height: 250,
-                                child: BarChart(
-                                  BarChartData(
-                                    barGroups: _buildBarChartGroups(),
-                                    titlesData: FlTitlesData(
-                                      topTitles: const AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: false,
-                                        ),
-                                      ),
-                                      rightTitles: const AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: false,
-                                        ),
-                                      ),
-                                      leftTitles: const AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          reservedSize: 40,
-                                        ),
-                                      ),
-                                      bottomTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          getTitlesWidget:
-                                              _getBottomTitlesWidget,
-                                        ),
-                                      ),
-                                    ),
-                                    borderData: FlBorderData(show: false),
-                                    gridData: const FlGridData(
-                                      show: true,
-                                      drawVerticalLine: false,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    SectionCard(
+                      title: 'تقرير الأداء المالي',
+                      child: _buildDashboardChart(),
                     ),
-                    const SizedBox(width: 16),
-                    // قائمة الأنشطة الأخيرة
-                    Expanded(
-                      flex: 2,
-                      child: Card(
-                        color: Colors.white,
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'الأنشطة والعمليات الأخيرة',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15.sp(context),
-                                  color: AppColors.heading,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildActivitiesList(),
-                            ],
-                          ),
-                        ),
-                      ),
+                    SectionCard(
+                      title: 'الأنشطة والعمليات الأخيرة',
+                      child: _buildActivitiesList(),
                     ),
                   ],
                 ),
               ],
+              const SizedBox(height: 16),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildDashboardChart() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text('آخر 5 أشهر', style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 16,
+        runSpacing: 8,
+        children: [
+          _buildLegendIndicator(AppColors.successText, 'الإيرادات'),
+          _buildLegendIndicator(AppColors.errorText, 'المصروفات'),
+        ],
+      ),
+      const SizedBox(height: 24),
+      ResponsiveBarChart(
+        groups: _buildBarChartGroups(),
+        labels: {
+          for (var i = 0; i < _sortedMonths.length; i++) i: _sortedMonths[i],
+        },
+      ),
+    ],
+  );
 
   Widget _buildDashboardEmptyState() {
     return Card(
@@ -1013,57 +834,6 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                 color: AppColors.secondaryText,
                 height: 1.5,
                 fontSize: 13.sp(context),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withValues(alpha: 0.1),
-              foregroundColor: color,
-              radius: 20,
-              child: Icon(icon, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: AppColors.secondaryText,
-                      fontSize: 11.sp(context),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 15.sp(context),
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.text,
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
@@ -1124,109 +894,56 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     return groups;
   }
 
-  Widget _getBottomTitlesWidget(double value, TitleMeta meta) {
-    int index = value.toInt();
-    if (index >= 0 && index < _sortedMonths.length) {
-      final monthStr = _sortedMonths[index];
-      final parts = monthStr.split('-');
-      if (parts.length > 1) {
-        return SideTitleWidget(
-          meta: meta,
-          child: Text(
-            '${parts[1]}/${parts[0].substring(2)}',
-            style: TextStyle(
-              fontSize: 10.sp(context),
-              fontWeight: FontWeight.bold,
-              color: AppColors.secondaryText,
-            ),
-          ),
-        );
-      }
-      return SideTitleWidget(meta: meta, child: Text(monthStr));
-    }
-    return SideTitleWidget(meta: meta, child: const Text(''));
-  }
-
   Widget _buildActivitiesList() {
     if (_recentActivities.isEmpty) {
-      return const SizedBox(
-        height: 180,
-        child: Center(
-          child: Text(
-            'لا توجد أنشطة مسجلة بعد',
-            style: TextStyle(color: AppColors.secondaryText),
-          ),
-        ),
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('لا توجد أنشطة حديثة'),
       );
     }
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _recentActivities.length,
-      separatorBuilder: (context, index) =>
-          const Divider(height: 12, color: AppColors.background),
-      itemBuilder: (context, index) {
-        final act = _recentActivities[index];
-        final isBooking = act.type == 'booking';
-
-        return Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: isBooking
-                  ? const Color(0xFFECFDF5)
-                  : const Color(0xFFFEF2F2),
-              foregroundColor: isBooking
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFFEF4444),
-              radius: 18,
-              child: Icon(
-                isBooking ? Icons.vpn_key_outlined : Icons.receipt_long,
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    act.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.sp(context),
-                      color: AppColors.heading,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    act.date,
-                    style: TextStyle(
-                      fontSize: 10.sp(context),
-                      color: AppColors.secondaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isBooking
-                  ? '+${act.amount.toStringAsFixed(0)}'
-                  : '-${act.amount.toStringAsFixed(0)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13.sp(context),
-                color: isBooking
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-              ),
-            ),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < _recentActivities.length; index++) ...[
+          if (index > 0) const Divider(height: 24),
+          _buildActivity(_recentActivities[index]),
+        ],
+      ],
     );
   }
+
+  Widget _buildActivity(DashboardActivity activity) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            activity.type == 'booking'
+                ? Icons.calendar_month
+                : Icons.payments_outlined,
+            color: activity.type == 'booking'
+                ? AppColors.primary
+                : AppColors.errorText,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              activity.title,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 4),
+      Text(
+        activity.date,
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.end,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      AmountText(activity.amount),
+    ],
+  );
 }
