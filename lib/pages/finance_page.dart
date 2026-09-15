@@ -843,46 +843,61 @@ class _FinancePageState extends State<FinancePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Row 1: Title + Year dropdown + Comparison toggle
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'التقرير المالي للعمليات',
-                style: TextStyle(
-                  fontSize: 18.sp(context),
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.heading,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked =
+                constraints.maxWidth < 680 || Responsive.hasLargeText(context);
+
+            Widget yearDropdown({
+              required int value,
+              required Color color,
+              required ValueChanged<int?> onChanged,
+            }) {
+              return Container(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 2,
                 ),
-              ),
-            ),
-            // Year dropdown
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(20),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.primary.withAlpha(60)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
+                decoration: BoxDecoration(
+                  color: color.withAlpha(20),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withAlpha(60)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: value,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: color,
+                      size: 20,
+                    ),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    items: _getYearRange().map((year) {
+                      return DropdownMenuItem<int>(
+                        value: year,
+                        child: Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Text('$year'),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: onChanged,
+                  ),
+                ),
+              );
+            }
+
+            final filterControls = Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                yearDropdown(
                   value: _selectedYear,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                    fontSize: 14.sp(context),
-                  ),
-                  items: _getYearRange().map((year) {
-                    return DropdownMenuItem<int>(
-                      value: year,
-                      child: Text('$year'),
-                    );
-                  }).toList(),
+                  color: AppColors.primary,
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
@@ -892,95 +907,79 @@ class _FinancePageState extends State<FinancePage> {
                     }
                   },
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Comparison toggle
-            FilterChip(
-              label: Text(
-                'مقارنة مالية',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12.sp(context),
-                  color: _showComparison
-                      ? Colors.white
-                      : const Color(0xFF6366F1),
-                ),
-              ),
-              avatar: Icon(
-                Icons.compare_arrows,
-                size: 16,
-                color: _showComparison ? Colors.white : const Color(0xFF6366F1),
-              ),
-              selected: _showComparison,
-              selectedColor: const Color(0xFF6366F1),
-              backgroundColor: const Color(0xFF6366F1).withAlpha(20),
-              checkmarkColor: Colors.white,
-              onSelected: (val) {
-                setState(() {
-                  _showComparison = val;
-                });
-              },
-            ),
-            if (_showComparison) ...[
-              const SizedBox(width: 8),
-              Text(
-                'مقابل',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.secondaryText,
-                  fontSize: 12.sp(context),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withAlpha(20),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFF6366F1).withAlpha(60),
+                FilterChip(
+                  label: Text(
+                    'مقارنة مالية',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: _showComparison
+                          ? Colors.white
+                          : const Color(0xFF6366F1),
+                    ),
                   ),
+                  avatar: Icon(
+                    Icons.compare_arrows,
+                    size: 16,
+                    color: _showComparison
+                        ? Colors.white
+                        : const Color(0xFF6366F1),
+                  ),
+                  selected: _showComparison,
+                  selectedColor: const Color(0xFF6366F1),
+                  backgroundColor: const Color(0xFF6366F1).withAlpha(20),
+                  checkmarkColor: Colors.white,
+                  onSelected: (value) =>
+                      setState(() => _showComparison = value),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
+                if (_showComparison)
+                  Text(
+                    'مقابل',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                if (_showComparison)
+                  yearDropdown(
                     value: _comparisonYear,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Color(0xFF6366F1),
-                      size: 20,
-                    ),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6366F1),
-                      fontSize: 14.sp(context),
-                    ),
-                    items: _getYearRange().map((year) {
-                      return DropdownMenuItem<int>(
-                        value: year,
-                        child: Text('$year'),
-                      );
-                    }).toList(),
+                    color: const Color(0xFF6366F1),
                     onChanged: (value) {
                       if (value != null) {
-                        setState(() {
-                          _comparisonYear = value;
-                        });
+                        setState(() => _comparisonYear = value);
                       }
                     },
                   ),
-                ),
-              ),
-            ],
-          ],
+              ],
+            );
+
+            final title = Text(
+              'التقرير المالي للعمليات',
+              style: Theme.of(context).textTheme.titleMedium,
+            );
+
+            if (stacked) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  title,
+                  const SizedBox(height: AppSpacing.xs),
+                  filterControls,
+                ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: title),
+                const SizedBox(width: AppSpacing.sm),
+                Flexible(child: filterControls),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 12),
         // Row 2: Full Year chip + Month chips
         SizedBox(
-          height: 38,
+          height: Responsive.hasLargeText(context) ? 64 : 48,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
@@ -1099,7 +1098,8 @@ class _FinancePageState extends State<FinancePage> {
       // [تعديل] تم تغليف المحتوى الرئيسي بـ SingleChildScrollView للسماح بالتمرير على الشاشات الصغيرة
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 950;
+          final isWide =
+              constraints.maxWidth >= 950 && !Responsive.hasLargeText(context);
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -1172,75 +1172,124 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   Widget _buildSubTabSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _activeTab = 0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _activeTab == 0
-                      ? AppColors.primary
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'التقرير والتحليل المالي العام',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _activeTab == 0
-                        ? Colors.white
-                        : AppColors.secondaryText,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp(context),
-                  ),
-                ),
+    Widget tab({required int index, required String label}) {
+      final selected = _activeTab == index;
+      return Material(
+        color: selected ? AppColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: () => setState(() => _activeTab = index),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            alignment: Alignment.center,
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              softWrap: true,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: selected ? Colors.white : AppColors.secondaryText,
               ),
             ),
           ),
-          Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _activeTab = 1),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _activeTab == 1
-                      ? AppColors.primary
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'المقارنة المالية المتقدمة',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _activeTab == 1
-                        ? Colors.white
-                        : AppColors.secondaryText,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp(context),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked =
+                constraints.maxWidth < 520 || Responsive.hasLargeText(context);
+            final report = tab(
+              index: 0,
+              label: 'التقرير والتحليل المالي العام',
+            );
+            final comparison = tab(
+              index: 1,
+              label: 'المقارنة المالية المتقدمة',
+            );
+            if (stacked) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  report,
+                  const SizedBox(height: AppSpacing.xs),
+                  comparison,
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: report),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(child: comparison),
+              ],
+            );
+          },
+        ),
       ),
+    );
+  }
+
+  Widget _buildFinanceSummaryGrid(double netIncome) {
+    final cards = <Widget>[
+      _buildCard(
+        'إجمالي مبالغ الإيجار',
+        _totalRevenue,
+        const Color(0xFF10B981),
+        Icons.monetization_on_outlined,
+      ),
+      _buildCard(
+        'التأمينات المعلقة',
+        _totalSecurityDeposit,
+        const Color(0xFF0284C7),
+        Icons.security_outlined,
+      ),
+      _buildCard(
+        'إجمالي المصروفات',
+        _totalExpenses,
+        const Color(0xFFEF4444),
+        Icons.arrow_downward,
+      ),
+      _buildCard(
+        'صافي الأرباح',
+        netIncome,
+        netIncome >= 0 ? AppColors.primary : AppColors.errorText,
+        Icons.account_balance,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = Responsive.textScale(context);
+        final minWidth = scale >= 1.5
+            ? 280.0
+            : scale >= 1.3
+            ? 220.0
+            : 180.0;
+        final columns = Responsive.columnCountForWidth(
+          constraints.maxWidth,
+          minItemWidth: minWidth,
+          maxColumns: 4,
+        );
+        final width = Responsive.itemWidthForColumns(
+          constraints.maxWidth,
+          columns: columns,
+        );
+        return Wrap(
+          spacing: Responsive.gap,
+          runSpacing: Responsive.gap,
+          children: [
+            for (final card in cards) SizedBox(width: width, child: card),
+          ],
+        );
+      },
     );
   }
 
@@ -1252,94 +1301,7 @@ class _FinancePageState extends State<FinancePage> {
       children: [
         _buildAdvancedFilterPanel(),
         const SizedBox(height: 16),
-        if (isWide)
-          Row(
-            children: [
-              Expanded(
-                child: _buildCard(
-                  'إجمالي مبالغ الإيجار',
-                  _totalRevenue,
-                  const Color(0xFF10B981),
-                  Icons.monetization_on_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildCard(
-                  'التأمينات المعلقة',
-                  _totalSecurityDeposit,
-                  const Color(0xFF0284C7),
-                  Icons.security_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildCard(
-                  'إجمالي المصروفات',
-                  _totalExpenses,
-                  const Color(0xFFEF4444),
-                  Icons.arrow_downward,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildCard(
-                  'صافي الأرباح',
-                  netIncome,
-                  netIncome >= 0 ? AppColors.primary : AppColors.errorText,
-                  Icons.account_balance,
-                ),
-              ),
-            ],
-          )
-        else
-          Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCard(
-                      'إجمالي مبالغ الإيجار',
-                      _totalRevenue,
-                      const Color(0xFF10B981),
-                      Icons.monetization_on_outlined,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildCard(
-                      'التأمينات المعلقة',
-                      _totalSecurityDeposit,
-                      const Color(0xFF0284C7),
-                      Icons.security_outlined,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCard(
-                      'إجمالي المصروفات',
-                      _totalExpenses,
-                      const Color(0xFFEF4444),
-                      Icons.arrow_downward,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildCard(
-                      'صافي الأرباح',
-                      netIncome,
-                      netIncome >= 0 ? AppColors.primary : AppColors.errorText,
-                      Icons.account_balance,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        _buildFinanceSummaryGrid(netIncome),
         const SizedBox(height: 24),
         // [تعديل] تم إزالة Expanded واستخدام isScrollable: true لعرض المحتوى بارتفاع ثابت
         // بدلاً من الاعتماد على Expanded الذي لا يعمل مع SingleChildScrollView
@@ -1462,33 +1424,50 @@ class _FinancePageState extends State<FinancePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.compare_arrows, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'تحديد خيارات المقارنة',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp(context),
-                    color: AppColors.heading,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.all(2),
-                  child: Row(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stacked =
+                    constraints.maxWidth < 620 ||
+                    Responsive.hasLargeText(context);
+                final heading = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.compare_arrows, color: AppColors.primary),
+                    const SizedBox(width: AppSpacing.xs),
+                    Flexible(
+                      child: Text(
+                        'تحديد خيارات المقارنة',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                  ],
+                );
+                final types = Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    _buildComparisonTypeButton('months', 'مقارنة بين الأشهر'),
+                    _buildComparisonTypeButton('years', 'مقارنة بين السنوات'),
+                  ],
+                );
+                if (stacked) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildComparisonTypeButton('months', 'مقارنة بين الأشهر'),
-                      _buildComparisonTypeButton('years', 'مقارنة بين السنوات'),
+                      heading,
+                      const SizedBox(height: AppSpacing.xs),
+                      types,
                     ],
-                  ),
-                ),
-              ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: heading),
+                    const SizedBox(width: AppSpacing.sm),
+                    types,
+                  ],
+                );
+              },
             ),
             const Divider(height: 24),
             if (_comparisonType == 'months') ...[
@@ -1549,16 +1528,15 @@ class _FinancePageState extends State<FinancePage> {
                 ),
               ),
             ] else ...[
-              Row(
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Text(
-                    'السنة الأولى: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.secondaryText,
-                    ),
+                  Text(
+                    'السنة الأولى:',
+                    style: Theme.of(context).textTheme.labelMedium,
                   ),
-                  const SizedBox(width: 8),
                   _buildDropdown<int>(
                     value: _compYear1,
                     items: _getYearRange(),
@@ -1566,15 +1544,11 @@ class _FinancePageState extends State<FinancePage> {
                       if (val != null) setState(() => _compYear1 = val);
                     },
                   ),
-                  const SizedBox(width: 32),
-                  const Text(
-                    'السنة الثانية: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.secondaryText,
-                    ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'السنة الثانية:',
+                    style: Theme.of(context).textTheme.labelMedium,
                   ),
-                  const SizedBox(width: 8),
                   _buildDropdown<int>(
                     value: _compYear2,
                     items: _getYearRange(),
