@@ -40,10 +40,7 @@ class Responsive {
     return MediaQuery.textScalerOf(context).scale(sampleSize) / sampleSize;
   }
 
-  static bool hasLargeText(
-    BuildContext context, {
-    double threshold = 1.3,
-  }) {
+  static bool hasLargeText(BuildContext context, {double threshold = 1.3}) {
     return textScale(context) >= threshold;
   }
 
