@@ -1,0 +1,61 @@
+name: Responsive layout verification
+
+on:
+  push:
+    branches: [fix/responsive-arabic-layout]
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/responsive_layout_test.dart'
+      - '.github/workflows/responsive-layout.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: responsive-layout-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Format changed layout files
+        run: >-
+          dart format lib/widgets lib/pages/booking_manager_page.dart
+          lib/pages/finance_page.dart lib/pages/main_shell.dart
+          lib/pages/ultimate_dashboard_page.dart test/responsive_layout_test.dart
+      - run: flutter analyze
+      - name: Test populated Arabic layouts and capture real Flutter frames
+        env:
+          CAPTURE_LAYOUT: '1'
+        run: flutter test test/responsive_layout_test.dart --reporter expanded
+      - name: Upload review frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-layout-frames
+          path: build/layout-captures
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload formatted source
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-formatted-source
+          path: |
+            lib/widgets
+            lib/pages/booking_manager_page.dart
+            lib/pages/finance_page.dart
+            lib/pages/main_shell.dart
+            lib/pages/ultimate_dashboard_page.dart
+            test/responsive_layout_test.dart
+          retention-days: 14
