@@ -57,7 +57,9 @@ class Responsive {
   }) {
     if (!availableWidth.isFinite || availableWidth <= 0) return 1;
     final raw = ((availableWidth + spacing) / (minItemWidth + spacing)).floor();
-    return raw.clamp(1, maxColumns);
+    if (raw < 1) return 1;
+    if (raw > maxColumns) return maxColumns;
+    return raw;
   }
 
   static double itemWidthForColumns(
