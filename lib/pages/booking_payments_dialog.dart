@@ -176,10 +176,7 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              AmountText(
-                                payment['amount'] as num,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
+                              _PaymentAmount(amount: payment['amount'] as num),
                               const SizedBox(height: 8),
                               Align(
                                 alignment: AlignmentDirectional.centerStart,
@@ -259,6 +256,36 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
           child: const Text('إغلاق'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaymentAmount extends StatelessWidget {
+  const _PaymentAmount({required this.amount});
+
+  final num amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.titleLarge;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          amount.toStringAsFixed(2),
+          textDirection: TextDirection.ltr,
+          softWrap: false,
+          style: style,
+        ),
+        Text(
+          'ر.س',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: style?.color),
         ),
       ],
     );

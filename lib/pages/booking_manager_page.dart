@@ -1443,7 +1443,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               textDirection: TextDirection.ltr,
               style: TextStyle(
                 fontSize: 14,
-                height: 1.5,
+                height: 1.25,
                 color: color,
                 fontWeight: FontWeight.w600,
               ),
@@ -1453,7 +1453,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               textDirection: TextDirection.ltr,
               style: TextStyle(
                 fontSize: 12,
-                height: 1.5,
+                height: 1.25,
                 color: isSelected ? Colors.white : AppColors.secondaryText,
               ),
             ),
@@ -1737,7 +1737,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             locale: 'ar_SA',
             startingDayOfWeek: StartingDayOfWeek.sunday,
             headerVisible: false,
-            rowHeight: 40 * scale + 24,
+            rowHeight: 56 * scale + 28,
             daysOfWeekHeight: 24 * scale + 12,
             calendarStyle: const CalendarStyle(cellMargin: EdgeInsets.zero),
             calendarBuilders: CalendarBuilders(
