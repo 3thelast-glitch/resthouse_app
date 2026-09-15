@@ -24,6 +24,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.head.sha }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
       - name: Apply verified large-text fixes
         if: github.event_name == 'push'
         shell: python
@@ -35,7 +40,7 @@ jobs:
           old = "decoration: InputDecoration(labelText: 'بحث بالاسم أو رقم الهاتف',"
           new = "decoration: InputDecoration(labelText: 'بحث', hintText: 'الاسم أو رقم الهاتف',"
           count = source.count(old)
-          if count not in (0, 2):
+          if count not in (0, 1):
               raise SystemExit(f'Unexpected booking search field count: {count}')
           if count:
               booking.write_text(source.replace(old, new), encoding='utf-8')
@@ -64,11 +69,6 @@ jobs:
           git add lib/pages/booking_manager_page.dart test/responsive_layout_test.dart
           git commit -m "fix(ui): prevent large-text search clipping"
           git push origin HEAD:${GITHUB_REF_NAME}
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.35.7'
-          channel: stable
-          cache: true
       - run: flutter pub get
       - name: Format changed layout files
         run: >-
