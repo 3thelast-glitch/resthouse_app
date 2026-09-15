@@ -54,12 +54,21 @@ class _MainShellPageState extends State<MainShellPage> {
     final isCompact = width < 600;
     final isLargeText = textScaler.scale(14) >= 20;
     final showPropertyName = width >= 1024 && !isLargeText;
-    final title = isCompact || isLargeText ? _compactTitles[_selectedIndex] : _titles[_selectedIndex];
-    final titleStyle = Theme.of(context).textTheme.titleLarge!.copyWith(color: Colors.white);
-    final titlePainter = TextPainter(text: TextSpan(text: title, style: titleStyle),
-      textDirection: TextDirection.rtl, textScaler: textScaler)
-      ..layout(maxWidth: width - 32 - (showPropertyName ? 260 : 0));
-    final toolbarHeight = (titlePainter.height + 24).clamp(68.0, double.infinity);
+    final title = isCompact || isLargeText
+        ? _compactTitles[_selectedIndex]
+        : _titles[_selectedIndex];
+    final titleStyle = Theme.of(
+      context,
+    ).textTheme.titleLarge!.copyWith(color: Colors.white);
+    final titlePainter = TextPainter(
+      text: TextSpan(text: title, style: titleStyle),
+      textDirection: TextDirection.rtl,
+      textScaler: textScaler,
+    )..layout(maxWidth: width - 32 - (showPropertyName ? 260 : 0));
+    final toolbarHeight = (titlePainter.height + 24).clamp(
+      68.0,
+      double.infinity,
+    );
     titlePainter.dispose();
 
     return Scaffold(
@@ -92,18 +101,25 @@ class _MainShellPageState extends State<MainShellPage> {
               ]
             : null,
       ),
-      body: SafeArea(top: false, bottom: isWide, child: Row(
-        children: [
-          if (isWide) ...[_buildSidebar(isLargeText: isLargeText), const VerticalDivider(width: 1)],
-          Expanded(
-            key: const ValueKey('page-host'),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: _pages[_selectedIndex],
+      body: SafeArea(
+        top: false,
+        bottom: isWide,
+        child: Row(
+          children: [
+            if (isWide) ...[
+              _buildSidebar(isLargeText: isLargeText),
+              const VerticalDivider(width: 1),
+            ],
+            Expanded(
+              key: const ValueKey('page-host'),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _pages[_selectedIndex],
+              ),
             ),
-          ),
-        ],
-      )),
+          ],
+        ),
+      ),
       bottomNavigationBar: isWide
           ? null
           : ContentLayout.textScale(context) > 1.25
@@ -145,29 +161,58 @@ class _MainShellPageState extends State<MainShellPage> {
 
   Widget _buildLargeTextNavigation() => Material(
     color: AppColors.surface,
-    child: SafeArea(top: false, child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: LayoutBuilder(builder: (context, constraints) {
-        const icons = [Icons.dashboard_outlined, Icons.calendar_month_outlined,
-          Icons.account_balance_wallet_outlined, Icons.settings_outlined];
-        final columns = constraints.maxWidth >= 600 ? 4 : 2;
-        return Wrap(children: [for (var i = 0; i < 4; i++) SizedBox(
-          width: constraints.maxWidth / columns,
-          child: Semantics(selected: _selectedIndex == i, child: TextButton(
-            key: ValueKey('large-nav-$i'),
-            onPressed: () => setState(() => _selectedIndex = i),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.all(6),
-              foregroundColor: _selectedIndex == i ? AppColors.primaryPressed : AppColors.secondaryText,
-              backgroundColor: _selectedIndex == i ? AppColors.selectedSurface : null),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icons[i], size: 22),
-              Text(_compactTitles[i], textAlign: TextAlign.center, style: const TextStyle(fontSize: 14)),
-            ]),
-          )),
-        )]);
-      }),
-    )),
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const icons = [
+              Icons.dashboard_outlined,
+              Icons.calendar_month_outlined,
+              Icons.account_balance_wallet_outlined,
+              Icons.settings_outlined,
+            ];
+            final columns = constraints.maxWidth >= 600 ? 4 : 2;
+            return Wrap(
+              children: [
+                for (var i = 0; i < 4; i++)
+                  SizedBox(
+                    width: constraints.maxWidth / columns,
+                    child: Semantics(
+                      selected: _selectedIndex == i,
+                      child: TextButton(
+                        key: ValueKey('large-nav-$i'),
+                        onPressed: () => setState(() => _selectedIndex = i),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.all(6),
+                          foregroundColor: _selectedIndex == i
+                              ? AppColors.primaryPressed
+                              : AppColors.secondaryText,
+                          backgroundColor: _selectedIndex == i
+                              ? AppColors.selectedSurface
+                              : null,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(icons[i], size: 22),
+                            Text(
+                              _compactTitles[i],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
   );
 
   Widget _buildSidebar({required bool isLargeText}) {

@@ -112,7 +112,9 @@ class _FinancePageState extends State<FinancePage> {
     final expenses = await dbHelper.queryAllExpenses();
     final distinctDescs = await dbHelper.getDistinctExpenseDescriptions();
 
-    if (!mounted) { return; }
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _allBookings = bookings;
       _allExpenses = expenses;
@@ -269,7 +271,9 @@ class _FinancePageState extends State<FinancePage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2050),
                         );
-                        if (!dialogContext.mounted) { return; }
+                        if (!dialogContext.mounted) {
+                          return;
+                        }
                         if (date != null) {
                           setDialogState(() => selectedDate = date);
                         }
@@ -343,7 +347,9 @@ class _FinancePageState extends State<FinancePage> {
                 });
 
                 await _loadFinance();
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم تسجيل المصروف بنجاح')),
@@ -472,7 +478,9 @@ class _FinancePageState extends State<FinancePage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2050),
                         );
-                        if (!dialogContext.mounted) { return; }
+                        if (!dialogContext.mounted) {
+                          return;
+                        }
                         if (date != null) {
                           setDialogState(() => selectedDate = date);
                         }
@@ -547,7 +555,9 @@ class _FinancePageState extends State<FinancePage> {
                 });
 
                 await _loadFinance();
-                if (!dialogContext.mounted) { return; }
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم تحديث المصروف بنجاح')),
@@ -581,7 +591,9 @@ class _FinancePageState extends State<FinancePage> {
             onPressed: () async {
               await dbHelper.deleteExpense(id);
               await _loadFinance();
-              if (!dialogContext.mounted) { return; }
+              if (!dialogContext.mounted) {
+                return;
+              }
               Navigator.pop(dialogContext);
               ScaffoldMessenger.of(dialogContext).showSnackBar(
                 const SnackBar(content: Text('تم حذف المصروف بنجاح')),
@@ -609,7 +621,9 @@ class _FinancePageState extends State<FinancePage> {
 
   List<PieChartSectionData> _buildPieSections() {
     final catTotals = _getCategoryTotals();
-    if (catTotals.isEmpty) { return []; }
+    if (catTotals.isEmpty) {
+      return [];
+    }
 
     final colorsMap = _getCategoryColors();
 
@@ -630,11 +644,19 @@ class _FinancePageState extends State<FinancePage> {
     }).toList();
   }
 
-  Widget _buildPieLegend() => Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [for (final entry in _getCategoryTotals().entries) Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: LabelledAmount('${entry.key} (${(_totalExpenses > 0 ? entry.value / _totalExpenses * 100 : 0).toStringAsFixed(0)}%)', entry.value, color: _getCategoryColors()[entry.key]),
-    )],
+  Widget _buildPieLegend() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final entry in _getCategoryTotals().entries)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: LabelledAmount(
+            '${entry.key} (${(_totalExpenses > 0 ? entry.value / _totalExpenses * 100 : 0).toStringAsFixed(0)}%)',
+            entry.value,
+            color: _getCategoryColors()[entry.key],
+          ),
+        ),
+    ],
   );
 
   List<BarChartGroupData> _buildComparativeBarGroups() {
@@ -768,46 +790,119 @@ class _FinancePageState extends State<FinancePage> {
 
   // Build the advanced filter UI widget
   Widget _buildAdvancedFilterPanel() {
-    const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text('التقرير المالي للعمليات', style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: 12),
-      AdaptiveItems(minItemWidth: 200, maxColumns: 3, children: [
-        _labelledDropdown('السنة', _selectedYear, _getYearRange(), (value) {
-          if (value != null) { setState(() { _selectedYear = value; _applyFilter(); }); }
-        }),
-        FilterChip(label: const Text('مقارنة مالية'), selected: _showComparison,
-          onSelected: (value) => setState(() => _showComparison = value)),
-        if (_showComparison) _labelledDropdown('مقابل سنة', _comparisonYear, _getYearRange(), (value) {
-          if (value != null) { setState(() => _comparisonYear = value); }
-        }),
-      ]),
-      ExpansionTile(tilePadding: EdgeInsets.zero, title: const Text('الأشهر والفترة'),
-        subtitle: Text(_fullYearSelected ? 'السنة كاملة' : _selectedMonths.map((m) => months[m - 1]).join('، ')),
-        children: [
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            FilterChip(label: const Text('السنة كاملة'), selected: _fullYearSelected,
-              onSelected: (value) => setState(() {
-                _fullYearSelected = value;
-                _selectedMonths = value ? {for (var i = 1; i <= 12; i++) i} : {DateTime.now().month};
-                _applyFilter();
-              })),
-            for (var i = 1; i <= 12; i++) FilterChip(label: Text(months[i - 1]),
-              selected: _selectedMonths.contains(i),
-              onSelected: _fullYearSelected ? null : (value) => setState(() {
-                if (value) { _selectedMonths.add(i); } else if (_selectedMonths.length > 1) { _selectedMonths.remove(i); }
-                _applyFilter();
-              })),
-          ]),
-        ]),
-    ]);
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'التقرير المالي للعمليات',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        AdaptiveItems(
+          minItemWidth: 200,
+          maxColumns: 3,
+          children: [
+            _labelledDropdown('السنة', _selectedYear, _getYearRange(), (value) {
+              if (value != null) {
+                setState(() {
+                  _selectedYear = value;
+                  _applyFilter();
+                });
+              }
+            }),
+            FilterChip(
+              label: const Text('مقارنة مالية'),
+              selected: _showComparison,
+              onSelected: (value) => setState(() => _showComparison = value),
+            ),
+            if (_showComparison)
+              _labelledDropdown('مقابل سنة', _comparisonYear, _getYearRange(), (
+                value,
+              ) {
+                if (value != null) {
+                  setState(() => _comparisonYear = value);
+                }
+              }),
+          ],
+        ),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('الأشهر والفترة'),
+          subtitle: Text(
+            _fullYearSelected
+                ? 'السنة كاملة'
+                : _selectedMonths.map((m) => months[m - 1]).join('، '),
+          ),
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('السنة كاملة'),
+                  selected: _fullYearSelected,
+                  onSelected: (value) => setState(() {
+                    _fullYearSelected = value;
+                    _selectedMonths = value
+                        ? {for (var i = 1; i <= 12; i++) i}
+                        : {DateTime.now().month};
+                    _applyFilter();
+                  }),
+                ),
+                for (var i = 1; i <= 12; i++)
+                  FilterChip(
+                    label: Text(months[i - 1]),
+                    selected: _selectedMonths.contains(i),
+                    onSelected: _fullYearSelected
+                        ? null
+                        : (value) => setState(() {
+                            if (value) {
+                              _selectedMonths.add(i);
+                            } else if (_selectedMonths.length > 1) {
+                              _selectedMonths.remove(i);
+                            }
+                            _applyFilter();
+                          }),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
-  Widget _labelledDropdown(String label, int value, List<int> items, ValueChanged<int?> onChanged,
-      {String Function(int)? itemToString}) => Column(
+  Widget _labelledDropdown(
+    String label,
+    int value,
+    List<int> items,
+    ValueChanged<int?> onChanged, {
+    String Function(int)? itemToString,
+  }) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [Text(label, style: Theme.of(context).textTheme.bodySmall),
-      _buildDropdown<int>(value: value, items: items, onChanged: onChanged, itemToString: itemToString)],
+    children: [
+      Text(label, style: Theme.of(context).textTheme.bodySmall),
+      _buildDropdown<int>(
+        value: value,
+        items: items,
+        onChanged: onChanged,
+        itemToString: itemToString,
+      ),
+    ],
   );
 
   @override
@@ -824,22 +919,48 @@ class _FinancePageState extends State<FinancePage> {
     final hasFinancialData = _allBookings.isNotEmpty || _allExpenses.isNotEmpty;
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: ContentWidth(child: LayoutBuilder(builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 1024 * ContentLayout.textScale(context);
-        return CustomScrollView(key: const PageStorageKey('finance-scroll'), slivers: [
-          SliverPadding(padding: const EdgeInsets.all(16), sliver: SliverMainAxisGroup(slivers: [
-            SliverToBoxAdapter(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              if (hasFinancialData) ...[
-                _buildSubTabSelector(), const SizedBox(height: 16),
-                _activeTab == 0 ? _buildReportTabContent(wide) : _buildComparisonTabContent(wide),
-                if (_activeTab == 0) ...[const SizedBox(height: 24), _buildExpensesHeader()],
-              ] else _buildFinancialEmptyState(),
-            ])),
-            if (hasFinancialData && _activeTab == 0) _buildExpensesList(),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-          ])),
-        ]);
-      })),
+      body: ContentWidth(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide =
+                constraints.maxWidth >= 1024 * ContentLayout.textScale(context);
+            return CustomScrollView(
+              key: const PageStorageKey('finance-scroll'),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (hasFinancialData) ...[
+                              _buildSubTabSelector(),
+                              const SizedBox(height: 16),
+                              _activeTab == 0
+                                  ? _buildReportTabContent(wide)
+                                  : _buildComparisonTabContent(wide),
+                              if (_activeTab == 0) ...[
+                                const SizedBox(height: 24),
+                                _buildExpensesHeader(),
+                              ],
+                            ] else
+                              _buildFinancialEmptyState(),
+                          ],
+                        ),
+                      ),
+                      if (hasFinancialData && _activeTab == 0)
+                        _buildExpensesList(),
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -893,24 +1014,61 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
-  Widget _buildSubTabSelector() => AdaptiveItems(minItemWidth: 250, maxColumns: 2, children: [
-    ChoiceChip(key: const ValueKey('finance-report-tab'), label: const Text('التقرير والتحليل المالي العام'),
-      selected: _activeTab == 0, onSelected: (_) => setState(() => _activeTab = 0)),
-    ChoiceChip(key: const ValueKey('finance-comparison-tab'), label: const Text('المقارنة المالية المتقدمة'),
-      selected: _activeTab == 1, onSelected: (_) => setState(() => _activeTab = 1)),
-  ]);
+  Widget _buildSubTabSelector() => AdaptiveItems(
+    minItemWidth: 250,
+    maxColumns: 2,
+    children: [
+      ChoiceChip(
+        key: const ValueKey('finance-report-tab'),
+        label: const Text('التقرير والتحليل المالي العام'),
+        selected: _activeTab == 0,
+        onSelected: (_) => setState(() => _activeTab = 0),
+      ),
+      ChoiceChip(
+        key: const ValueKey('finance-comparison-tab'),
+        label: const Text('المقارنة المالية المتقدمة'),
+        selected: _activeTab == 1,
+        onSelected: (_) => setState(() => _activeTab = 1),
+      ),
+    ],
+  );
 
   Widget _buildReportTabContent(bool isWide) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      _buildAdvancedFilterPanel(), const SizedBox(height: 16),
-      AdaptiveItems(minItemWidth: 210, children: [
-        _buildCard('إجمالي مبالغ الإيجار', _totalRevenue, AppColors.successText, Icons.monetization_on_outlined),
-        _buildCard('التأمينات المعلقة', _totalSecurityDeposit, AppColors.primary, Icons.security_outlined),
-        _buildCard('إجمالي المصروفات', _totalExpenses, AppColors.errorText, Icons.arrow_downward),
-        _buildCard('صافي الأرباح', _totalRevenue - _totalExpenses, AppColors.primary, Icons.account_balance),
-      ]),
-      const SizedBox(height: 24), _buildChartsSection(),
+      _buildAdvancedFilterPanel(),
+      const SizedBox(height: 16),
+      AdaptiveItems(
+        minItemWidth: 210,
+        children: [
+          _buildCard(
+            'إجمالي مبالغ الإيجار',
+            _totalRevenue,
+            AppColors.successText,
+            Icons.monetization_on_outlined,
+          ),
+          _buildCard(
+            'التأمينات المعلقة',
+            _totalSecurityDeposit,
+            AppColors.primary,
+            Icons.security_outlined,
+          ),
+          _buildCard(
+            'إجمالي المصروفات',
+            _totalExpenses,
+            AppColors.errorText,
+            Icons.arrow_downward,
+          ),
+          _buildCard(
+            'صافي الأرباح',
+            _totalRevenue - _totalExpenses,
+            AppColors.primary,
+            Icons.account_balance,
+          ),
+        ],
+      ),
+      const SizedBox(height: 24),
+      _buildChartsSection(),
     ],
   );
 
@@ -984,31 +1142,99 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   Widget _buildComparisonControls() {
-    const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-    return SectionCard(title: 'تحديد خيارات المقارنة', child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AdaptiveItems(minItemWidth: 230, maxColumns: 2, children: [
-          ChoiceChip(label: const Text('مقارنة بين الأشهر'), selected: _comparisonType == 'months',
-            onSelected: (_) => setState(() => _comparisonType = 'months')),
-          ChoiceChip(label: const Text('مقارنة بين السنوات'), selected: _comparisonType == 'years',
-            onSelected: (_) => setState(() => _comparisonType = 'years')),
-        ]),
-        const SizedBox(height: 16),
-        AdaptiveItems(minItemWidth: 200, children: [
-          if (_comparisonType == 'months') ...[
-            _labelledDropdown('السنة', _compMonthYear, _getYearRange(), (v) { if (v != null) { setState(() => _compMonthYear = v); } }),
-            _labelledDropdown('الشهر الأول', _compMonth1, List.generate(12, (i) => i + 1),
-              (v) { if (v != null) { setState(() => _compMonth1 = v); } }, itemToString: (v) => months[v - 1]),
-            _labelledDropdown('الشهر الثاني', _compMonth2, List.generate(12, (i) => i + 1),
-              (v) { if (v != null) { setState(() => _compMonth2 = v); } }, itemToString: (v) => months[v - 1]),
-          ] else ...[
-            _labelledDropdown('السنة الأولى', _compYear1, _getYearRange(), (v) { if (v != null) { setState(() => _compYear1 = v); } }),
-            _labelledDropdown('السنة الثانية', _compYear2, _getYearRange(), (v) { if (v != null) { setState(() => _compYear2 = v); } }),
-          ],
-        ]),
-      ],
-    ));
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+    return SectionCard(
+      title: 'تحديد خيارات المقارنة',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AdaptiveItems(
+            minItemWidth: 230,
+            maxColumns: 2,
+            children: [
+              ChoiceChip(
+                label: const Text('مقارنة بين الأشهر'),
+                selected: _comparisonType == 'months',
+                onSelected: (_) => setState(() => _comparisonType = 'months'),
+              ),
+              ChoiceChip(
+                label: const Text('مقارنة بين السنوات'),
+                selected: _comparisonType == 'years',
+                onSelected: (_) => setState(() => _comparisonType = 'years'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          AdaptiveItems(
+            minItemWidth: 200,
+            children: [
+              if (_comparisonType == 'months') ...[
+                _labelledDropdown('السنة', _compMonthYear, _getYearRange(), (
+                  v,
+                ) {
+                  if (v != null) {
+                    setState(() => _compMonthYear = v);
+                  }
+                }),
+                _labelledDropdown(
+                  'الشهر الأول',
+                  _compMonth1,
+                  List.generate(12, (i) => i + 1),
+                  (v) {
+                    if (v != null) {
+                      setState(() => _compMonth1 = v);
+                    }
+                  },
+                  itemToString: (v) => months[v - 1],
+                ),
+                _labelledDropdown(
+                  'الشهر الثاني',
+                  _compMonth2,
+                  List.generate(12, (i) => i + 1),
+                  (v) {
+                    if (v != null) {
+                      setState(() => _compMonth2 = v);
+                    }
+                  },
+                  itemToString: (v) => months[v - 1],
+                ),
+              ] else ...[
+                _labelledDropdown('السنة الأولى', _compYear1, _getYearRange(), (
+                  v,
+                ) {
+                  if (v != null) {
+                    setState(() => _compYear1 = v);
+                  }
+                }),
+                _labelledDropdown(
+                  'السنة الثانية',
+                  _compYear2,
+                  _getYearRange(),
+                  (v) {
+                    if (v != null) {
+                      setState(() => _compYear2 = v);
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDropdown<T>({
@@ -1178,15 +1404,36 @@ class _FinancePageState extends State<FinancePage> {
       diffIcon = Icons.trending_flat;
     }
 
-    return SectionCard(title: title, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      AdaptiveItems(minItemWidth: 210, maxColumns: 2, children: [
-        if (isCurrency) LabelledAmount('الفترة الأولى', valA) else Text('الفترة الأولى: ${valA.toInt()}'),
-        if (isCurrency) LabelledAmount('الفترة الثانية', valB) else Text('الفترة الثانية: ${valB.toInt()}'),
-      ]),
-      const SizedBox(height: 12),
-      Icon(diffIcon, size: 20, color: diffColor),
-      Text(diffText, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: diffColor)),
-    ]));
+    return SectionCard(
+      title: title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AdaptiveItems(
+            minItemWidth: 210,
+            maxColumns: 2,
+            children: [
+              if (isCurrency)
+                LabelledAmount('الفترة الأولى', valA)
+              else
+                Text('الفترة الأولى: ${valA.toInt()}'),
+              if (isCurrency)
+                LabelledAmount('الفترة الثانية', valB)
+              else
+                Text('الفترة الثانية: ${valB.toInt()}'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Icon(diffIcon, size: 20, color: diffColor),
+          Text(
+            diffText,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: diffColor),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildComparisonInsights(
@@ -1250,10 +1497,16 @@ class _FinancePageState extends State<FinancePage> {
               children: [
                 Icon(Icons.lightbulb_outline, color: highlightColor, size: 24),
                 const SizedBox(width: 8),
-                Expanded(child: Text(
-                  title,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp(context), color: highlightColor),
-                )),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15.sp(context),
+                      color: highlightColor,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -1390,44 +1643,110 @@ class _FinancePageState extends State<FinancePage> {
   Widget _buildCard(String title, double amount, Color color, IconData icon) =>
       MetricCard(title: title, value: amount, color: color, icon: icon);
 
-  Widget _buildExpensesHeader() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-    Text('سجل المصروفات التشغيلية', style: Theme.of(context).textTheme.titleMedium),
-    const SizedBox(height: 12),
-    Align(alignment: AlignmentDirectional.centerStart, child: FilledButton(
-      key: const ValueKey('add-expense'), onPressed: _showAddExpenseDialog,
-      child: const ActionLabel(Icons.add_circle_outline, 'تسجيل مصروف جديد'))),
-    const SizedBox(height: 12),
-  ]);
+  Widget _buildExpensesHeader() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        'سجل المصروفات التشغيلية',
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 12),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FilledButton(
+          key: const ValueKey('add-expense'),
+          onPressed: _showAddExpenseDialog,
+          child: const ActionLabel(
+            Icons.add_circle_outline,
+            'تسجيل مصروف جديد',
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+    ],
+  );
 
   Widget _buildChartsSection() {
     if (_expenses.isEmpty && _filteredBookings.isEmpty) {
-      return const SectionCard(title: 'التحليل البياني المالي', child: Text('لا توجد عمليات مالية مسجلة للفترة المحددة'));
+      return const SectionCard(
+        title: 'التحليل البياني المالي',
+        child: Text('لا توجد عمليات مالية مسجلة للفترة المحددة'),
+      );
     }
-    final groups = _showComparison ? _buildComparisonBarGroups() : _buildComparativeBarGroups();
-    return AdaptiveItems(minItemWidth: 460, maxColumns: 2, children: [
-      SectionCard(title: _showComparison ? 'مقارنة مالية: $_selectedYear مقابل $_comparisonYear' : 'مقارنة الإيرادات والمصروفات',
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          ResponsiveBarChart(groups: groups, labels: {for (final g in groups) g.x: '${g.x}/$_selectedYear'}),
-          const SizedBox(height: 12),
-          Wrap(spacing: 12, runSpacing: 8, children: [
-            _buildLegendItem(AppColors.successText, 'إيرادات $_selectedYear'),
-            _buildLegendItem(AppColors.errorText, 'مصروفات $_selectedYear'),
-            if (_showComparison) ...[
-              _buildLegendItem(const Color(0xFF60A5FA), 'إيرادات $_comparisonYear'),
-              _buildLegendItem(AppColors.warningText, 'مصروفات $_comparisonYear'),
+    final groups = _showComparison
+        ? _buildComparisonBarGroups()
+        : _buildComparativeBarGroups();
+    return AdaptiveItems(
+      minItemWidth: 460,
+      maxColumns: 2,
+      children: [
+        SectionCard(
+          title: _showComparison
+              ? 'مقارنة مالية: $_selectedYear مقابل $_comparisonYear'
+              : 'مقارنة الإيرادات والمصروفات',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ResponsiveBarChart(
+                groups: groups,
+                labels: {for (final g in groups) g.x: '${g.x}/$_selectedYear'},
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  _buildLegendItem(
+                    AppColors.successText,
+                    'إيرادات $_selectedYear',
+                  ),
+                  _buildLegendItem(
+                    AppColors.errorText,
+                    'مصروفات $_selectedYear',
+                  ),
+                  if (_showComparison) ...[
+                    _buildLegendItem(
+                      const Color(0xFF60A5FA),
+                      'إيرادات $_comparisonYear',
+                    ),
+                    _buildLegendItem(
+                      AppColors.warningText,
+                      'مصروفات $_comparisonYear',
+                    ),
+                  ],
+                ],
+              ),
             ],
-          ]),
-        ])),
-      SectionCard(title: 'توزيع المصاريف حسب التصنيف', child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (_expenses.isEmpty) const Text('لا توجد مصروفات مسجلة لعرض تصنيفاتها للفترة المحددة') else ...[
-            SizedBox(height: 200, child: PieChart(PieChartData(
-              sectionsSpace: 2, centerSpaceRadius: 44, sections: _buildPieSections()))),
-            const SizedBox(height: 16), _buildPieLegend(),
-          ],
-        ])),
-    ]);
+          ),
+        ),
+        SectionCard(
+          title: 'توزيع المصاريف حسب التصنيف',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_expenses.isEmpty)
+                const Text(
+                  'لا توجد مصروفات مسجلة لعرض تصنيفاتها للفترة المحددة',
+                )
+              else ...[
+                SizedBox(
+                  height: 200,
+                  child: PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 44,
+                      sections: _buildPieSections(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildPieLegend(),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildLegendItem(Color color, String label) {
@@ -1440,31 +1759,70 @@ class _FinancePageState extends State<FinancePage> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Flexible(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
+        Flexible(
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ),
       ],
     );
   }
 
   Widget _buildExpensesList() {
-    if (_expenses.isEmpty) { return const SliverToBoxAdapter(child: Text('لا توجد مصروفات مسجلة بعد')); }
+    if (_expenses.isEmpty) {
+      return const SliverToBoxAdapter(child: Text('لا توجد مصروفات مسجلة بعد'));
+    }
     final sorted = List<Map<String, dynamic>>.from(_expenses)
       ..sort((a, b) => b['date'].toString().compareTo(a['date'].toString()));
-    return SliverList(delegate: SliverChildBuilderDelegate((context, index) {
-      final expense = sorted[index];
-      return Card(margin: const EdgeInsets.only(bottom: 12), child: Padding(
-        padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(expense['description'].toString(), style: Theme.of(context).textTheme.titleSmall),
-          Text(expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى', style: Theme.of(context).textTheme.bodySmall),
-          Text(expense['date'].toString(), textDirection: TextDirection.ltr, textAlign: TextAlign.end),
-          AmountText(expense['amount'] as num, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: AppColors.errorText)),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            TextButton(onPressed: () => _showEditExpenseDialog(expense), child: const ActionLabel(Icons.edit_outlined, 'تعديل')),
-            TextButton(onPressed: () => _confirmDeleteExpense(expense['id']),
-              style: TextButton.styleFrom(foregroundColor: AppColors.errorText),
-              child: const ActionLabel(Icons.delete_outline, 'حذف')),
-          ]),
-        ]),
-      ));
-    }, childCount: sorted.length));
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final expense = sorted[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  expense['description'].toString(),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                Text(
+                  expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Text(
+                  expense['date'].toString(),
+                  textDirection: TextDirection.ltr,
+                  textAlign: TextAlign.end,
+                ),
+                AmountText(
+                  expense['amount'] as num,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(color: AppColors.errorText),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => _showEditExpenseDialog(expense),
+                      child: const ActionLabel(Icons.edit_outlined, 'تعديل'),
+                    ),
+                    TextButton(
+                      onPressed: () => _confirmDeleteExpense(expense['id']),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.errorText,
+                      ),
+                      child: const ActionLabel(Icons.delete_outline, 'حذف'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }, childCount: sorted.length),
+    );
   }
 }

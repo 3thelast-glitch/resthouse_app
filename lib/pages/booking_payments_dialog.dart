@@ -176,12 +176,17 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              AmountText(payment['amount'] as num, style: Theme.of(context).textTheme.titleLarge),
+                              AmountText(
+                                payment['amount'] as num,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
                               const SizedBox(height: 8),
-                              Align(alignment: AlignmentDirectional.centerStart,
+                              Align(
+                                alignment: AlignmentDirectional.centerStart,
                                 child: payment['status'] == 'voided'
-                                  ? const StatusBadge.error(label: 'ملغاة')
-                                  : const StatusBadge.success(label: 'مؤكدة')),
+                                    ? const StatusBadge.error(label: 'ملغاة')
+                                    : const StatusBadge.success(label: 'مؤكدة'),
+                              ),
                               const SizedBox(height: AppSpacing.sm),
                               Directionality(
                                 textDirection: TextDirection.ltr,

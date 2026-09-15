@@ -684,33 +684,75 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               AdaptiveItems(
                 minItemWidth: 220,
                 children: [
-                  FilledButton(onPressed: _showQuickAddBooking,
-                    child: const ActionLabel(Icons.add, 'تسجيل حجز سريع')),
-                  OutlinedButton(onPressed: _showQuickAddExpense,
-                    child: const ActionLabel(Icons.money, 'تسجيل مصروف سريع')),
-                  OutlinedButton(onPressed: _showQuickAddRenter,
-                    child: const ActionLabel(Icons.person_add_outlined, 'عميل جديد')),
+                  FilledButton(
+                    onPressed: _showQuickAddBooking,
+                    child: const ActionLabel(Icons.add, 'تسجيل حجز سريع'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _showQuickAddExpense,
+                    child: const ActionLabel(Icons.money, 'تسجيل مصروف سريع'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _showQuickAddRenter,
+                    child: const ActionLabel(
+                      Icons.person_add_outlined,
+                      'عميل جديد',
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              if (!_hasRecordedData) _buildDashboardEmptyState() else ...[
+              if (!_hasRecordedData)
+                _buildDashboardEmptyState()
+              else ...[
                 AdaptiveItems(
                   key: const ValueKey('dashboard-metrics'),
                   minItemWidth: 210,
                   children: [
-                    MetricCard(title: 'إجمالي الإيرادات', value: _totalRevenue,
-                      icon: Icons.monetization_on, color: AppColors.successText),
-                    MetricCard(title: 'إجمالي المصاريف', value: _totalExpenses,
-                      icon: Icons.payment, color: AppColors.errorText),
-                    MetricCard(title: 'صافي الأرباح', value: netProfit,
+                    MetricCard(
+                      title: 'إجمالي الإيرادات',
+                      value: _totalRevenue,
+                      icon: Icons.monetization_on,
+                      color: AppColors.successText,
+                    ),
+                    MetricCard(
+                      title: 'إجمالي المصاريف',
+                      value: _totalExpenses,
+                      icon: Icons.payment,
+                      color: AppColors.errorText,
+                    ),
+                    MetricCard(
+                      title: 'صافي الأرباح',
+                      value: netProfit,
                       icon: Icons.account_balance_wallet,
-                      color: netProfit >= 0 ? AppColors.primary : AppColors.errorText),
-                    MetricCard(title: 'عدد الحجوزات الكلي', value: _bookingsCount,
-                      icon: Icons.calendar_month, color: Colors.indigo, isMoney: false, unit: 'حجز'),
-                    MetricCard(title: 'الحجوزات النشطة حالياً', value: _activeBookingsCount,
-                      icon: Icons.timer, color: AppColors.warningText, isMoney: false, unit: 'حجز نشط'),
-                    MetricCard(title: 'العملاء المسجلين', value: _rentersCount,
-                      icon: Icons.people, color: AppColors.secondaryText, isMoney: false, unit: 'مستأجر'),
+                      color: netProfit >= 0
+                          ? AppColors.primary
+                          : AppColors.errorText,
+                    ),
+                    MetricCard(
+                      title: 'عدد الحجوزات الكلي',
+                      value: _bookingsCount,
+                      icon: Icons.calendar_month,
+                      color: Colors.indigo,
+                      isMoney: false,
+                      unit: 'حجز',
+                    ),
+                    MetricCard(
+                      title: 'الحجوزات النشطة حالياً',
+                      value: _activeBookingsCount,
+                      icon: Icons.timer,
+                      color: AppColors.warningText,
+                      isMoney: false,
+                      unit: 'حجز نشط',
+                    ),
+                    MetricCard(
+                      title: 'العملاء المسجلين',
+                      value: _rentersCount,
+                      icon: Icons.people,
+                      color: AppColors.secondaryText,
+                      isMoney: false,
+                      unit: 'مستأجر',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -718,8 +760,14 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
                   minItemWidth: 480,
                   maxColumns: 2,
                   children: [
-                    SectionCard(title: 'تقرير الأداء المالي', child: _buildDashboardChart()),
-                    SectionCard(title: 'الأنشطة والعمليات الأخيرة', child: _buildActivitiesList()),
+                    SectionCard(
+                      title: 'تقرير الأداء المالي',
+                      child: _buildDashboardChart(),
+                    ),
+                    SectionCard(
+                      title: 'الأنشطة والعمليات الأخيرة',
+                      child: _buildActivitiesList(),
+                    ),
                   ],
                 ),
               ],
@@ -731,18 +779,28 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     );
   }
 
-  Widget _buildDashboardChart() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-    Text('آخر 5 أشهر', style: Theme.of(context).textTheme.bodySmall),
-    const SizedBox(height: 8),
-    Wrap(spacing: 16, runSpacing: 8, children: [
-      _buildLegendIndicator(AppColors.successText, 'الإيرادات'),
-      _buildLegendIndicator(AppColors.errorText, 'المصروفات'),
-    ]),
-    const SizedBox(height: 24),
-    ResponsiveBarChart(groups: _buildBarChartGroups(), labels: {
-      for (var i = 0; i < _sortedMonths.length; i++) i: _sortedMonths[i],
-    }),
-  ]);
+  Widget _buildDashboardChart() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text('آخر 5 أشهر', style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 16,
+        runSpacing: 8,
+        children: [
+          _buildLegendIndicator(AppColors.successText, 'الإيرادات'),
+          _buildLegendIndicator(AppColors.errorText, 'المصروفات'),
+        ],
+      ),
+      const SizedBox(height: 24),
+      ResponsiveBarChart(
+        groups: _buildBarChartGroups(),
+        labels: {
+          for (var i = 0; i < _sortedMonths.length; i++) i: _sortedMonths[i],
+        },
+      ),
+    ],
+  );
 
   Widget _buildDashboardEmptyState() {
     return Card(
@@ -838,7 +896,10 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
 
   Widget _buildActivitiesList() {
     if (_recentActivities.isEmpty) {
-      return const Padding(padding: EdgeInsets.all(16), child: Text('لا توجد أنشطة حديثة'));
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('لا توجد أنشطة حديثة'),
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -854,15 +915,34 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
   Widget _buildActivity(DashboardActivity activity) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(activity.type == 'booking' ? Icons.calendar_month : Icons.payments_outlined,
-          color: activity.type == 'booking' ? AppColors.primary : AppColors.errorText, size: 20),
-        const SizedBox(width: 8),
-        Expanded(child: Text(activity.title, style: Theme.of(context).textTheme.titleSmall)),
-      ]),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            activity.type == 'booking'
+                ? Icons.calendar_month
+                : Icons.payments_outlined,
+            color: activity.type == 'booking'
+                ? AppColors.primary
+                : AppColors.errorText,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              activity.title,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        ],
+      ),
       const SizedBox(height: 4),
-      Text(activity.date, textDirection: TextDirection.ltr, textAlign: TextAlign.end,
-        style: Theme.of(context).textTheme.bodySmall),
+      Text(
+        activity.date,
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.end,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
       AmountText(activity.amount),
     ],
   );

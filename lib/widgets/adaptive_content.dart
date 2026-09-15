@@ -57,20 +57,23 @@ class AdaptiveItems extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final minimum = minItemWidth *
+      final minimum =
+          minItemWidth *
           (scaleWithText ? math.max(1.0, ContentLayout.textScale(context)) : 1);
       final columns = constraints.maxWidth < 328
           ? 1
           : ((constraints.maxWidth + ContentLayout.gap) /
-                  (minimum + ContentLayout.gap))
-              .floor()
-              .clamp(1, maxColumns);
-      final width = (constraints.maxWidth - (columns - 1) * ContentLayout.gap) /
-          columns;
+                    (minimum + ContentLayout.gap))
+                .floor()
+                .clamp(1, maxColumns);
+      final width =
+          (constraints.maxWidth - (columns - 1) * ContentLayout.gap) / columns;
       return Wrap(
         spacing: ContentLayout.gap,
         runSpacing: ContentLayout.gap,
-        children: [for (final child in children) SizedBox(width: width, child: child)],
+        children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ],
       );
     },
   );
@@ -89,15 +92,26 @@ class AmountText extends StatelessWidget {
       var numberStyle = style ?? Theme.of(context).textTheme.titleSmall!;
       // Reflow first. Only an unusually long headline value switches to body
       // typography; the system TextScaler is always preserved.
-      if (ContentLayout.textWidth(context, number, numberStyle) > constraints.maxWidth) {
+      if (ContentLayout.textWidth(context, number, numberStyle) >
+          constraints.maxWidth) {
         numberStyle = numberStyle.copyWith(fontSize: 16);
       }
       return Wrap(
         spacing: 6,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text(number, textDirection: TextDirection.ltr, softWrap: false, style: numberStyle),
-          Text(unit, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: numberStyle.color)),
+          Text(
+            number,
+            textDirection: TextDirection.ltr,
+            softWrap: false,
+            style: numberStyle,
+          ),
+          Text(
+            unit,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: numberStyle.color),
+          ),
         ],
       );
     },
@@ -143,10 +157,12 @@ class MetricCard extends StatelessWidget {
           if (isMoney)
             AmountText(value, style: Theme.of(context).textTheme.headlineSmall)
           else ...[
-            Text(NumberFormat('#,##0', 'en').format(value),
-                textDirection: TextDirection.ltr,
-                textAlign: TextAlign.end,
-                style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              NumberFormat('#,##0', 'en').format(value),
+              textDirection: TextDirection.ltr,
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             Text(unit, style: Theme.of(context).textTheme.bodySmall),
           ],
         ],
@@ -166,7 +182,10 @@ class LabelledAmount extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(label, style: Theme.of(context).textTheme.bodySmall),
-      AmountText(value, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color)),
+      AmountText(
+        value,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color),
+      ),
     ],
   );
 }
@@ -179,7 +198,11 @@ class ActionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
-    children: [Icon(icon, size: 20), const SizedBox(width: 8), Flexible(child: Text(label))],
+    children: [
+      Icon(icon, size: 20),
+      const SizedBox(width: 8),
+      Flexible(child: Text(label)),
+    ],
   );
 }
 
@@ -196,7 +219,12 @@ class SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.heading)),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: AppColors.heading),
+          ),
           const SizedBox(height: 12),
           child,
         ],
