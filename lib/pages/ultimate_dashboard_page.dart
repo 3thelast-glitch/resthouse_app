@@ -336,6 +336,8 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
+                  isDense: false,
+                  itemHeight: null,
                   decoration: const InputDecoration(labelText: 'المستأجر'),
                   initialValue: selectedPhone,
                   items: renters.map((renter) {

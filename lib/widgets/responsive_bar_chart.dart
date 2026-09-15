@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import 'adaptive_content.dart';
 
@@ -29,7 +29,7 @@ class ResponsiveBarChart extends StatelessWidget {
     final widestLabel = labels.values.fold<double>(48 * scale,
       (width, label) => math.max(width, ContentLayout.textWidth(context, label, style) + 16));
     final slots = (plotWidth / widestLabel).floor().clamp(1, math.max(1, groups.length));
-    final stride = (groups.length / slots).ceil().clamp(1, math.max(1, groups.length));
+    final stride = (groups.length / slots).ceil().clamp(1, math.max(1, groups.length)).toInt();
     final shown = {for (var i = 0; i < groups.length; i += stride) groups[i].x};
     final fittedGroups = groups.map((group) {
       final width = (plotWidth / math.max(1, groups.length) * .65 /

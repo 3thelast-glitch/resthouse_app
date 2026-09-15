@@ -112,7 +112,7 @@ class _FinancePageState extends State<FinancePage> {
     final expenses = await dbHelper.queryAllExpenses();
     final distinctDescs = await dbHelper.getDistinctExpenseDescriptions();
 
-    if (!mounted) return;
+    if (!mounted) { return; }
     setState(() {
       _allBookings = bookings;
       _allExpenses = expenses;
@@ -236,6 +236,8 @@ class _FinancePageState extends State<FinancePage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
+                isDense: false,
+                itemHeight: null,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'تصنيف المصروف',
@@ -267,7 +269,7 @@ class _FinancePageState extends State<FinancePage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2050),
                         );
-                        if (!dialogContext.mounted) return;
+                        if (!dialogContext.mounted) { return; }
                         if (date != null) {
                           setDialogState(() => selectedDate = date);
                         }
@@ -341,7 +343,7 @@ class _FinancePageState extends State<FinancePage> {
                 });
 
                 await _loadFinance();
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم تسجيل المصروف بنجاح')),
@@ -437,6 +439,8 @@ class _FinancePageState extends State<FinancePage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
+                isDense: false,
+                itemHeight: null,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'تصنيف المصروف',
@@ -468,7 +472,7 @@ class _FinancePageState extends State<FinancePage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2050),
                         );
-                        if (!dialogContext.mounted) return;
+                        if (!dialogContext.mounted) { return; }
                         if (date != null) {
                           setDialogState(() => selectedDate = date);
                         }
@@ -543,7 +547,7 @@ class _FinancePageState extends State<FinancePage> {
                 });
 
                 await _loadFinance();
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم تحديث المصروف بنجاح')),
@@ -577,7 +581,7 @@ class _FinancePageState extends State<FinancePage> {
             onPressed: () async {
               await dbHelper.deleteExpense(id);
               await _loadFinance();
-              if (!dialogContext.mounted) return;
+              if (!dialogContext.mounted) { return; }
               Navigator.pop(dialogContext);
               ScaffoldMessenger.of(dialogContext).showSnackBar(
                 const SnackBar(content: Text('تم حذف المصروف بنجاح')),
@@ -605,7 +609,7 @@ class _FinancePageState extends State<FinancePage> {
 
   List<PieChartSectionData> _buildPieSections() {
     final catTotals = _getCategoryTotals();
-    if (catTotals.isEmpty) return [];
+    if (catTotals.isEmpty) { return []; }
 
     final colorsMap = _getCategoryColors();
 
@@ -770,12 +774,12 @@ class _FinancePageState extends State<FinancePage> {
       const SizedBox(height: 12),
       AdaptiveItems(minItemWidth: 200, maxColumns: 3, children: [
         _labelledDropdown('السنة', _selectedYear, _getYearRange(), (value) {
-          if (value != null) setState(() { _selectedYear = value; _applyFilter(); });
+          if (value != null) { setState(() { _selectedYear = value; _applyFilter(); }); }
         }),
         FilterChip(label: const Text('مقارنة مالية'), selected: _showComparison,
           onSelected: (value) => setState(() => _showComparison = value)),
         if (_showComparison) _labelledDropdown('مقابل سنة', _comparisonYear, _getYearRange(), (value) {
-          if (value != null) setState(() => _comparisonYear = value);
+          if (value != null) { setState(() => _comparisonYear = value); }
         }),
       ]),
       ExpansionTile(tilePadding: EdgeInsets.zero, title: const Text('الأشهر والفترة'),
@@ -993,14 +997,14 @@ class _FinancePageState extends State<FinancePage> {
         const SizedBox(height: 16),
         AdaptiveItems(minItemWidth: 200, children: [
           if (_comparisonType == 'months') ...[
-            _labelledDropdown('السنة', _compMonthYear, _getYearRange(), (v) { if (v != null) setState(() => _compMonthYear = v); }),
+            _labelledDropdown('السنة', _compMonthYear, _getYearRange(), (v) { if (v != null) { setState(() => _compMonthYear = v); } }),
             _labelledDropdown('الشهر الأول', _compMonth1, List.generate(12, (i) => i + 1),
-              (v) { if (v != null) setState(() => _compMonth1 = v); }, itemToString: (v) => months[v - 1]),
+              (v) { if (v != null) { setState(() => _compMonth1 = v); } }, itemToString: (v) => months[v - 1]),
             _labelledDropdown('الشهر الثاني', _compMonth2, List.generate(12, (i) => i + 1),
-              (v) { if (v != null) setState(() => _compMonth2 = v); }, itemToString: (v) => months[v - 1]),
+              (v) { if (v != null) { setState(() => _compMonth2 = v); } }, itemToString: (v) => months[v - 1]),
           ] else ...[
-            _labelledDropdown('السنة الأولى', _compYear1, _getYearRange(), (v) { if (v != null) setState(() => _compYear1 = v); }),
-            _labelledDropdown('السنة الثانية', _compYear2, _getYearRange(), (v) { if (v != null) setState(() => _compYear2 = v); }),
+            _labelledDropdown('السنة الأولى', _compYear1, _getYearRange(), (v) { if (v != null) { setState(() => _compYear1 = v); } }),
+            _labelledDropdown('السنة الثانية', _compYear2, _getYearRange(), (v) { if (v != null) { setState(() => _compYear2 = v); } }),
           ],
         ]),
       ],
@@ -1442,7 +1446,7 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   Widget _buildExpensesList() {
-    if (_expenses.isEmpty) return const SliverToBoxAdapter(child: Text('لا توجد مصروفات مسجلة بعد'));
+    if (_expenses.isEmpty) { return const SliverToBoxAdapter(child: Text('لا توجد مصروفات مسجلة بعد')); }
     final sorted = List<Map<String, dynamic>>.from(_expenses)
       ..sort((a, b) => b['date'].toString().compareTo(a['date'].toString()));
     return SliverList(delegate: SliverChildBuilderDelegate((context, index) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/adaptive_content.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:flutter/services.dart';
 
 import '../utils/responsive.dart';
@@ -89,7 +89,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     try {
       final bookings = await dbHelper.queryAllBookings();
       final renters = await dbHelper.queryAllRenters();
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() {
         _bookings = bookings;
         _renters = renters;
@@ -99,17 +99,17 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       });
       _checkPendingDeposits();
     } catch (_) {
-      if (mounted) setState(() {
+      if (mounted) { setState(() {
         _loading = false;
         _loadError = 'تعذر تحميل الحجوزات. حاول مرة أخرى.';
-      });
+      }); }
     }
   }
 
   /// Formats a date showing both Gregorian and Hijri side-by-side
   /// Example: "البداية: 2026-06-13 | ١٩ ذو الحجة ١٤٤٧"
   String _formatDualDate(DateTime? date, String label) {
-    if (date == null) return label;
+    if (date == null) { return label; }
     final gregorian = date.toString().split(' ')[0];
     final hijri = HijriCalendar.fromDate(date);
     final hijriStr =
@@ -118,9 +118,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   }
 
   String _formatHijriDateOnlyArabic(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '';
+    if (dateStr == null || dateStr.isEmpty) { return ''; }
     final parsed = DateTime.tryParse(dateStr);
-    if (parsed == null) return dateStr;
+    if (parsed == null) { return dateStr; }
 
     final hijri = HijriCalendar.fromDate(parsed);
     final hDay = hijri.hDay;
@@ -195,7 +195,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     );
 
     if (choice == 'gregorian') {
-      if (!context.mounted) return null;
+      if (!context.mounted) { return null; }
       return await showDatePicker(
         context: context,
         initialDate: initialDate,
@@ -203,7 +203,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         lastDate: DateTime(2050),
       );
     } else if (choice == 'hijri') {
-      if (!context.mounted) return null;
+      if (!context.mounted) { return null; }
       return await showDialog<DateTime>(
         context: context,
         builder: (ctx) => HijriDatePickerDialog(
@@ -221,10 +221,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   Future<void> _checkPendingDeposits() async {
     final pendingBookings = await dbHelper
         .queryEndedBookingsWithPendingDeposit();
-    if (pendingBookings.isEmpty || !mounted) return;
+    if (pendingBookings.isEmpty || !mounted) { return; }
 
     for (final booking in pendingBookings) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       final renter = _renters.firstWhere(
         (r) => r['phone'] == booking['phone'],
         orElse: () => {'full_name': 'مستأجر غير معروف'},
@@ -328,7 +328,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       booking['id'],
                       'returned',
                     );
-                    if (!dialogContext.mounted) return;
+                    if (!dialogContext.mounted) { return; }
                     Navigator.pop(dialogContext);
                   },
                   icon: const Icon(Icons.check_circle_outline, size: 20),
@@ -349,7 +349,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       booking['id'],
                       'deducted',
                     );
-                    if (!dialogContext.mounted) return;
+                    if (!dialogContext.mounted) { return; }
                     Navigator.pop(dialogContext);
                   },
                   icon: const Icon(Icons.remove_circle_outline, size: 20),
@@ -387,7 +387,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     if (mounted) {
       final bookings = await dbHelper.queryAllBookings();
       final renters = await dbHelper.queryAllRenters();
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() {
         _bookings = bookings;
         _renters = renters;
@@ -487,13 +487,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   'rental_count': 0,
                 });
                 await _loadData();
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تمت إضافة المستأجر بنجاح')),
                 );
               } catch (e) {
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('خطأ: رقم الهاتف مسجل مسبقاً لمستأجر آخر!'),
@@ -606,7 +606,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   'rental_count': renter['rental_count'] ?? 0,
                 }, oldPhone: renter['phone']);
                 await _loadData();
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
@@ -614,7 +614,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ),
                 );
               } catch (e) {
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text(
@@ -707,6 +707,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
+                  isDense: false,
+                  itemHeight: null,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'اختر المستأجر',
@@ -787,7 +789,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             startDate ?? DateTime.now(),
                           );
-                          if (!dialogContext.mounted) return;
+                          if (!dialogContext.mounted) { return; }
                           if (date != null) {
                             setDialogState(() {
                               startDate = date;
@@ -832,7 +834,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             initialDate,
                           );
-                          if (!dialogContext.mounted) return;
+                          if (!dialogContext.mounted) { return; }
                           if (date != null) {
                             setDialogState(() {
                               endDate = date;
@@ -919,7 +921,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   endDate!.toString().split(' ')[0],
                 );
                 if (conflict) {
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text(
@@ -942,13 +944,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   });
 
                   await _loadData();
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(content: Text('تم تسجيل الحجز بنجاح')),
                   );
                 } on StateError catch (error) {
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
@@ -956,7 +958,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on ArgumentError catch (error) {
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -1043,7 +1045,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             startDate ?? DateTime.now(),
                           );
-                          if (!dialogContext.mounted) return;
+                          if (!dialogContext.mounted) { return; }
                           if (date != null) {
                             setDialogState(() {
                               startDate = date;
@@ -1086,7 +1088,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             dialogContext,
                             initialDate,
                           );
-                          if (!dialogContext.mounted) return;
+                          if (!dialogContext.mounted) { return; }
                           if (date != null) {
                             setDialogState(() {
                               endDate = date;
@@ -1126,6 +1128,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
+                  isDense: false,
+                  itemHeight: null,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'حالة الحجز',
@@ -1191,7 +1195,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     excludeId: booking['id'],
                   );
                   if (conflict) {
-                    if (!dialogContext.mounted) return;
+                    if (!dialogContext.mounted) { return; }
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -1216,7 +1220,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   });
 
                   await _loadData();
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
@@ -1224,7 +1228,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on StateError catch (error) {
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
@@ -1232,7 +1236,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on ArgumentError catch (error) {
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -1271,17 +1275,17 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             onPressed: () async {
               try {
                 await dbHelper.deleteBooking(id);
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 Navigator.pop(dialogContext);
                 await _loadData();
-                if (!mounted) return;
+                if (!mounted) { return; }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('تم حذف الحجز بنجاح')),
                 );
               } on StateError catch (error) {
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 Navigator.pop(dialogContext);
-                if (!mounted) return;
+                if (!mounted) { return; }
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(SnackBar(content: Text(error.message)));
@@ -1316,13 +1320,13 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
               try {
                 await dbHelper.deleteRenter(phone);
                 await _loadData();
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم حذف المستأجر بنجاح')),
                 );
               } catch (e) {
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) { return; }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('تعذر الحذف لوجود قيود على البيانات'),
@@ -1369,11 +1373,11 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_loadError != null) return Center(child: SingleChildScrollView(child: Column(
+    if (_loading) { return const Center(child: CircularProgressIndicator()); }
+    if (_loadError != null) { return Center(child: SingleChildScrollView(child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [Text(_loadError!), TextButton(onPressed: _loadData, child: const Text('إعادة المحاولة'))],
-    )));
+    ))); }
     final rows = _showRentersTab ? _matchingRenters() : _matchingBookings();
     Widget directorySliver() => rows.isEmpty
       ? SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(24),
@@ -1518,7 +1522,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
 
   void _changeCalendarMonth(int delta) {
     final day = DateTime(_focusedDay.year, _focusedDay.month + delta);
-    if (day.year >= 2020 && day.year <= 2050) setState(() => _focusedDay = day);
+    if (day.year >= 2020 && day.year <= 2050) { setState(() => _focusedDay = day); }
   }
 
   Future<void> _showPaymentActions(Map<String, dynamic> booking) async {
@@ -1542,7 +1546,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         ),
       ),
     );
-    if (!mounted) return;
+    if (!mounted) { return; }
     if (action == 'add') {
       await _showAddPaymentDialog(booking);
     } else if (action == 'history') {
@@ -1556,7 +1560,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   Future<void> _showAddPaymentDialog(Map<String, dynamic> booking) async {
     final bookingId = booking['id'] as int;
     final summary = await dbHelper.queryPaymentSummary(bookingId);
-    if (!mounted) return;
+    if (!mounted) { return; }
     final amountController = TextEditingController();
     final noteController = TextEditingController();
     String method = 'cash';
@@ -1595,6 +1599,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
+                  isDense: false,
+                  itemHeight: null,
                   initialValue: method,
                   decoration: const InputDecoration(labelText: 'طريقة السداد'),
                   items: const [
@@ -1647,14 +1653,14 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     'method': method,
                     'note': noteController.text.trim(),
                   });
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   Navigator.pop(dialogContext);
-                  if (!mounted) return;
+                  if (!mounted) { return; }
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('تم تسجيل الدفعة بنجاح.')),
                   );
                 } on ArgumentError catch (error) {
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -1664,7 +1670,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   );
                 } on StateError catch (error) {
-                  if (!dialogContext.mounted) return;
+                  if (!dialogContext.mounted) { return; }
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(error.message),
@@ -1743,8 +1749,8 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           FutureBuilder<Map<String, double>>(
             future: _paymentSummaries.putIfAbsent(id, () => dbHelper.queryPaymentSummary(id)),
             builder: (context, snapshot) {
-              if (snapshot.hasError) return const Text('تعذر تحميل ملخص الدفعات.');
-              if (!snapshot.hasData) return const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator());
+              if (snapshot.hasError) { return const Text('تعذر تحميل ملخص الدفعات.'); }
+              if (!snapshot.hasData) { return const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator()); }
               final summary = snapshot.data!;
               return AdaptiveItems(minItemWidth: 180, children: [
                 LabelledAmount('الإجمالي', summary['total']!),
@@ -1800,7 +1806,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
 
   Widget _buildDayBookingsListAdaptive() {
     final selected = _selectedDay;
-    if (selected == null) return const Text('يرجى تحديد يوم من التقويم');
+    if (selected == null) { return const Text('يرجى تحديد يوم من التقويم'); }
     final bookings = _getBookingsForDay(selected)
       ..sort((a, b) => b['start_date'].toString().compareTo(a['start_date'].toString()));
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -1905,14 +1911,11 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
             icon: const Icon(Icons.chevron_left, color: AppColors.primary),
             onPressed: _previousMonth,
           ),
-          Text(
+          Expanded(child: Text(
             '${getArabicHijriMonthName(_selectedMonth)} ${toArabicDigits(_selectedYear)}',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp(context),
-              color: AppColors.primary,
-            ),
-          ),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp(context), color: AppColors.primary),
+          )),
           IconButton(
             icon: const Icon(Icons.chevron_right, color: AppColors.primary),
             onPressed: _nextMonth,
@@ -1945,10 +1948,11 @@ class _HijriDatePickerDialogState extends State<HijriDatePickerDialog> {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                mainAxisExtent: 48 * ContentLayout.textScale(context),
                 crossAxisCount: 7,
                 mainAxisSpacing: 4,
-                crossAxisSpacing: 4,
+                crossAxisSpacing: 2,
               ),
               itemCount: startOffset + daysInMonth,
               itemBuilder: (context, index) {

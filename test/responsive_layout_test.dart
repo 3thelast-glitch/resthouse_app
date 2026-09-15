@@ -51,9 +51,9 @@ void geometry(WidgetTester tester, String scenario) {
   final screen = Offset.zero & (tester.view.physicalSize / tester.view.devicePixelRatio);
   for (final element in find.byType(RichText).evaluate()) {
     final render = element.renderObject;
-    if (render is! RenderParagraph || !render.attached || !render.hasSize) continue;
+    if (render is! RenderParagraph || !render.attached || !render.hasSize) { continue; }
     final rect = render.localToGlobal(Offset.zero) & render.size;
-    if (!rect.overlaps(screen)) continue;
+    if (!rect.overlaps(screen)) { continue; }
     final text = render.text.toPlainText();
     expect(rect.left, greaterThanOrEqualTo(-1), reason: '$scenario: text outside left edge: $text');
     expect(rect.right, lessThanOrEqualTo(screen.width + 1), reason: '$scenario: text outside right edge: $text');
@@ -61,7 +61,7 @@ void geometry(WidgetTester tester, String scenario) {
     final tokens = RegExp(r'الإيرادات|المصاريف|الأرباح|الحجوزات|المستأجرين|\d[\d,.-]*\d');
     for (final match in tokens.allMatches(text)) {
       final boxes = render.getBoxesForSelection(TextSelection(baseOffset: match.start, extentOffset: match.end));
-      if (boxes.isEmpty) continue;
+      if (boxes.isEmpty) { continue; }
       final top = boxes.first.top;
       expect(boxes.every((box) => (box.top - top).abs() < 1), isTrue,
         reason: '$scenario: word/number split across lines: ${match.group(0)}');
@@ -72,7 +72,7 @@ void geometry(WidgetTester tester, String scenario) {
 }
 
 Future<void> capture(WidgetTester tester, String name) async {
-  if (Platform.environment['CAPTURE_LAYOUT'] != '1') return;
+  if (Platform.environment['CAPTURE_LAYOUT'] != '1') { return; }
   await tester.pump();
   final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(captureKey));
   final image = await boundary.toImage(pixelRatio: 1);
@@ -95,7 +95,7 @@ Future<void> walk(WidgetTester tester, Finder scrollView, String scenario, {Stri
     geometry(tester, '$scenario scroll $steps');
   }
   expect(state.position.extentAfter, lessThan(1), reason: '$scenario end is unreachable');
-  if (bottomCapture != null) await capture(tester, bottomCapture);
+  if (bottomCapture != null) { await capture(tester, bottomCapture); }
 }
 
 void main() {
@@ -131,9 +131,9 @@ void main() {
       for (final scale in [1.0, 1.3, 1.5, 2.0]) {
         for (final width in [...widths, 359.0, 361.0, 463.0, 464.0, 465.0, 685.0, 686.0, 687.0]) {
           await viewport(tester, width, scale);
-          await tester.pumpWidget(app(Scaffold(body: SingleChildScrollView(
+          await tester.pumpWidget(app(const Scaffold(body: SingleChildScrollView(
             key: const ValueKey('metrics-scroll'), padding: const EdgeInsets.all(16),
-            child: AdaptiveItems(minItemWidth: 210, children: const [
+            child: AdaptiveItems(minItemWidth: 210, children: [
               MetricCard(title: 'إجمالي الإيرادات', value: 1234567.89, icon: Icons.money, color: AppColors.primary),
               MetricCard(title: 'إجمالي المصاريف', value: 0, icon: Icons.money, color: AppColors.errorText),
               MetricCard(title: 'صافي الأرباح', value: -1234567.89, icon: Icons.money, color: AppColors.primary),
@@ -247,7 +247,7 @@ void main() {
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await tester.runAsync(() async {
       await viewport(tester, 320, 2, height: 400);
-      await tester.pumpWidget(app(const SettingsPage())); await ready(tester);
+      await tester.pumpWidget(app(SettingsPage(onDatabaseRestored: () {}))); await ready(tester);
       await walk(tester, find.byType(SingleChildScrollView).first, 'settings 320/2');
       await tester.pumpWidget(const SizedBox.shrink());
     });

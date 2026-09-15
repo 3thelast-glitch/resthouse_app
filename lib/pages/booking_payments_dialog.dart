@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../database_helper.dart';
 import '../theme/app_theme.dart';
+import '../widgets/adaptive_content.dart';
 
 /// Shows the complete receipt history, including corrections, for one booking.
 class BookingPaymentsDialog extends StatefulWidget {
@@ -123,8 +124,8 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
     return AlertDialog(
       scrollable: true,
       title: Text('دفعات الحجز #${widget.bookingId}'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+      content: SizedBox(
+        width: 520,
         child: _summary == null && _error == null
             ? const SizedBox(
                 height: 96,
@@ -175,24 +176,12 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _money(payment['amount'] as num),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  if (payment['status'] == 'voided')
-                                    const StatusBadge.error(label: 'ملغاة')
-                                  else
-                                    const StatusBadge.success(label: 'مؤكدة'),
-                                ],
-                              ),
+                              AmountText(payment['amount'] as num, style: Theme.of(context).textTheme.titleLarge),
+                              const SizedBox(height: 8),
+                              Align(alignment: AlignmentDirectional.centerStart,
+                                child: payment['status'] == 'voided'
+                                  ? const StatusBadge.error(label: 'ملغاة')
+                                  : const StatusBadge.success(label: 'مؤكدة')),
                               const SizedBox(height: AppSpacing.sm),
                               Directionality(
                                 textDirection: TextDirection.ltr,
@@ -287,7 +276,6 @@ class _SummaryAmount extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 180),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: background,
@@ -296,7 +284,7 @@ class _SummaryAmount extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
           color: foreground,
           fontFeatures: const [FontFeature.tabularFigures()],
         ),

@@ -32,7 +32,8 @@ jobs:
         run: >-
           dart format lib/widgets lib/pages/booking_manager_page.dart
           lib/pages/finance_page.dart lib/pages/main_shell.dart
-          lib/pages/ultimate_dashboard_page.dart test/responsive_layout_test.dart
+          lib/pages/ultimate_dashboard_page.dart lib/pages/booking_payments_dialog.dart
+          lib/pages/settings_page.dart lib/theme/app_theme.dart test/responsive_layout_test.dart
       - run: flutter analyze
       - name: Test populated Arabic layouts and capture real Flutter frames
         env:
@@ -57,5 +58,8 @@ jobs:
             lib/pages/finance_page.dart
             lib/pages/main_shell.dart
             lib/pages/ultimate_dashboard_page.dart
+            lib/pages/booking_payments_dialog.dart
+            lib/pages/settings_page.dart
+            lib/theme/app_theme.dart
             test/responsive_layout_test.dart
           retention-days: 14
