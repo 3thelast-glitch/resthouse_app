@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../database_helper.dart';
 import '../theme/app_theme.dart';
-import '../widgets/adaptive_content.dart';
 
 /// Shows the complete receipt history, including corrections, for one booking.
 class BookingPaymentsDialog extends StatefulWidget {
