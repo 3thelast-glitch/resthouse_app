@@ -14,6 +14,7 @@ import 'package:resthouse_app/pages/settings_page.dart';
 import 'package:resthouse_app/theme/app_theme.dart';
 import 'package:resthouse_app/widgets/adaptive_content.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 const captureKey = ValueKey('layout-capture');
 const longName = 'عبدالله عبدالرحمن محمد العتيبي صاحب الحجز العائلي';
@@ -196,6 +197,9 @@ void main() {
       );
     }
     await loader.load();
+    final icons = FontLoader('MaterialIcons');
+    icons.addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    await icons.load();
   });
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('resthouse_layout_');
@@ -365,6 +369,7 @@ void main() {
         await viewport(tester, 390, 1);
         await tester.pumpWidget(app(const BookingManagerPage()));
         await ready(tester);
+        await capture(tester, 'bookings-phone-top');
         for (final sample in [
           (320.0, 1.0),
           (390.0, 1.0),
@@ -503,9 +508,15 @@ void main() {
         await tester.pump();
         geometry(tester, 'booking dialog with keyboard');
         await capture(tester, 'booking-keyboard');
+        final save = find.widgetWithText(ElevatedButton, 'حفظ الحجز');
+        expect(save.hitTestable(), findsOneWidget);
+        expect(tester.getRect(save).bottom, lessThanOrEqualTo(440));
         await viewport(tester, 700, 1.3, height: 390);
         await ready(tester);
         expect(tester.widget<TextField>(price).controller!.text, '55.00');
+        geometry(tester, 'booking dialog landscape with keyboard');
+        expect(save.hitTestable(), findsOneWidget);
+        expect(tester.getRect(save).bottom, lessThanOrEqualTo(130));
         tester.view.resetViewInsets();
         await ready(tester);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -513,6 +524,223 @@ void main() {
       });
     },
   );
+
+  testWidgets('six-week calendar and shell preserve date, filter and tab', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.runAsync(() async {
+      await viewport(tester, 390, 1);
+      await tester.pumpWidget(
+        const RepaintBoundary(key: captureKey, child: ResthouseApp()),
+      );
+      await ready(tester);
+      await tester.tap(find.text('الحجوزات'));
+      await ready(tester);
+      final calendar = find.byKey(const ValueKey('booking-calendar'));
+      var focused = tester.widget<TableCalendar>(calendar).focusedDay;
+      for (var i = 0; i < 12; i++) {
+        final first = DateTime(focused.year, focused.month);
+        final days = DateTime(focused.year, focused.month + 1, 0).day;
+        if (first.weekday % 7 + days > 35) {
+          break;
+        }
+        await tester.ensureVisible(find.byTooltip('الشهر التالي'));
+        await tester.tap(find.byTooltip('الشهر التالي'));
+        await ready(tester);
+        focused = tester.widget<TableCalendar>(calendar).focusedDay;
+      }
+      expect(
+        DateTime(focused.year, focused.month).weekday % 7 +
+            DateTime(focused.year, focused.month + 1, 0).day,
+        greaterThan(35),
+      );
+      final selected = DateTime(focused.year, focused.month, 15);
+      tester.widget<TableCalendar>(calendar).onDaySelected!(selected, selected);
+      await ready(tester);
+      await viewport(tester, 320, 2);
+      await walk(
+        tester,
+        find.byKey(const PageStorageKey('booking-page-scroll')),
+        'six-week calendar 320/2',
+      );
+      await viewport(tester, 390, 1);
+      final filter = find.byKey(const ValueKey('filter-archived'));
+      await tester.ensureVisible(filter);
+      await tester.tap(filter);
+      await tester.enterText(
+        find.byKey(const ValueKey('booking-search')),
+        'عبدالله',
+      );
+      for (final width in [799.0, 800.0, 801.0, 1280.0, 390.0]) {
+        await viewport(tester, width, 1);
+        await ready(tester);
+        expect(tester.widget<ChoiceChip>(filter).selected, isTrue);
+        expect(
+          tester.widget<TableCalendar>(calendar).selectedDayPredicate!(selected),
+          isTrue,
+        );
+        expect(
+          tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+          'عبدالله',
+        );
+        geometry(tester, 'shell state $width');
+      }
+      final renters = find.widgetWithText(ChoiceChip, 'قائمة المستأجرين (1)');
+      await tester.ensureVisible(renters);
+      await tester.tap(renters);
+      await viewport(tester, 1280, 1);
+      await ready(tester);
+      expect(tester.widget<ChoiceChip>(renters).selected, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
+
+  testWidgets('booking create, edit, collect and cancel delete work on phone', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.runAsync(() async {
+      await db.deleteBooking(bookingId);
+      await viewport(tester, 390, 2, height: 700);
+      await tester.pumpWidget(app(const BookingManagerPage()));
+      await ready(tester);
+      await tester.tap(find.byKey(const ValueKey('add-booking')));
+      await ready(tester);
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await ready(tester);
+      await tester.tap(find.text('$longName (0500000001)').last);
+      await ready(tester);
+      final price = find.widgetWithText(TextField, 'سعر الحجز الإجمالي (ر.س)');
+      await tester.ensureVisible(price);
+      await tester.enterText(price, '55.00');
+      tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+      await ready(tester);
+      geometry(tester, 'create populated booking with keyboard');
+      final saveBooking = find.widgetWithText(ElevatedButton, 'حفظ الحجز');
+      expect(saveBooking.hitTestable(), findsOneWidget);
+      await tester.tap(saveBooking);
+      await ready(tester);
+      expect(find.byType(AlertDialog), findsNothing);
+      final created = (await db.queryAllBookings()).single;
+      final id = created['id'] as int;
+      expect(created['total_price'], 55);
+      tester.view.resetViewInsets();
+      await viewport(tester, 390, 1.5);
+      await walk(
+        tester,
+        find.byKey(const PageStorageKey('booking-page-scroll')),
+        'new booking list',
+      );
+      final card = find.byKey(ValueKey('directory-booking-$id'));
+      Finder action(String text) => find.descendant(
+        of: card,
+        matching: find.widgetWithText(TextButton, text),
+      );
+      await tester.ensureVisible(action('الدفعات'));
+      await tester.tap(action('الدفعات'));
+      await ready(tester);
+      await tester.tap(find.text('تسجيل دفعة'));
+      await ready(tester);
+      geometry(tester, 'payment dialog 390/1.5');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'قيمة الدفعة (ر.س)'),
+        '20',
+      );
+      tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+      await ready(tester);
+      final savePayment = find.widgetWithText(ElevatedButton, 'حفظ الدفعة');
+      expect(savePayment.hitTestable(), findsOneWidget);
+      await tester.tap(savePayment);
+      await ready(tester);
+      expect((await db.queryPaymentSummary(id))['remaining'], 35);
+      tester.view.resetViewInsets();
+      await ready(tester);
+      await tester.ensureVisible(action('تعديل'));
+      await tester.tap(action('تعديل'));
+      await ready(tester);
+      await tester.ensureVisible(price);
+      await tester.enterText(price, '75.00');
+      geometry(tester, 'edit booking 390/1.5');
+      await tester.tap(find.widgetWithText(ElevatedButton, 'حفظ'));
+      await ready(tester);
+      final summary = await db.queryPaymentSummary(id);
+      expect(summary['total'], 75);
+      expect(summary['paid'], 20);
+      expect(summary['remaining'], 55);
+      await tester.ensureVisible(action('حذف'));
+      await tester.tap(action('حذف'));
+      await ready(tester);
+      geometry(tester, 'delete confirmation 390/1.5');
+      await tester.tap(find.widgetWithText(TextButton, 'إلغاء'));
+      await ready(tester);
+      expect((await db.queryAllBookings()).length, 1);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
+
+  testWidgets('quick client and expense save above the keyboard at 200%', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.runAsync(() async {
+      await viewport(tester, 390, 2, height: 700);
+      await tester.pumpWidget(
+        const RepaintBoundary(key: captureKey, child: ResthouseApp()),
+      );
+      await ready(tester);
+      await tester.tap(find.text('عميل جديد'));
+      await ready(tester);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'الاسم الكامل'),
+        'عميل اختبار جديد',
+      );
+      final phone = find.widgetWithText(TextFormField, 'رقم الهاتف');
+      await tester.ensureVisible(phone);
+      await tester.enterText(phone, '0500000002');
+      tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+      await ready(tester);
+      geometry(tester, 'client form 390/2 keyboard');
+      final saveClient = find.widgetWithText(ElevatedButton, 'إضافة');
+      expect(saveClient.hitTestable(), findsOneWidget);
+      await tester.tap(saveClient);
+      await ready(tester);
+      expect((await db.queryAllRenters()).length, 2);
+      tester.view.resetViewInsets();
+      await ready(tester);
+      final expense = find.text('تسجيل مصروف سريع');
+      await tester.ensureVisible(expense);
+      await tester.tap(expense);
+      await ready(tester);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'وصف المصروف'),
+        'مصاريف اختبار مستقلة',
+      );
+      final amount = find.widgetWithText(TextField, 'المبلغ');
+      await tester.ensureVisible(amount);
+      await tester.enterText(amount, '1234567.89');
+      tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+      await ready(tester);
+      geometry(tester, 'expense form 390/2 keyboard');
+      final saveExpense = find.widgetWithText(ElevatedButton, 'حفظ');
+      expect(saveExpense.hitTestable(), findsOneWidget);
+      await tester.tap(saveExpense);
+      await ready(tester);
+      expect(
+        (await db.queryAllExpenses()).any((e) => e['amount'] == 1234567.89),
+        isTrue,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
 
   testWidgets('settings is scrollable with 200% text on a short screen', (
     tester,
