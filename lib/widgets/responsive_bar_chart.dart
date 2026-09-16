@@ -36,18 +36,22 @@ class ResponsiveBarChart extends StatelessWidget {
       final axisValues = [
         minY,
         maxY,
-        for (var i = (minY / interval).ceil();
-            i <= (maxY / interval).floor();
-            i++)
+        for (
+          var i = (minY / interval).ceil();
+          i <= (maxY / interval).floor();
+          i++
+        )
           i * interval,
       ];
-      final axisWidth = axisValues.fold<double>(
-        0,
-        (width, value) => math.max(
-          width,
-          ContentLayout.textWidth(context, formatter.format(value), style),
-        ),
-      ) + 16;
+      final axisWidth =
+          axisValues.fold<double>(
+            0,
+            (width, value) => math.max(
+              width,
+              ContentLayout.textWidth(context, formatter.format(value), style),
+            ),
+          ) +
+          16;
       final plotWidth = math.max(1.0, constraints.maxWidth - axisWidth - 16);
       final widestLabel = labels.values.fold<double>(
         48 * scale,

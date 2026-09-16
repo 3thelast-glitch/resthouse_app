@@ -30,11 +30,11 @@ jobs:
       - run: flutter pub get
       - name: Verify formatting
         run: >-
-          dart format
+          dart format --output=none --set-exit-if-changed
           lib/widgets lib/pages/booking_manager_page.dart
           lib/pages/finance_page.dart lib/pages/main_shell.dart
           lib/pages/ultimate_dashboard_page.dart lib/pages/booking_payments_dialog.dart
-          lib/pages/settings_page.dart lib/theme/app_theme.dart test/responsive_layout_test.dart
+          lib/pages/settings_page.dart lib/theme/app_theme.dart test/responsive_layout_test.dart test/ui_accessibility_test.dart
       - name: Analyze all code
         run: flutter analyze
       - name: Run complete test suite
@@ -51,14 +51,3 @@ jobs:
           path: build/layout-captures
           if-no-files-found: error
           retention-days: 14
-      - name: Export formatted test source
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: responsive-test-source
-          path: |
-            test/responsive_layout_test.dart
-            lib/pages/finance_page.dart
-            lib/pages/booking_manager_page.dart
-            lib/widgets/responsive_bar_chart.dart
-          retention-days: 3

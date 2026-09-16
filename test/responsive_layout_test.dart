@@ -586,11 +586,16 @@ void main() {
         await ready(tester);
         expect(tester.widget<ChoiceChip>(filter).selected, isTrue);
         expect(
-          tester.widget<TableCalendar>(calendar).selectedDayPredicate!(selected),
+          tester.widget<TableCalendar>(calendar).selectedDayPredicate!(
+            selected,
+          ),
           isTrue,
         );
         expect(
-          tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+          tester
+              .widget<TextField>(find.byType(TextField).first)
+              .controller!
+              .text,
           'عبدالله',
         );
         geometry(tester, 'shell state $width');
