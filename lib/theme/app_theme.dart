@@ -102,6 +102,8 @@ abstract final class AppTheme {
         space: 1,
       ),
       inputDecorationTheme: InputDecorationTheme(
+        errorMaxLines: 5,
+        helperMaxLines: 5,
         filled: true,
         fillColor: AppColors.surface,
         contentPadding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),

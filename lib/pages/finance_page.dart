@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../widgets/adaptive_content.dart';
+import '../widgets/responsive_bar_chart.dart';
 import '../utils/responsive.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../database_helper.dart';
@@ -110,7 +112,9 @@ class _FinancePageState extends State<FinancePage> {
     final expenses = await dbHelper.queryAllExpenses();
     final distinctDescs = await dbHelper.getDistinctExpenseDescriptions();
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _allBookings = bookings;
       _allExpenses = expenses;
@@ -234,6 +238,8 @@ class _FinancePageState extends State<FinancePage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
+                isDense: false,
+                itemHeight: null,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'تصنيف المصروف',
@@ -265,7 +271,9 @@ class _FinancePageState extends State<FinancePage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2050),
                         );
-                        if (!dialogContext.mounted) return;
+                        if (!dialogContext.mounted) {
+                          return;
+                        }
                         if (date != null) {
                           setDialogState(() => selectedDate = date);
                         }
@@ -339,7 +347,9 @@ class _FinancePageState extends State<FinancePage> {
                 });
 
                 await _loadFinance();
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم تسجيل المصروف بنجاح')),
@@ -435,6 +445,8 @@ class _FinancePageState extends State<FinancePage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
+                isDense: false,
+                itemHeight: null,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'تصنيف المصروف',
@@ -466,7 +478,9 @@ class _FinancePageState extends State<FinancePage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2050),
                         );
-                        if (!dialogContext.mounted) return;
+                        if (!dialogContext.mounted) {
+                          return;
+                        }
                         if (date != null) {
                           setDialogState(() => selectedDate = date);
                         }
@@ -541,7 +555,9 @@ class _FinancePageState extends State<FinancePage> {
                 });
 
                 await _loadFinance();
-                if (!dialogContext.mounted) return;
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('تم تحديث المصروف بنجاح')),
@@ -575,7 +591,9 @@ class _FinancePageState extends State<FinancePage> {
             onPressed: () async {
               await dbHelper.deleteExpense(id);
               await _loadFinance();
-              if (!dialogContext.mounted) return;
+              if (!dialogContext.mounted) {
+                return;
+              }
               Navigator.pop(dialogContext);
               ScaffoldMessenger.of(dialogContext).showSnackBar(
                 const SnackBar(content: Text('تم حذف المصروف بنجاح')),
@@ -603,18 +621,19 @@ class _FinancePageState extends State<FinancePage> {
 
   List<PieChartSectionData> _buildPieSections() {
     final catTotals = _getCategoryTotals();
-    if (catTotals.isEmpty) return [];
+    if (catTotals.isEmpty) {
+      return [];
+    }
 
-    final totalExp = catTotals.values.fold(0.0, (sum, val) => sum + val);
     final colorsMap = _getCategoryColors();
 
     return catTotals.entries.map((entry) {
-      final percentage = totalExp > 0 ? (entry.value / totalExp) * 100 : 0.0;
       final color = colorsMap[entry.key] ?? AppColors.fieldBorder;
       return PieChartSectionData(
         color: color,
         value: entry.value,
-        title: '${percentage.toStringAsFixed(0)}%',
+        title: '',
+        showTitle: false,
         radius: 35,
         titleStyle: TextStyle(
           fontSize: 10.sp(context),
@@ -625,43 +644,35 @@ class _FinancePageState extends State<FinancePage> {
     }).toList();
   }
 
-  Widget _buildPieLegend() {
-    final catTotals = _getCategoryTotals();
-    final colorsMap = _getCategoryColors();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: catTotals.entries.map((entry) {
-        final color = colorsMap[entry.key] ?? AppColors.fieldBorder;
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
+  Widget _buildPieLegend() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final entry in _getCategoryTotals().entries)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              Padding(
+                padding: const EdgeInsetsDirectional.only(top: 6, end: 8),
+                child: Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: _getCategoryColors()[entry.key],
+                ),
               ),
-              const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  '${entry.key}: ${entry.value.toStringAsFixed(0)} ر.س',
-                  style: TextStyle(
-                    fontSize: 11.sp(context),
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.secondaryText,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: LabelledAmount(
+                  '${entry.key} (${(_totalExpenses > 0 ? entry.value / _totalExpenses * 100 : 0).toStringAsFixed(0)}%)',
+                  entry.value,
+                  color: AppColors.text,
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
-    );
-  }
+        ),
+    ],
+  );
 
   List<BarChartGroupData> _buildComparativeBarGroups() {
     final Set<int> activeMonths = _fullYearSelected
@@ -792,41 +803,9 @@ class _FinancePageState extends State<FinancePage> {
     });
   }
 
-  Widget _getBarBottomTitles(double value, TitleMeta meta) {
-    const months = [
-      'يناير',
-      'فبراير',
-      'مارس',
-      'أبريل',
-      'مايو',
-      'يونيو',
-      'يوليو',
-      'أغسطس',
-      'سبتمبر',
-      'أكتوبر',
-      'نوفمبر',
-      'ديسمبر',
-    ];
-    int monthNum = value.toInt(); // 1-indexed month number
-    if (monthNum >= 1 && monthNum <= 12) {
-      return SideTitleWidget(
-        meta: meta,
-        child: Text(
-          months[monthNum - 1],
-          style: TextStyle(
-            fontSize: 9.sp(context),
-            fontWeight: FontWeight.bold,
-            color: AppColors.secondaryText,
-          ),
-        ),
-      );
-    }
-    return SideTitleWidget(meta: meta, child: const Text(''));
-  }
-
   // Build the advanced filter UI widget
   Widget _buildAdvancedFilterPanel() {
-    const monthNames = [
+    const months = [
       'يناير',
       'فبراير',
       'مارس',
@@ -843,244 +822,103 @@ class _FinancePageState extends State<FinancePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Row 1: Title + Year dropdown + Comparison toggle
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'التقرير المالي للعمليات',
-                style: TextStyle(
-                  fontSize: 18.sp(context),
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.heading,
-                ),
-              ),
-            ),
-            // Year dropdown
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(20),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.primary.withAlpha(60)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  value: _selectedYear,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                    fontSize: 14.sp(context),
-                  ),
-                  items: _getYearRange().map((year) {
-                    return DropdownMenuItem<int>(
-                      value: year,
-                      child: Text('$year'),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedYear = value;
-                        _applyFilter();
-                      });
-                    }
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Comparison toggle
-            FilterChip(
-              label: Text(
-                'مقارنة مالية',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12.sp(context),
-                  color: _showComparison
-                      ? Colors.white
-                      : const Color(0xFF6366F1),
-                ),
-              ),
-              avatar: Icon(
-                Icons.compare_arrows,
-                size: 16,
-                color: _showComparison ? Colors.white : const Color(0xFF6366F1),
-              ),
-              selected: _showComparison,
-              selectedColor: const Color(0xFF6366F1),
-              backgroundColor: const Color(0xFF6366F1).withAlpha(20),
-              checkmarkColor: Colors.white,
-              onSelected: (val) {
-                setState(() {
-                  _showComparison = val;
-                });
-              },
-            ),
-            if (_showComparison) ...[
-              const SizedBox(width: 8),
-              Text(
-                'مقابل',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.secondaryText,
-                  fontSize: 12.sp(context),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withAlpha(20),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFF6366F1).withAlpha(60),
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: _comparisonYear,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Color(0xFF6366F1),
-                      size: 20,
-                    ),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6366F1),
-                      fontSize: 14.sp(context),
-                    ),
-                    items: _getYearRange().map((year) {
-                      return DropdownMenuItem<int>(
-                        value: year,
-                        child: Text('$year'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _comparisonYear = value;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ],
+        Text(
+          'التقرير المالي للعمليات',
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
-        // Row 2: Full Year chip + Month chips
-        SizedBox(
-          height: 38,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              // Full year chip
-              Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: FilterChip(
-                  label: Text(
-                    'السنة كاملة',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12.sp(context),
-                      color: _fullYearSelected
-                          ? Colors.white
-                          : AppColors.primary,
-                    ),
-                  ),
+        AdaptiveItems(
+          minItemWidth: 200,
+          maxColumns: 3,
+          children: [
+            _labelledDropdown('السنة', _selectedYear, _getYearRange(), (value) {
+              if (value != null) {
+                setState(() {
+                  _selectedYear = value;
+                  _applyFilter();
+                });
+              }
+            }),
+            FilterChip(
+              label: const Text('مقارنة مالية'),
+              selected: _showComparison,
+              onSelected: (value) => setState(() => _showComparison = value),
+            ),
+            if (_showComparison)
+              _labelledDropdown('مقابل سنة', _comparisonYear, _getYearRange(), (
+                value,
+              ) {
+                if (value != null) {
+                  setState(() => _comparisonYear = value);
+                }
+              }),
+          ],
+        ),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('الأشهر والفترة'),
+          subtitle: Text(
+            _fullYearSelected
+                ? 'السنة كاملة'
+                : _selectedMonths.map((m) => months[m - 1]).join('، '),
+          ),
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('السنة كاملة'),
                   selected: _fullYearSelected,
-                  selectedColor: AppColors.primary,
-                  backgroundColor: AppColors.primary.withAlpha(15),
-                  checkmarkColor: Colors.white,
-                  onSelected: (val) {
-                    setState(() {
-                      _fullYearSelected = val;
-                      if (val) {
-                        _selectedMonths = {
-                          1,
-                          2,
-                          3,
-                          4,
-                          5,
-                          6,
-                          7,
-                          8,
-                          9,
-                          10,
-                          11,
-                          12,
-                        };
-                      } else {
-                        _selectedMonths = {DateTime.now().month};
-                      }
-                      _applyFilter();
-                    });
-                  },
+                  onSelected: (value) => setState(() {
+                    _fullYearSelected = value;
+                    _selectedMonths = value
+                        ? {for (var i = 1; i <= 12; i++) i}
+                        : {DateTime.now().month};
+                    _applyFilter();
+                  }),
                 ),
-              ),
-              const SizedBox(width: 6),
-              const VerticalDivider(
-                width: 16,
-                thickness: 1,
-                indent: 6,
-                endIndent: 6,
-              ),
-              // Month chips
-              ...List.generate(12, (i) {
-                final monthNum = i + 1;
-                final isSelected = _selectedMonths.contains(monthNum);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: FilterChip(
-                    label: Text(
-                      monthNames[i],
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11.sp(context),
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.secondaryText,
-                      ),
-                    ),
-                    selected: isSelected,
-                    selectedColor: AppColors.primary,
-                    backgroundColor: AppColors.background,
-                    checkmarkColor: Colors.white,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
+                for (var i = 1; i <= 12; i++)
+                  FilterChip(
+                    label: Text(months[i - 1]),
+                    selected: _selectedMonths.contains(i),
                     onSelected: _fullYearSelected
                         ? null
-                        : (val) {
-                            setState(() {
-                              if (val) {
-                                _selectedMonths.add(monthNum);
-                              } else {
-                                if (_selectedMonths.length > 1) {
-                                  _selectedMonths.remove(monthNum);
-                                }
-                              }
-                              _applyFilter();
-                            });
-                          },
+                        : (value) => setState(() {
+                            if (value) {
+                              _selectedMonths.add(i);
+                            } else if (_selectedMonths.length > 1) {
+                              _selectedMonths.remove(i);
+                            }
+                            _applyFilter();
+                          }),
                   ),
-                );
-              }),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ],
     );
   }
+
+  Widget _labelledDropdown(
+    String label,
+    int value,
+    List<int> items,
+    ValueChanged<int?> onChanged, {
+    String Function(int)? itemToString,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.bodySmall),
+      _buildDropdown<int>(
+        value: value,
+        items: items,
+        onChanged: onChanged,
+        itemToString: itemToString,
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -1096,27 +934,47 @@ class _FinancePageState extends State<FinancePage> {
     final hasFinancialData = _allBookings.isNotEmpty || _allExpenses.isNotEmpty;
     return Scaffold(
       backgroundColor: AppColors.background,
-      // [تعديل] تم تغليف المحتوى الرئيسي بـ SingleChildScrollView للسماح بالتمرير على الشاشات الصغيرة
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 950;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (hasFinancialData) ...[
-                  _buildSubTabSelector(),
-                  const SizedBox(height: 16),
-                  _activeTab == 0
-                      ? _buildReportTabContent(isWide)
-                      : _buildComparisonTabContent(isWide),
-                ] else
-                  _buildFinancialEmptyState(),
+      body: ContentWidth(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide =
+                constraints.maxWidth >= 1024 * ContentLayout.textScale(context);
+            return CustomScrollView(
+              key: const PageStorageKey('finance-scroll'),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (hasFinancialData) ...[
+                              _buildSubTabSelector(),
+                              const SizedBox(height: 16),
+                              _activeTab == 0
+                                  ? _buildReportTabContent(wide)
+                                  : _buildComparisonTabContent(wide),
+                              if (_activeTab == 0) ...[
+                                const SizedBox(height: 24),
+                                _buildExpensesHeader(),
+                              ],
+                            ] else
+                              _buildFinancialEmptyState(),
+                          ],
+                        ),
+                      ),
+                      if (hasFinancialData && _activeTab == 0)
+                        _buildExpensesList(),
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                    ],
+                  ),
+                ),
               ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -1171,202 +1029,63 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
-  Widget _buildSubTabSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+  Widget _buildSubTabSelector() => AdaptiveItems(
+    minItemWidth: 250,
+    maxColumns: 2,
+    children: [
+      ChoiceChip(
+        key: const ValueKey('finance-report-tab'),
+        label: const Text('التقرير والتحليل المالي العام'),
+        selected: _activeTab == 0,
+        onSelected: (_) => setState(() => _activeTab = 0),
       ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _activeTab = 0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _activeTab == 0
-                      ? AppColors.primary
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'التقرير والتحليل المالي العام',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _activeTab == 0
-                        ? Colors.white
-                        : AppColors.secondaryText,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp(context),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _activeTab = 1),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _activeTab == 1
-                      ? AppColors.primary
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'المقارنة المالية المتقدمة',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _activeTab == 1
-                        ? Colors.white
-                        : AppColors.secondaryText,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp(context),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      ChoiceChip(
+        key: const ValueKey('finance-comparison-tab'),
+        label: const Text('المقارنة المالية المتقدمة'),
+        selected: _activeTab == 1,
+        onSelected: (_) => setState(() => _activeTab = 1),
       ),
-    );
-  }
+    ],
+  );
 
-  Widget _buildReportTabContent(bool isWide) {
-    final netIncome = _totalRevenue - _totalExpenses;
-    // [تعديل] تم إزالة Expanded من Column لأن المحتوى الآن داخل SingleChildScrollView
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildAdvancedFilterPanel(),
-        const SizedBox(height: 16),
-        if (isWide)
-          Row(
-            children: [
-              Expanded(
-                child: _buildCard(
-                  'إجمالي مبالغ الإيجار',
-                  _totalRevenue,
-                  const Color(0xFF10B981),
-                  Icons.monetization_on_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildCard(
-                  'التأمينات المعلقة',
-                  _totalSecurityDeposit,
-                  const Color(0xFF0284C7),
-                  Icons.security_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildCard(
-                  'إجمالي المصروفات',
-                  _totalExpenses,
-                  const Color(0xFFEF4444),
-                  Icons.arrow_downward,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildCard(
-                  'صافي الأرباح',
-                  netIncome,
-                  netIncome >= 0 ? AppColors.primary : AppColors.errorText,
-                  Icons.account_balance,
-                ),
-              ),
-            ],
-          )
-        else
-          Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCard(
-                      'إجمالي مبالغ الإيجار',
-                      _totalRevenue,
-                      const Color(0xFF10B981),
-                      Icons.monetization_on_outlined,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildCard(
-                      'التأمينات المعلقة',
-                      _totalSecurityDeposit,
-                      const Color(0xFF0284C7),
-                      Icons.security_outlined,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCard(
-                      'إجمالي المصروفات',
-                      _totalExpenses,
-                      const Color(0xFFEF4444),
-                      Icons.arrow_downward,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildCard(
-                      'صافي الأرباح',
-                      netIncome,
-                      netIncome >= 0 ? AppColors.primary : AppColors.errorText,
-                      Icons.account_balance,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+  Widget _buildReportTabContent(bool isWide) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _buildAdvancedFilterPanel(),
+      const SizedBox(height: 16),
+      AdaptiveItems(
+        minItemWidth: 210,
+        children: [
+          _buildCard(
+            'إجمالي مبالغ الإيجار',
+            _totalRevenue,
+            AppColors.successText,
+            Icons.monetization_on_outlined,
           ),
-        const SizedBox(height: 24),
-        // [تعديل] تم إزالة Expanded واستخدام isScrollable: true لعرض المحتوى بارتفاع ثابت
-        // بدلاً من الاعتماد على Expanded الذي لا يعمل مع SingleChildScrollView
-        if (isWide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: _buildExpensesSection(isScrollable: true),
-              ),
-              const SizedBox(width: 16),
-              Expanded(flex: 2, child: _buildChartsSection(isScrollable: true)),
-            ],
-          )
-        else
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildChartsSection(isScrollable: true),
-              const SizedBox(height: 24),
-              _buildExpensesSection(isScrollable: true),
-            ],
+          _buildCard(
+            'التأمينات المعلقة',
+            _totalSecurityDeposit,
+            AppColors.primary,
+            Icons.security_outlined,
           ),
-      ],
-    );
-  }
+          _buildCard(
+            'إجمالي المصروفات',
+            _totalExpenses,
+            AppColors.errorText,
+            Icons.arrow_downward,
+          ),
+          _buildCard(
+            'صافي الأرباح',
+            _totalRevenue - _totalExpenses,
+            AppColors.primary,
+            Icons.account_balance,
+          ),
+        ],
+      ),
+      const SizedBox(height: 24),
+      _buildChartsSection(),
+    ],
+  );
 
   Map<String, double> _getMonthFinancials(int year, int month) {
     double revenue = 0.0;
@@ -1438,7 +1157,7 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   Widget _buildComparisonControls() {
-    const monthNames = [
+    const months = [
       'يناير',
       'فبراير',
       'مارس',
@@ -1452,164 +1171,83 @@ class _FinancePageState extends State<FinancePage> {
       'نوفمبر',
       'ديسمبر',
     ];
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      shadowColor: Colors.black.withAlpha(13),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.compare_arrows, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'تحديد خيارات المقارنة',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp(context),
-                    color: AppColors.heading,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.all(2),
-                  child: Row(
-                    children: [
-                      _buildComparisonTypeButton('months', 'مقارنة بين الأشهر'),
-                      _buildComparisonTypeButton('years', 'مقارنة بين السنوات'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 24),
-            if (_comparisonType == 'months') ...[
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    const Text(
-                      'السنة: ',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildDropdown<int>(
-                      value: _compMonthYear,
-                      items: _getYearRange(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _compMonthYear = val);
-                      },
-                    ),
-                    const SizedBox(width: 24),
-                    const Text(
-                      'الشهر الأول: ',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildDropdown<int>(
-                      value: _compMonth1,
-                      items: List.generate(12, (i) => i + 1),
-                      itemToString: (m) => monthNames[m - 1],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _compMonth1 = val);
-                      },
-                    ),
-                    const SizedBox(width: 24),
-                    const Text(
-                      'الشهر الثاني: ',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildDropdown<int>(
-                      value: _compMonth2,
-                      items: List.generate(12, (i) => i + 1),
-                      itemToString: (m) => monthNames[m - 1],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _compMonth2 = val);
-                      },
-                    ),
-                  ],
-                ),
+    return SectionCard(
+      title: 'تحديد خيارات المقارنة',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AdaptiveItems(
+            minItemWidth: 230,
+            maxColumns: 2,
+            children: [
+              ChoiceChip(
+                label: const Text('مقارنة بين الأشهر'),
+                selected: _comparisonType == 'months',
+                onSelected: (_) => setState(() => _comparisonType = 'months'),
               ),
-            ] else ...[
-              Row(
-                children: [
-                  const Text(
-                    'السنة الأولى: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.secondaryText,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildDropdown<int>(
-                    value: _compYear1,
-                    items: _getYearRange(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _compYear1 = val);
-                    },
-                  ),
-                  const SizedBox(width: 32),
-                  const Text(
-                    'السنة الثانية: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.secondaryText,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildDropdown<int>(
-                    value: _compYear2,
-                    items: _getYearRange(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _compYear2 = val);
-                    },
-                  ),
-                ],
+              ChoiceChip(
+                label: const Text('مقارنة بين السنوات'),
+                selected: _comparisonType == 'years',
+                onSelected: (_) => setState(() => _comparisonType = 'years'),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComparisonTypeButton(String type, String label) {
-    final isSelected = _comparisonType == type;
-    return InkWell(
-      onTap: () => setState(() => _comparisonType = type),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.secondaryText,
-            fontWeight: FontWeight.bold,
-            fontSize: 12.sp(context),
           ),
-        ),
+          const SizedBox(height: 16),
+          AdaptiveItems(
+            minItemWidth: 200,
+            children: [
+              if (_comparisonType == 'months') ...[
+                _labelledDropdown('السنة', _compMonthYear, _getYearRange(), (
+                  v,
+                ) {
+                  if (v != null) {
+                    setState(() => _compMonthYear = v);
+                  }
+                }),
+                _labelledDropdown(
+                  'الشهر الأول',
+                  _compMonth1,
+                  List.generate(12, (i) => i + 1),
+                  (v) {
+                    if (v != null) {
+                      setState(() => _compMonth1 = v);
+                    }
+                  },
+                  itemToString: (v) => months[v - 1],
+                ),
+                _labelledDropdown(
+                  'الشهر الثاني',
+                  _compMonth2,
+                  List.generate(12, (i) => i + 1),
+                  (v) {
+                    if (v != null) {
+                      setState(() => _compMonth2 = v);
+                    }
+                  },
+                  itemToString: (v) => months[v - 1],
+                ),
+              ] else ...[
+                _labelledDropdown('السنة الأولى', _compYear1, _getYearRange(), (
+                  v,
+                ) {
+                  if (v != null) {
+                    setState(() => _compYear1 = v);
+                  }
+                }),
+                _labelledDropdown(
+                  'السنة الثانية',
+                  _compYear2,
+                  _getYearRange(),
+                  (v) {
+                    if (v != null) {
+                      setState(() => _compYear2 = v);
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1629,6 +1267,8 @@ class _FinancePageState extends State<FinancePage> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
+          isExpanded: true,
+          itemHeight: null,
           value: value,
           icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
           style: TextStyle(
@@ -1656,15 +1296,6 @@ class _FinancePageState extends State<FinancePage> {
     String labelA,
     String labelB,
   ) {
-    final double maxVal = [
-      dataA['revenue']!,
-      dataA['expenses']!,
-      dataB['revenue']!,
-      dataB['expenses']!,
-    ].reduce((curr, next) => curr > next ? curr : next);
-
-    final double maxBarHeight = maxVal > 0 ? maxVal * 1.25 : 100.0;
-
     final groups = [
       BarChartGroupData(
         x: 0,
@@ -1702,59 +1333,7 @@ class _FinancePageState extends State<FinancePage> {
       ),
     ];
 
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: maxBarHeight,
-        barTouchData: const BarTouchData(enabled: true),
-        titlesData: FlTitlesData(
-          show: true,
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: true, reservedSize: 45),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (val, meta) {
-                if (val.toInt() == 0) {
-                  return SideTitleWidget(
-                    meta: meta,
-                    child: Text(
-                      labelA,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10.sp(context),
-                      ),
-                    ),
-                  );
-                } else if (val.toInt() == 1) {
-                  return SideTitleWidget(
-                    meta: meta,
-                    child: Text(
-                      labelB,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10.sp(context),
-                      ),
-                    ),
-                  );
-                }
-                return SideTitleWidget(meta: meta, child: const Text(''));
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        gridData: const FlGridData(show: true, drawVerticalLine: false),
-        barGroups: groups,
-      ),
-    );
+    return ResponsiveBarChart(groups: groups, labels: {0: labelA, 1: labelB});
   }
 
   Widget _buildComparisonStats(
@@ -1840,94 +1419,34 @@ class _FinancePageState extends State<FinancePage> {
       diffIcon = Icons.trending_flat;
     }
 
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withAlpha(20),
-              foregroundColor: color,
-              radius: 18,
-              child: Icon(icon, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: AppColors.secondaryText,
-                      fontSize: 11.sp(context),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        '${valA.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13.sp(context),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '➔',
-                        style: TextStyle(color: AppColors.secondaryText),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${valB.toStringAsFixed(0)}${isCurrency ? " ر.س" : ""}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13.sp(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: diffColor.withAlpha(15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(diffIcon, size: 14, color: diffColor),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        diffText,
-                        style: TextStyle(
-                          color: diffColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11.sp(context),
-                        ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+    return SectionCard(
+      title: title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AdaptiveItems(
+            minItemWidth: 210,
+            maxColumns: 2,
+            children: [
+              if (isCurrency)
+                LabelledAmount('الفترة الأولى', valA)
+              else
+                Text('الفترة الأولى: ${valA.toInt()}'),
+              if (isCurrency)
+                LabelledAmount('الفترة الثانية', valB)
+              else
+                Text('الفترة الثانية: ${valB.toInt()}'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Icon(diffIcon, size: 20, color: diffColor),
+          Text(
+            diffText,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: diffColor),
+          ),
+        ],
       ),
     );
   }
@@ -1993,12 +1512,14 @@ class _FinancePageState extends State<FinancePage> {
               children: [
                 Icon(Icons.lightbulb_outline, color: highlightColor, size: 24),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15.sp(context),
-                    color: highlightColor,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15.sp(context),
+                      color: highlightColor,
+                    ),
                   ),
                 ),
               ],
@@ -2089,10 +1610,7 @@ class _FinancePageState extends State<FinancePage> {
               ],
             ),
             const SizedBox(height: 24),
-            SizedBox(
-              height: 220,
-              child: _buildComparisonChart(dataA, dataB, labelA, labelB),
-            ),
+            _buildComparisonChart(dataA, dataB, labelA, labelB),
           ],
         ),
       ),
@@ -2137,304 +1655,113 @@ class _FinancePageState extends State<FinancePage> {
     );
   }
 
-  Widget _buildCard(String title, double amount, Color color, IconData icon) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      shadowColor: Colors.black.withAlpha(13),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withAlpha(26),
-              foregroundColor: color,
-              radius: 24,
-              child: Icon(icon, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: AppColors.secondaryText,
-                      fontSize: 13.sp(context),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${amount.toStringAsFixed(0)} ر.س',
-                    style: TextStyle(
-                      fontSize: 20.sp(context),
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.text,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+  Widget _buildCard(String title, double amount, Color color, IconData icon) =>
+      MetricCard(title: title, value: amount, color: color, icon: icon);
+
+  Widget _buildExpensesHeader() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        'سجل المصروفات التشغيلية',
+        style: Theme.of(context).textTheme.titleMedium,
       ),
-    );
-  }
-
-  Widget _buildExpensesSection({bool isScrollable = false}) {
-    // [تعديل] تم استخدام SizedBox بارتفاع ثابت دائماً لأن الصفحة كلها أصبحت قابلة للتمرير
-    final listWidget = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.list_alt, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'سجل المصروفات التشغيلية',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp(context),
-                    color: AppColors.heading,
-                  ),
-                ),
-              ],
-            ),
-            ElevatedButton.icon(
-              onPressed: _showAddExpenseDialog,
-              icon: const Icon(Icons.add_circle_outline, size: 18),
-              label: const Text('تسجيل مصروف جديد'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(height: 400, child: _buildExpensesList()),
-      ],
-    );
-    return listWidget;
-  }
-
-  Widget _buildChartsSection({bool isScrollable = false}) {
-    if (_expenses.isEmpty && _filteredBookings.isEmpty) {
-      return Card(
-        color: Colors.white,
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.pie_chart_outline,
-                  size: 48,
-                  color: AppColors.secondaryText,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'لا توجد عمليات مالية مسجلة للفترة المحددة',
-                  style: TextStyle(
-                    color: AppColors.secondaryText,
-                    fontSize: 13.sp(context),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+      const SizedBox(height: 12),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FilledButton(
+          key: const ValueKey('add-expense'),
+          onPressed: _showAddExpenseDialog,
+          child: const ActionLabel(
+            Icons.add_circle_outline,
+            'تسجيل مصروف جديد',
           ),
         ),
+      ),
+      const SizedBox(height: 12),
+    ],
+  );
+
+  Widget _buildChartsSection() {
+    if (_expenses.isEmpty && _filteredBookings.isEmpty) {
+      return const SectionCard(
+        title: 'التحليل البياني المالي',
+        child: Text('لا توجد عمليات مالية مسجلة للفترة المحددة'),
       );
     }
-
-    double maxRod = 0.0;
     final groups = _showComparison
         ? _buildComparisonBarGroups()
         : _buildComparativeBarGroups();
-    for (var g in groups) {
-      for (var r in g.barRods) {
-        if (r.toY > maxRod) {
-          maxRod = r.toY;
-        }
-      }
-    }
-    final double maxBarHeight = maxRod > 0 ? maxRod * 1.25 : 100.0;
-
-    final mainContent = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AdaptiveItems(
+      minItemWidth: 460,
+      maxColumns: 2,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.analytics_outlined, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(
-              'التحليل البياني المالي',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp(context),
-                color: AppColors.heading,
+        SectionCard(
+          title: _showComparison
+              ? 'مقارنة مالية: $_selectedYear مقابل $_comparisonYear'
+              : 'مقارنة الإيرادات والمصروفات',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ResponsiveBarChart(
+                groups: groups,
+                labels: {for (final g in groups) g.x: '${g.x}/$_selectedYear'},
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: Colors.white,
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  _buildLegendItem(
+                    AppColors.successText,
+                    'إيرادات $_selectedYear',
+                  ),
+                  _buildLegendItem(
+                    AppColors.errorText,
+                    'مصروفات $_selectedYear',
+                  ),
+                  if (_showComparison) ...[
+                    _buildLegendItem(
+                      const Color(0xFF60A5FA),
+                      'إيرادات $_comparisonYear',
+                    ),
+                    _buildLegendItem(
+                      AppColors.warningText,
+                      'مصروفات $_comparisonYear',
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _showComparison
-                      ? 'مقارنة مالية: $_selectedYear مقابل $_comparisonYear'
-                      : 'مقارنة الإيرادات والمصروفات',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp(context),
-                    color: AppColors.secondaryText,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
+        ),
+        SectionCard(
+          title: 'توزيع المصاريف حسب التصنيف',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_expenses.isEmpty)
+                const Text(
+                  'لا توجد مصروفات مسجلة لعرض تصنيفاتها للفترة المحددة',
+                )
+              else ...[
                 SizedBox(
-                  height: 160,
-                  child: BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: maxBarHeight > 0 ? maxBarHeight : 100,
-                      barTouchData: const BarTouchData(enabled: true),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: _getBarBottomTitles,
-                          ),
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      gridData: const FlGridData(show: false),
-                      barGroups: groups,
+                  height: 200,
+                  child: PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 44,
+                      sections: _buildPieSections(),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                if (_showComparison)
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 16,
-                    runSpacing: 4,
-                    children: [
-                      _buildLegendItem(
-                        const Color(0xFF10B981),
-                        'إيرادات $_selectedYear',
-                      ),
-                      _buildLegendItem(
-                        const Color(0xFFEF4444),
-                        'مصروفات $_selectedYear',
-                      ),
-                      _buildLegendItem(
-                        const Color(0xFF60A5FA),
-                        'إيرادات $_comparisonYear',
-                      ),
-                      _buildLegendItem(
-                        AppColors.warningText,
-                        'مصروفات $_comparisonYear',
-                      ),
-                    ],
-                  )
-                else
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 16,
-                    children: [
-                      _buildLegendItem(const Color(0xFF10B981), 'الإيرادات'),
-                      _buildLegendItem(const Color(0xFFEF4444), 'المصروفات'),
-                    ],
-                  ),
-                const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 12),
-                Text(
-                  'توزيع المصاريف حسب التصنيف',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp(context),
-                    color: AppColors.secondaryText,
-                  ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                if (_expenses.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Center(
-                      child: Text(
-                        'لا توجد مصروفات مسجلة لعرض تصنيفاتها للفترة المحددة',
-                        style: TextStyle(
-                          color: AppColors.secondaryText,
-                          fontSize: 12.sp(context),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 4,
-                        child: SizedBox(
-                          height: 110,
-                          child: PieChart(
-                            PieChartData(
-                              sectionsSpace: 2,
-                              centerSpaceRadius: 18,
-                              sections: _buildPieSections(),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(flex: 6, child: _buildPieLegend()),
-                    ],
-                  ),
+                _buildPieLegend(),
               ],
-            ),
+            ],
           ),
         ),
       ],
     );
-
-    // [تعديل] تم إزالة الشرط وإرجاع المحتوى مباشرة لأن الصفحة كلها أصبحت قابلة للتمرير
-    return mainContent;
   }
 
   Widget _buildLegendItem(Color color, String label) {
@@ -2447,13 +1774,8 @@ class _FinancePageState extends State<FinancePage> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.sp(context),
-            fontWeight: FontWeight.bold,
-            color: AppColors.secondaryText,
-          ),
+        Flexible(
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     );
@@ -2461,122 +1783,61 @@ class _FinancePageState extends State<FinancePage> {
 
   Widget _buildExpensesList() {
     if (_expenses.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider),
-        ),
-        child: Center(
-          child: Text(
-            'لا توجد مصروفات مسجلة بعد',
-            style: TextStyle(
-              color: AppColors.secondaryText,
-              fontSize: 14.sp(context),
-            ),
-          ),
-        ),
-      );
+      return const SliverToBoxAdapter(child: Text('لا توجد مصروفات مسجلة بعد'));
     }
-
-    final colorsMap = _getCategoryColors();
     final sorted = List<Map<String, dynamic>>.from(_expenses)
       ..sort((a, b) => b['date'].toString().compareTo(a['date'].toString()));
-
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ListView.separated(
-        itemCount: sorted.length,
-        separatorBuilder: (context, index) =>
-            const Divider(height: 1, color: AppColors.background),
-        itemBuilder: (context, index) {
-          final expense = sorted[index];
-          final category =
-              expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى';
-          final categoryColor = colorsMap[category] ?? AppColors.fieldBorder;
-
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: categoryColor.withAlpha(26),
-              foregroundColor: categoryColor,
-              child: const Icon(Icons.receipt, size: 18),
-            ),
-            title: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    expense['description'].toString(),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14.sp(context),
-                      color: AppColors.heading,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: categoryColor.withAlpha(26),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: categoryColor.withAlpha(51)),
-                  ),
-                  child: Text(
-                    category,
-                    style: TextStyle(
-                      fontSize: 10.sp(context),
-                      color: categoryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            subtitle: Text(
-              expense['date'].toString(),
-              style: TextStyle(
-                fontSize: 12.sp(context),
-                color: AppColors.secondaryText,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final expense = sorted[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '-${expense['amount']} ر.س',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFFEF4444),
-                    fontSize: 14.sp(context),
-                  ),
+                  expense['description'].toString(),
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    color: AppColors.primaryPressed,
-                    size: 20,
-                  ),
-                  onPressed: () => _showEditExpenseDialog(expense),
+                Text(
+                  expense['category']?.toString() ?? 'مصاريف تشغيلية أخرى',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: AppColors.errorText,
-                    size: 20,
-                  ),
-                  onPressed: () => _confirmDeleteExpense(expense['id']),
+                Text(
+                  expense['date'].toString(),
+                  textDirection: TextDirection.ltr,
+                  textAlign: TextAlign.end,
+                ),
+                AmountText(
+                  expense['amount'] as num,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(color: AppColors.errorText),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => _showEditExpenseDialog(expense),
+                      child: const ActionLabel(Icons.edit_outlined, 'تعديل'),
+                    ),
+                    TextButton(
+                      onPressed: () => _confirmDeleteExpense(expense['id']),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.errorText,
+                      ),
+                      child: const ActionLabel(Icons.delete_outline, 'حذف'),
+                    ),
+                  ],
                 ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      }, childCount: sorted.length),
     );
   }
 }

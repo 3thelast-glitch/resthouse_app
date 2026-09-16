@@ -1,0 +1,53 @@
+name: Responsive layout verification
+
+on:
+  push:
+    branches: [fix/responsive-arabic-layout]
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - '.github/workflows/responsive-layout.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: responsive-layout-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Verify formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          lib/widgets lib/pages/booking_manager_page.dart
+          lib/pages/finance_page.dart lib/pages/main_shell.dart
+          lib/pages/ultimate_dashboard_page.dart lib/pages/booking_payments_dialog.dart
+          lib/pages/settings_page.dart lib/theme/app_theme.dart test/responsive_layout_test.dart test/ui_accessibility_test.dart
+      - name: Analyze all code
+        run: flutter analyze
+      - name: Run complete test suite
+        run: flutter test --reporter expanded
+      - name: Capture responsive review frames
+        env:
+          CAPTURE_LAYOUT: '1'
+        run: flutter test test/responsive_layout_test.dart --reporter expanded
+      - name: Upload review frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-layout-frames
+          path: build/layout-captures
+          if-no-files-found: error
+          retention-days: 14

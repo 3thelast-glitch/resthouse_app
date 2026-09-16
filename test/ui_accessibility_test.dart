@@ -30,7 +30,6 @@ Future<void> _settleDatabaseUi(WidgetTester tester) async {
 void _expectNoLayoutException(WidgetTester tester, String reason) {
   final exception = tester.takeException();
   expect(exception, isNull, reason: reason);
-  while (tester.takeException() != null) {}
 }
 
 Widget _bookingTestApp() {

@@ -123,8 +123,8 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
     return AlertDialog(
       scrollable: true,
       title: Text('دفعات الحجز #${widget.bookingId}'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+      content: SizedBox(
+        width: 520,
         child: _summary == null && _error == null
             ? const SizedBox(
                 height: 96,
@@ -175,23 +175,13 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _money(payment['amount'] as num),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  if (payment['status'] == 'voided')
-                                    const StatusBadge.error(label: 'ملغاة')
-                                  else
-                                    const StatusBadge.success(label: 'مؤكدة'),
-                                ],
+                              _PaymentAmount(amount: payment['amount'] as num),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: payment['status'] == 'voided'
+                                    ? const StatusBadge.error(label: 'ملغاة')
+                                    : const StatusBadge.success(label: 'مؤكدة'),
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               Directionality(
@@ -271,6 +261,36 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
   }
 }
 
+class _PaymentAmount extends StatelessWidget {
+  const _PaymentAmount({required this.amount});
+
+  final num amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.titleLarge;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          amount.toStringAsFixed(2),
+          textDirection: TextDirection.ltr,
+          softWrap: false,
+          style: style,
+        ),
+        Text(
+          'ر.س',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: style?.color),
+        ),
+      ],
+    );
+  }
+}
+
 class _SummaryAmount extends StatelessWidget {
   const _SummaryAmount({
     required this.label,
@@ -287,7 +307,6 @@ class _SummaryAmount extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 180),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: background,
@@ -296,7 +315,7 @@ class _SummaryAmount extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
           color: foreground,
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
