@@ -32,12 +32,22 @@ class ResponsiveBarChart extends StatelessWidget {
       final minY = low < 0 ? low * 1.15 : 0.0;
       final maxY = high > 0 ? high * 1.15 : 1.0;
       final formatter = NumberFormat.compact(locale: 'en');
-      final axisWidth =
-          math.max(
-            ContentLayout.textWidth(context, formatter.format(minY), style),
-            ContentLayout.textWidth(context, formatter.format(maxY), style),
-          ) +
-          16;
+      final interval = (maxY - minY) / 4;
+      final axisValues = [
+        minY,
+        maxY,
+        for (var i = (minY / interval).ceil();
+            i <= (maxY / interval).floor();
+            i++)
+          i * interval,
+      ];
+      final axisWidth = axisValues.fold<double>(
+        0,
+        (width, value) => math.max(
+          width,
+          ContentLayout.textWidth(context, formatter.format(value), style),
+        ),
+      ) + 16;
       final plotWidth = math.max(1.0, constraints.maxWidth - axisWidth - 16);
       final widestLabel = labels.values.fold<double>(
         48 * scale,
@@ -91,7 +101,7 @@ class ResponsiveBarChart extends StatelessWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: axisWidth,
-                    interval: (maxY - minY) / 4,
+                    interval: interval,
                     getTitlesWidget: (value, meta) => SideTitleWidget(
                       meta: meta,
                       child: Text(formatter.format(value), style: style),

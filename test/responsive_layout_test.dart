@@ -569,9 +569,14 @@ void main() {
         'six-week calendar 320/2',
       );
       await viewport(tester, 390, 1);
+      await ready(tester);
       final filter = find.byKey(const ValueKey('filter-archived'));
       await tester.ensureVisible(filter);
+      await ready(tester);
+      expect(filter.hitTestable(), findsOneWidget);
       await tester.tap(filter);
+      await ready(tester);
+      expect(tester.widget<ChoiceChip>(filter).selected, isTrue);
       await tester.enterText(
         find.byKey(const ValueKey('booking-search')),
         'عبدالله',
@@ -592,6 +597,8 @@ void main() {
       }
       final renters = find.widgetWithText(ChoiceChip, 'قائمة المستأجرين (1)');
       await tester.ensureVisible(renters);
+      await ready(tester);
+      expect(renters.hitTestable(), findsOneWidget);
       await tester.tap(renters);
       await viewport(tester, 1280, 1);
       await ready(tester);
@@ -740,6 +747,53 @@ void main() {
         (await db.queryAllExpenses()).any((e) => e['amount'] == 1234567.89),
         isTrue,
       );
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
+
+  testWidgets('long expense list keeps its final action reachable', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.runAsync(() async {
+      final now = DateTime.now();
+      final month = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+      for (var i = 0; i < 30; i++) {
+        await db.insertExpense({
+          'description': 'مصروف اختبار طويل رقم $i',
+          'date': '$month-10',
+          'amount': 55.0,
+        });
+      }
+      await db.insertExpense({
+        'description': 'المصروف الأخير للاختبار',
+        'date': '$month-01',
+        'amount': 1234567.89,
+      });
+      await viewport(tester, 320, 2);
+      await tester.pumpWidget(app(const FinancePage()));
+      await ready(tester);
+      await walk(
+        tester,
+        find.byKey(const PageStorageKey('finance-scroll')),
+        'long expenses 320/2',
+      );
+      final last = find.ancestor(
+        of: find.text('المصروف الأخير للاختبار'),
+        matching: find.byType(Card),
+      );
+      final edit = find.descendant(
+        of: last,
+        matching: find.widgetWithText(TextButton, 'تعديل'),
+      );
+      await tester.ensureVisible(edit);
+      expect(edit.hitTestable(), findsOneWidget);
+      await tester.tap(edit);
+      await ready(tester);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      geometry(tester, 'last expense edit 320/2');
       await tester.pumpWidget(const SizedBox.shrink());
     });
   });

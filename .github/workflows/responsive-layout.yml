@@ -60,4 +60,5 @@ jobs:
             test/responsive_layout_test.dart
             lib/pages/finance_page.dart
             lib/pages/booking_manager_page.dart
+            lib/widgets/responsive_bar_chart.dart
           retention-days: 3
