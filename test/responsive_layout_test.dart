@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,7 @@ import 'package:resthouse_app/pages/finance_page.dart';
 import 'package:resthouse_app/pages/settings_page.dart';
 import 'package:resthouse_app/theme/app_theme.dart';
 import 'package:resthouse_app/widgets/adaptive_content.dart';
+import 'package:resthouse_app/widgets/responsive_bar_chart.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -738,6 +740,52 @@ void main() {
         (await db.queryAllExpenses()).any((e) => e['amount'] == 1234567.89),
         isTrue,
       );
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  });
+
+  testWidgets('chart retains all zero, equal and signed values on phone', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.runAsync(() async {
+      await viewport(tester, 320, 2);
+      for (final values in [
+        <double>[],
+        [0.0, 0.0, 0.0],
+        [55.0, 55.0, 55.0],
+        [-1234567.89, 0.0, 1234567.89],
+      ]) {
+        await tester.pumpWidget(
+          app(
+            Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ResponsiveBarChart(
+                  groups: [
+                    for (var i = 0; i < values.length; i++)
+                      BarChartGroupData(
+                        x: i,
+                        barRods: [BarChartRodData(toY: values[i])],
+                      ),
+                  ],
+                  labels: {
+                    for (var i = 0; i < values.length; i++) i: '2026-09-15',
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await ready(tester);
+        geometry(tester, 'chart $values at 320/2');
+        final data = tester.widget<BarChart>(find.byType(BarChart)).data;
+        expect(data.minY.isFinite && data.maxY.isFinite, isTrue);
+        expect(data.maxY, greaterThan(data.minY));
+        expect(data.barGroups.map((g) => g.barRods.single.toY), values);
+      }
       await tester.pumpWidget(const SizedBox.shrink());
     });
   });

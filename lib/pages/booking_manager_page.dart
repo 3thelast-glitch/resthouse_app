@@ -1649,7 +1649,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           onChanged: (value) => setState(() => _searchQuery = value),
           decoration: InputDecoration(
             labelText: 'بحث',
-            hintText: 'الاسم أو رقم الهاتف',
+            helperText: 'الاسم أو رقم الهاتف',
             prefixIcon: const Icon(Icons.search),
             suffixIcon: _searchQuery.isEmpty
                 ? null

@@ -650,10 +650,25 @@ class _FinancePageState extends State<FinancePage> {
       for (final entry in _getCategoryTotals().entries)
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: LabelledAmount(
-            '${entry.key} (${(_totalExpenses > 0 ? entry.value / _totalExpenses * 100 : 0).toStringAsFixed(0)}%)',
-            entry.value,
-            color: _getCategoryColors()[entry.key],
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsetsDirectional.only(top: 6, end: 8),
+                child: Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: _getCategoryColors()[entry.key],
+                ),
+              ),
+              Expanded(
+                child: LabelledAmount(
+                  '${entry.key} (${(_totalExpenses > 0 ? entry.value / _totalExpenses * 100 : 0).toStringAsFixed(0)}%)',
+                  entry.value,
+                  color: AppColors.text,
+                ),
+              ),
+            ],
           ),
         ),
     ],

@@ -56,5 +56,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: responsive-test-source
-          path: test/responsive_layout_test.dart
+          path: |
+            test/responsive_layout_test.dart
+            lib/pages/finance_page.dart
+            lib/pages/booking_manager_page.dart
           retention-days: 3
