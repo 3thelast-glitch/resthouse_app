@@ -180,7 +180,7 @@ class _BookingPaymentsDialogState extends State<BookingPaymentsDialog> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      _money(payment['amount'] as num),
+                                      _money((payment['amount'] as num?) ?? 0),
                                       style: Theme.of(
                                         context,
                                       ).textTheme.titleLarge,

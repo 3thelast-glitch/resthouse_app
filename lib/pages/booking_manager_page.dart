@@ -246,12 +246,15 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
         .queryEndedBookingsWithPendingDeposit();
     if (pendingBookings.isEmpty || !mounted) return;
 
+    final rentersByPhone = {
+      for (final renter in _renters) renter['phone'].toString(): renter,
+    };
+
     for (final booking in pendingBookings) {
       if (!mounted) return;
-      final renter = _renters.firstWhere(
-        (r) => r['phone'] == booking['phone'],
-        orElse: () => {'full_name': 'مستأجر غير معروف'},
-      );
+      final renter =
+          rentersByPhone[booking['phone'].toString()] ??
+          {'full_name': 'مستأجر غير معروف'};
       final depositAmount = booking['security_deposit'] ?? 0.0;
       final renterName = renter['full_name'].toString();
 
@@ -2135,11 +2138,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   Widget _buildBookingsList() {
     final todayStr = DateTime.now().toString().split(' ')[0];
     final normalizedQuery = _searchQuery.trim().toLowerCase();
+    final rentersByPhone = {
+      for (final renter in _renters) renter['phone'].toString(): renter,
+    };
     final filtered = _bookings.where((b) {
-      final renter = _renters.firstWhere(
-        (r) => r['phone'] == b['phone'],
-        orElse: () => const <String, dynamic>{},
-      );
+      final renter =
+          rentersByPhone[b['phone'].toString()] ?? const <String, dynamic>{};
       final matchesSearch =
           normalizedQuery.isEmpty ||
           b['phone'].toString().contains(normalizedQuery) ||
@@ -2172,10 +2176,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
       itemCount: sorted.length,
       itemBuilder: (context, index) {
         final booking = sorted[index];
-        final renter = _renters.firstWhere(
-          (r) => r['phone'] == booking['phone'],
-          orElse: () => {'full_name': 'مستأجر غير معروف'},
-        );
+        final renter =
+            rentersByPhone[booking['phone'].toString()] ??
+            {'full_name': 'مستأجر غير معروف'};
 
         final cardContent = Card(
           elevation: 0,
@@ -2439,9 +2442,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ),
                 const SizedBox(width: 4),
                 if ((renter['rating'] != null &&
-                        (renter['rating'] as num) >= 4) ||
+                        ((renter['rating'] as num?) ?? 0) >= 4) ||
                     (renter['rental_count'] != null &&
-                        (renter['rental_count'] as num) >= 3))
+                        ((renter['rental_count'] as num?) ?? 0) >= 3))
                   const Tooltip(
                     message: 'عميل مميز وموثوق',
                     child: Icon(
@@ -2518,6 +2521,10 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             b['start_date'].toString().compareTo(a['start_date'].toString()),
       );
 
+    final rentersByPhone = {
+      for (final renter in _renters) renter['phone'].toString(): renter,
+    };
+
     if (bookingsOnDay.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
@@ -2537,10 +2544,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
 
     return Column(
       children: bookingsOnDay.map((booking) {
-        final renter = _renters.firstWhere(
-          (r) => r['phone'] == booking['phone'],
-          orElse: () => {'full_name': 'مستأجر غير معروف'},
-        );
+        final renter =
+            rentersByPhone[booking['phone'].toString()] ??
+            {'full_name': 'مستأجر غير معروف'};
 
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
@@ -2673,9 +2679,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                     ),
                   const SizedBox(width: 4),
                   if ((renter['rating'] != null &&
-                          (renter['rating'] as num) >= 4) ||
+                          ((renter['rating'] as num?) ?? 0) >= 4) ||
                       (renter['rental_count'] != null &&
-                          (renter['rental_count'] as num) >= 3))
+                          ((renter['rental_count'] as num?) ?? 0) >= 3))
                     const Tooltip(
                       message: 'عميل مميز وموثوق',
                       child: Icon(

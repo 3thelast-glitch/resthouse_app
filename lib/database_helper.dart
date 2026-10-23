@@ -606,7 +606,7 @@ class DatabaseHelper {
     return db.transaction((txn) async {
       await _assertNoBookingConflict(txn, bookingRow, excludeId: id);
       final paid = await _paidMinor(txn, id);
-      if (Money.toMinor(bookingRow['total_price'] as num) < paid) {
+      if (Money.toMinor((bookingRow['total_price'] as num?) ?? 0) < paid) {
         throw ArgumentError(
           'لا يمكن تخفيض سعر الحجز عن المبلغ المسدد. صحح الدفعات الخاطئة أولاً.',
         );
@@ -914,7 +914,7 @@ class DatabaseHelper {
         whereArgs: [bookingId],
       );
       if (rows.isEmpty) throw StateError('الحجز غير موجود.');
-      final total = Money.toMinor(rows.single['total_price'] as num);
+      final total = Money.toMinor((rows.single['total_price'] as num?) ?? 0);
       final paid = await _paidMinor(txn, bookingId);
       return {
         'total': Money.fromMinor(total),
@@ -1318,7 +1318,7 @@ class DatabaseHelper {
       }
       try {
         _validateBooking(booking);
-        bookingTotals[id] = Money.toMinor(booking['total_price'] as num);
+        bookingTotals[id] = Money.toMinor((booking['total_price'] as num?) ?? 0);
       } on ArgumentError catch (error) {
         throw FormatException(
           error.message?.toString() ?? 'بيانات الحجز غير صالحة.',
