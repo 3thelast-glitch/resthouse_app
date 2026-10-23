@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart' as pp;
 
 import '../database_helper.dart';
+import 'audit_log_page.dart';
 import '../utils/responsive.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -54,6 +55,12 @@ class _SettingsPageState extends State<SettingsPage> {
       throw const FormatException('صيغة ملف النسخة الاحتياطية غير صالحة.');
     }
     return Map<String, dynamic>.from(decoded);
+  }
+
+  Future<void> _openAuditLog() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AuditLogPage()),
+    );
   }
 
   Future<void> _exportBackup() async {
@@ -454,6 +461,26 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         label: const Text(
                           'استيراد نسخة احتياطية JSON',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _openAuditLog,
+                        icon: const Icon(Icons.history, size: 22),
+                        label: const Text(
+                          'عرض سجل التدقيق',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: OutlinedButton.styleFrom(
