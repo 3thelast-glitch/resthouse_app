@@ -7,6 +7,7 @@ abstract final class AppColors {
   static const heading = Color(0xFF0F172A);
   static const secondaryText = Color(0xFF475569);
   static const primary = Color(0xFF0F766E);
+  static const primaryDeep = Color(0xFF134E4A);
   static const primaryPressed = Color(0xFF115E59);
   static const selectedSurface = Color(0xFFCCFBF1);
   static const divider = Color(0xFFD1D9E0);
@@ -31,8 +32,21 @@ abstract final class AppSpacing {
 }
 
 abstract final class AppRadius {
+  static const small = 8.0;
   static const medium = 12.0;
   static const large = 16.0;
+  static const xl = 20.0;
+}
+
+/// Brand gradients. Used sparingly for hero surfaces (the dashboard net
+/// cash card and the app bar) so the app keeps one clear visual signature
+/// instead of decorative gradients everywhere.
+abstract final class AppGradients {
+  static const primaryHero = LinearGradient(
+    colors: [AppColors.primaryDeep, AppColors.primaryPressed, AppColors.primary],
+    begin: AlignmentDirectional.topStart,
+    end: AlignmentDirectional.bottomEnd,
+  );
 }
 
 abstract final class AppTheme {
@@ -249,6 +263,43 @@ abstract final class AppTheme {
                 : AppColors.secondaryText,
           );
         }),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: AppColors.secondaryText,
+        textColor: AppColors.text,
+        contentPadding: const EdgeInsetsDirectional.symmetric(
+          horizontal: 16,
+          vertical: 4,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColors.heading,
+          borderRadius: BorderRadius.circular(AppRadius.small),
+        ),
+        textStyle: textTheme.bodySmall?.copyWith(color: Colors.white),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: 10,
+          vertical: 6,
+        ),
+        waitDuration: const Duration(milliseconds: 400),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.primary,
+        headerForegroundColor: Colors.white,
+        headerHeadlineStyle: textTheme.headlineSmall?.copyWith(
+          color: Colors.white,
+        ),
+        headerHelpStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.large),
+          side: const BorderSide(color: AppColors.divider),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.heading,
