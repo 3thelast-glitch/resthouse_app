@@ -106,18 +106,20 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
     }
 
     // تجميع الأنشطة الأخيرة
+    final rentersByPhone = {
+      for (final renter in renters) renter['phone'].toString(): renter,
+    };
     final List<DashboardActivity> acts = [];
     for (var b in bookings) {
-      final renter = renters.firstWhere(
-        (r) => r['phone'] == b['phone'],
-        orElse: () => {'full_name': 'مستأجر غير معروف'},
-      );
+      final renter =
+          rentersByPhone[b['phone'].toString()] ??
+          {'full_name': 'مستأجر غير معروف'};
       acts.add(
         DashboardActivity(
           type: 'booking',
           title: 'حجز جديد: ${renter['full_name']}',
           date: b['start_date'].toString(),
-          amount: (b['total_price'] as num).toDouble(),
+          amount: ((b['total_price'] as num?) ?? 0).toDouble(),
         ),
       );
     }
@@ -127,7 +129,7 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
           type: 'expense',
           title: 'مصروف: ${e['description']}',
           date: e['date'].toString(),
-          amount: (e['amount'] as num).toDouble(),
+          amount: ((e['amount'] as num?) ?? 0).toDouble(),
         ),
       );
     }

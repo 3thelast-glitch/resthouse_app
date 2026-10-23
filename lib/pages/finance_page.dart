@@ -143,7 +143,7 @@ class _FinancePageState extends State<FinancePage> {
 
     final revenue = filteredBookings.fold<double>(
       0.0,
-      (sum, booking) => sum + (booking['total_price'] as num).toDouble(),
+      (sum, booking) => sum + ((booking['total_price'] as num?) ?? 0).toDouble(),
     );
     final pendingDeposits = filteredBookings
         .where(_hasPendingDeposit)
@@ -154,7 +154,7 @@ class _FinancePageState extends State<FinancePage> {
         );
     final expenses = filteredExpenses.fold<double>(
       0.0,
-      (sum, expense) => sum + (expense['amount'] as num).toDouble(),
+      (sum, expense) => sum + ((expense['amount'] as num?) ?? 0).toDouble(),
     );
 
     _filteredBookings = filteredBookings;
@@ -595,7 +595,7 @@ class _FinancePageState extends State<FinancePage> {
     final Map<String, double> totals = {};
     for (var e in _expenses) {
       final cat = e['category']?.toString() ?? 'مصاريف تشغيلية أخرى';
-      final amt = (e['amount'] as num).toDouble();
+      final amt = ((e['amount'] as num?) ?? 0).toDouble();
       totals[cat] = (totals[cat] ?? 0.0) + amt;
     }
     return totals;
@@ -679,7 +679,7 @@ class _FinancePageState extends State<FinancePage> {
           activeMonths.contains(date.month)) {
         mRevenue[date.month] =
             (mRevenue[date.month] ?? 0.0) +
-            (b['total_price'] as num).toDouble();
+            ((b['total_price'] as num?) ?? 0).toDouble();
       }
     }
     for (var e in _expenses) {
@@ -688,7 +688,7 @@ class _FinancePageState extends State<FinancePage> {
           date.year == _selectedYear &&
           activeMonths.contains(date.month)) {
         mExpenses[date.month] =
-            (mExpenses[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
+            (mExpenses[date.month] ?? 0.0) + ((e['amount'] as num?) ?? 0).toDouble();
       }
     }
 
@@ -737,11 +737,11 @@ class _FinancePageState extends State<FinancePage> {
         if (date.year == _selectedYear) {
           rev1[date.month] =
               (rev1[date.month] ?? 0.0) +
-              (booking['total_price'] as num).toDouble();
+              ((booking['total_price'] as num?) ?? 0).toDouble();
         } else if (date.year == _comparisonYear) {
           rev2[date.month] =
               (rev2[date.month] ?? 0.0) +
-              (booking['total_price'] as num).toDouble();
+              ((booking['total_price'] as num?) ?? 0).toDouble();
         }
       }
     }
@@ -750,10 +750,10 @@ class _FinancePageState extends State<FinancePage> {
       if (date != null && activeMonths.contains(date.month)) {
         if (date.year == _selectedYear) {
           exp1[date.month] =
-              (exp1[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
+              (exp1[date.month] ?? 0.0) + ((e['amount'] as num?) ?? 0).toDouble();
         } else if (date.year == _comparisonYear) {
           exp2[date.month] =
-              (exp2[date.month] ?? 0.0) + (e['amount'] as num).toDouble();
+              (exp2[date.month] ?? 0.0) + ((e['amount'] as num?) ?? 0).toDouble();
         }
       }
     }
@@ -1380,7 +1380,7 @@ class _FinancePageState extends State<FinancePage> {
           date.year == year &&
           date.month == month &&
           _isConfirmedBooking(booking)) {
-        revenue += (booking['total_price'] as num).toDouble();
+        revenue += ((booking['total_price'] as num?) ?? 0).toDouble();
         if (_hasPendingDeposit(booking)) {
           security += (booking['security_deposit'] as num?)?.toDouble() ?? 0.0;
         }
@@ -1391,7 +1391,7 @@ class _FinancePageState extends State<FinancePage> {
     for (var e in _allExpenses) {
       final date = DateTime.tryParse(e['date'] ?? '');
       if (date != null && date.year == year && date.month == month) {
-        expenses += (e['amount'] as num).toDouble();
+        expenses += ((e['amount'] as num?) ?? 0).toDouble();
       }
     }
 
@@ -1413,7 +1413,7 @@ class _FinancePageState extends State<FinancePage> {
     for (final booking in _allBookings) {
       final date = DateTime.tryParse(booking['start_date']?.toString() ?? '');
       if (date != null && date.year == year && _isConfirmedBooking(booking)) {
-        revenue += (booking['total_price'] as num).toDouble();
+        revenue += ((booking['total_price'] as num?) ?? 0).toDouble();
         if (_hasPendingDeposit(booking)) {
           security += (booking['security_deposit'] as num?)?.toDouble() ?? 0.0;
         }
@@ -1424,7 +1424,7 @@ class _FinancePageState extends State<FinancePage> {
     for (var e in _allExpenses) {
       final date = DateTime.tryParse(e['date'] ?? '');
       if (date != null && date.year == year) {
-        expenses += (e['amount'] as num).toDouble();
+        expenses += ((e['amount'] as num?) ?? 0).toDouble();
       }
     }
 
