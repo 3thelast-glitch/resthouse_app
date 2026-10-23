@@ -26,3 +26,12 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+analyzer:
+  language:
+    # Catch untyped generics and weak inference at analysis time.
+    # strict-casts is intentionally deferred to a second phase: database
+    # rows flow as Map<String, dynamic> today, so enabling it blind would
+    # flood CI; the unsafe cast sites were already removed in PR #27.
+    strict-inference: true
+    strict-raw-types: true
