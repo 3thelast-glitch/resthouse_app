@@ -11,6 +11,7 @@ import 'package:hijri/hijri_calendar.dart';
 import '../database_helper.dart';
 import '../services/booking_status_service.dart';
 import 'booking_payments_dialog.dart';
+import '../widgets/renter_badges.dart';
 
 String toArabicDigits(int number) {
   const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -905,8 +906,20 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             ElevatedButton(
               onPressed: () async {
                 final price = double.tryParse(priceController.text) ?? 0.0;
-                final securityDeposit =
-                    double.tryParse(securityDepositController.text) ?? 0.0;
+                final depositText = securityDepositController.text.trim();
+                final securityDeposit = depositText.isEmpty
+                    ? 0.0
+                    : double.tryParse(depositText);
+                if (securityDeposit == null || securityDeposit < 0) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'الرجاء إدخال مبلغ تأمين صحيح (صفر أو أكثر)',
+                      ),
+                    ),
+                  );
+                  return;
+                }
 
                 if (selectedPhone == null) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -1181,8 +1194,20 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
             ElevatedButton(
               onPressed: () async {
                 final price = double.tryParse(priceController.text) ?? 0.0;
-                final securityDeposit =
-                    double.tryParse(securityDepositController.text) ?? 0.0;
+                final depositText = securityDepositController.text.trim();
+                final securityDeposit = depositText.isEmpty
+                    ? 0.0
+                    : double.tryParse(depositText);
+                if (securityDeposit == null || securityDeposit < 0) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'الرجاء إدخال مبلغ تأمين صحيح (صفر أو أكثر)',
+                      ),
+                    ),
+                  );
+                  return;
+                }
 
                 if (startDate == null || endDate == null) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -2430,29 +2455,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (renter['notes'] != null &&
-                    renter['notes'].toString().trim().isNotEmpty)
-                  const Tooltip(
-                    message: 'توجد ملاحظات على العميل',
-                    child: Icon(
-                      Icons.warning_amber_rounded,
-                      color: AppColors.errorText,
-                      size: 16,
-                    ),
-                  ),
-                const SizedBox(width: 4),
-                if ((renter['rating'] != null &&
-                        ((renter['rating'] as num?) ?? 0) >= 4) ||
-                    (renter['rental_count'] != null &&
-                        ((renter['rental_count'] as num?) ?? 0) >= 3))
-                  const Tooltip(
-                    message: 'عميل مميز وموثوق',
-                    child: Icon(
-                      Icons.verified,
-                      color: AppColors.successText,
-                      size: 16,
-                    ),
-                  ),
+                RenterBadges(renter: renter, iconSize: 16),
               ],
             ),
             subtitle: Text(
@@ -2667,29 +2670,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                       ),
                     ),
                   ),
-                  if (renter['notes'] != null &&
-                      renter['notes'].toString().trim().isNotEmpty)
-                    const Tooltip(
-                      message: 'توجد ملاحظات على العميل',
-                      child: Icon(
-                        Icons.warning_amber_rounded,
-                        color: AppColors.errorText,
-                        size: 20,
-                      ),
-                    ),
-                  const SizedBox(width: 4),
-                  if ((renter['rating'] != null &&
-                          ((renter['rating'] as num?) ?? 0) >= 4) ||
-                      (renter['rental_count'] != null &&
-                          ((renter['rental_count'] as num?) ?? 0) >= 3))
-                    const Tooltip(
-                      message: 'عميل مميز وموثوق',
-                      child: Icon(
-                        Icons.verified,
-                        color: AppColors.successText,
-                        size: 20,
-                      ),
-                    ),
+                  RenterBadges(renter: renter, iconSize: 20),
                 ],
               ),
               const SizedBox(height: 8),
