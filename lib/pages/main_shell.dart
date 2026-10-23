@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../database_helper.dart';
+import '../services/operations_task_service.dart';
 import '../theme/app_theme.dart';
 import 'booking_manager_page.dart';
 import 'finance_page.dart';
+import 'operations_tasks_page.dart';
 import 'settings_page.dart';
 import 'ultimate_dashboard_page.dart';
 
@@ -16,9 +19,42 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   int _selectedIndex = 0;
   int _dbSessionId = 0;
+  int _taskCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTaskCount();
+  }
 
   void _handleDatabaseRestored() {
     setState(() => _dbSessionId++);
+    _loadTaskCount();
+  }
+
+  Future<void> _loadTaskCount() async {
+    try {
+      final dbHelper = DatabaseHelper.instance;
+      final bookings = await dbHelper.queryAllBookings();
+      final payments = await dbHelper.queryAllPayments();
+      final tasks = OperationsTaskService.calculate(
+        bookings: bookings,
+        payments: payments,
+      );
+      if (!mounted) return;
+      setState(() => _taskCount = tasks.length);
+    } catch (_) {
+      // The badge is a hint only; a failed count must never break the shell.
+      if (!mounted) return;
+      setState(() => _taskCount = 0);
+    }
+  }
+
+  Future<void> _openOperationsTasks() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const OperationsTasksPage()),
+    );
+    await _loadTaskCount();
   }
 
   List<Widget> get _pages => [
@@ -63,30 +99,38 @@ class _MainShellPageState extends State<MainShellPage> {
           maxLines: isLargeText ? 2 : 1,
           overflow: TextOverflow.ellipsis,
         ),
-        actions: showPropertyName
-            ? [
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 16),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.holiday_village_outlined,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'استراحة نوره',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+        actions: [
+          IconButton(
+            tooltip: 'مركز التنبيهات',
+            onPressed: _openOperationsTasks,
+            icon: Badge(
+              isLabelVisible: _taskCount > 0,
+              label: Text('$_taskCount'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+          ),
+          if (showPropertyName)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.holiday_village_outlined,
+                    color: Colors.white,
                   ),
-                ),
-              ]
-            : null,
+                  const SizedBox(width: 8),
+                  Text(
+                    'استراحة نوره',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
       body: isWide
           ? Row(
