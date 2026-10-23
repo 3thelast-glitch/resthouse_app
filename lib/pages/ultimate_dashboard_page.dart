@@ -787,6 +787,11 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
               ),
               const SizedBox(height: 16),
 
+              if (_hasRecordedData) ...[
+                _buildNetCashHero(netProfit),
+                const SizedBox(height: 16),
+              ],
+
               if (!_hasRecordedData)
                 _buildDashboardEmptyState()
               else ...[
@@ -978,6 +983,102 @@ class _UltimateDashboardPageState extends State<UltimateDashboardPage> {
           ),
         ),
       ),
+    );
+  }
+
+  /// بطاقة البطل البصرية: صافي النقد بتدرّج العلامة، مع الإيرادات
+  /// والمصروفات كأرقام مساندة. هي التوقيع البصري للوحة التحكم.
+  Widget _buildNetCashHero(double netProfit) {
+    final isPositive = netProfit >= 0;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: AppGradients.primaryHero,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isPositive ? Icons.trending_up : Icons.trending_down,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'صافي النقد',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13.sp(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${netProfit.toStringAsFixed(0)} ر.س',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 26.sp(context),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withValues(alpha: 0.25), height: 1),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _heroMiniStat(
+                  'الإيرادات',
+                  '${_totalRevenue.toStringAsFixed(0)} ر.س',
+                ),
+              ),
+              Expanded(
+                child: _heroMiniStat(
+                  'المصروفات',
+                  '${_totalExpenses.toStringAsFixed(0)} ر.س',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroMiniStat(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.75),
+            fontSize: 11.sp(context),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14.sp(context),
+          ),
+        ),
+      ],
     );
   }
 

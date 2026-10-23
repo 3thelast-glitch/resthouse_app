@@ -56,6 +56,9 @@ class _MainShellPageState extends State<MainShellPage> {
 
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: const DecoratedBox(
+          decoration: BoxDecoration(gradient: AppGradients.primaryHero),
+        ),
         toolbarHeight: isLargeText ? 88 : 68,
         titleSpacing: 16,
         title: Text(
