@@ -1,0 +1,71 @@
+name: Release
+
+# Publishes a GitHub Release when a version tag is pushed:
+#   git tag v1.1.0 && git push origin v1.1.0
+# The tag must match the version in pubspec.yaml (without the +build
+# part). Signing follows the repository's existing model: release
+# signing keys live in android/key.properties on the build machine, so
+# CI produces the same unsigned verification build as ci.yml. To ship
+# signed artifacts, add the keystore as repository secrets and a
+# signing step here before the build.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: استنساخ المستودع
+        uses: actions/checkout@v4
+
+      - name: التحقق أن الوسم يطابق إصدار pubspec
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PUBSPEC_VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          echo "tag=$TAG_VERSION pubspec=$PUBSPEC_VERSION"
+          if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
+            echo "::error::Tag v$TAG_VERSION does not match pubspec version $PUBSPEC_VERSION"
+            exit 1
+          fi
+
+      - name: إعداد Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+
+      - name: تثبيت الاعتمادات
+        run: flutter pub get
+
+      - name: التحليل الساكن
+        run: flutter analyze
+
+      - name: الاختبارات
+        run: flutter test
+
+      - name: إعداد Java لبناء Android
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: بناء Android Release
+        env:
+          ORG_GRADLE_PROJECT_resthouseUnsignedRelease: 'true'
+          ORG_GRADLE_PROJECT_resthouseApplicationId: 'sa.norah.resthouse'
+        run: flutter build apk --release
+
+      - name: نشر إصدار GitHub مع الـ APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk "resthouse-${GITHUB_REF_NAME}.apk"
+          gh release create "${GITHUB_REF_NAME}" "resthouse-${GITHUB_REF_NAME}.apk" \
+            --title "استراحة نوره ${GITHUB_REF_NAME}" \
+            --generate-notes
