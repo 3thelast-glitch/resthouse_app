@@ -13,6 +13,13 @@ const _tasks = [
     amount: 0,
   ),
   OperationsTask(
+    id: 'departure-4',
+    type: OperationsTaskType.departureToday,
+    bookingId: 4,
+    title: 'حجز ينتهي اليوم #4',
+    amount: 0,
+  ),
+  OperationsTask(
     id: 'balance-2',
     type: OperationsTaskType.outstandingBalance,
     bookingId: 2,
@@ -38,11 +45,13 @@ void main() {
 
     // Section headers in display order.
     expect(find.text('حجوزات تبدأ اليوم'), findsOneWidget);
+    expect(find.text('حجوزات تنتهي اليوم'), findsOneWidget);
     expect(find.text('أرصدة مستحقة'), findsOneWidget);
     expect(find.text('تأمينات بانتظار التسوية'), findsOneWidget);
 
     // Task titles.
     expect(find.text('حجز يبدأ اليوم #1'), findsOneWidget);
+    expect(find.text('حجز ينتهي اليوم #4'), findsOneWidget);
     expect(find.text('رصيد مستحق للحجز #2'), findsOneWidget);
     expect(find.text('تأمين بانتظار التسوية للحجز #3'), findsOneWidget);
 

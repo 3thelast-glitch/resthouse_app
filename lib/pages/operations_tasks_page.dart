@@ -28,6 +28,12 @@ const _taskTypeStyles = <OperationsTaskType, _TaskTypeStyle>{
     foreground: AppColors.successText,
     background: AppColors.successSurface,
   ),
+  OperationsTaskType.departureToday: _TaskTypeStyle(
+    sectionTitle: 'حجوزات تنتهي اليوم',
+    icon: Icons.logout,
+    foreground: AppColors.primaryPressed,
+    background: AppColors.selectedSurface,
+  ),
   OperationsTaskType.outstandingBalance: _TaskTypeStyle(
     sectionTitle: 'أرصدة مستحقة',
     icon: Icons.account_balance_wallet_outlined,
@@ -48,10 +54,12 @@ const _taskTypeStyles = <OperationsTaskType, _TaskTypeStyle>{
   ),
 };
 
-/// Display order for the sections: arrivals first, then money owed,
-/// then deposits waiting for settlement.
+/// Display order for the sections: today's arrivals and departures
+/// first (the operating day), then money owed, then deposits waiting
+/// for settlement.
 const _sectionOrder = <OperationsTaskType>[
   OperationsTaskType.arrivalToday,
+  OperationsTaskType.departureToday,
   OperationsTaskType.outstandingBalance,
   OperationsTaskType.pendingDeposit,
   OperationsTaskType.backupReminder,

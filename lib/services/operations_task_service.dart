@@ -5,6 +5,7 @@ enum OperationsTaskType {
   pendingDeposit,
   outstandingBalance,
   arrivalToday,
+  departureToday,
   backupReminder,
 }
 
@@ -89,6 +90,17 @@ class OperationsTaskService {
             type: OperationsTaskType.arrivalToday,
             bookingId: bookingId,
             title: 'حجز يبدأ اليوم #$bookingId',
+            amount: 0,
+          ),
+        );
+      }
+      if (endDate == today) {
+        tasks.add(
+          OperationsTask(
+            id: 'departure-$bookingId',
+            type: OperationsTaskType.departureToday,
+            bookingId: bookingId,
+            title: 'حجز ينتهي اليوم #$bookingId',
             amount: 0,
           ),
         );
