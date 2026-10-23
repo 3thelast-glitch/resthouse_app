@@ -41,8 +41,12 @@ class _MainShellPageState extends State<MainShellPage> {
         bookings: bookings,
         payments: payments,
       );
+      final reminder = OperationsTaskService.backupReminder(
+        lastBackupAt: await dbHelper.lastBackupAt(),
+        hasData: bookings.isNotEmpty || payments.isNotEmpty,
+      );
       if (!mounted) return;
-      setState(() => _taskCount = tasks.length);
+      setState(() => _taskCount = tasks.length + (reminder == null ? 0 : 1));
     } catch (_) {
       // The badge is a hint only; a failed count must never break the shell.
       if (!mounted) return;

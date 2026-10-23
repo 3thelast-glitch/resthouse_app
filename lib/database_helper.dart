@@ -46,7 +46,7 @@ class LocalDataClearResult {
 
 class DatabaseHelper {
   static const _databaseName = 'resthouse.db';
-  static const _databaseVersion = 8;
+  static const _databaseVersion = 9;
   static const backupSchemaVersion = 1;
 
   static const tableRenters = 'renters';
@@ -54,6 +54,9 @@ class DatabaseHelper {
   static const tableExpenses = 'expenses';
   static const tablePayments = 'payments';
   static const tableAuditEvents = 'audit_events';
+  static const tableAppMeta = 'app_meta';
+
+  static const _lastBackupAtKey = 'last_backup_at';
 
   static const statusConfirmed = 'confirmed';
   static const statusPending = 'pending';
@@ -172,6 +175,7 @@ class DatabaseHelper {
 
     await _createPaymentsTable(db);
     await _createAuditEventsTable(db);
+    await _createAppMetaTable(db);
     await _createIndexes(db);
   }
 
@@ -261,8 +265,44 @@ class DatabaseHelper {
       await _markLegacyDemoData(db);
     }
 
+    if (oldVersion < 9) {
+      await _createAppMetaTable(db);
+    }
+
     await _recalculateRentalCounts(db);
     await _createIndexes(db);
+  }
+
+  Future<void> _createAppMetaTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableAppMeta (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      )
+    ''');
+  }
+
+  /// Records that the user exported a backup just now. Used by the
+  /// notifications center to remind about stale backups.
+  Future<void> recordBackupExported({DateTime? at}) async {
+    final db = await database;
+    await db.insert(tableAppMeta, {
+      'key': _lastBackupAtKey,
+      'value': (at ?? DateTime.now()).toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  /// When the user last exported a backup, or null if never.
+  Future<DateTime?> lastBackupAt() async {
+    final db = await database;
+    final rows = await db.query(
+      tableAppMeta,
+      where: 'key = ?',
+      whereArgs: [_lastBackupAtKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return DateTime.tryParse(rows.first['value'].toString());
   }
 
   Future<void> _addColumnIfMissing(

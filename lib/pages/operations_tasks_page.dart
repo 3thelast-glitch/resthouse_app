@@ -34,6 +34,12 @@ const _taskTypeStyles = <OperationsTaskType, _TaskTypeStyle>{
     foreground: AppColors.warningText,
     background: AppColors.warningSurface,
   ),
+  OperationsTaskType.backupReminder: _TaskTypeStyle(
+    sectionTitle: 'النسخ الاحتياطي',
+    icon: Icons.backup_outlined,
+    foreground: AppColors.neutralText,
+    background: AppColors.neutralSurface,
+  ),
   OperationsTaskType.pendingDeposit: _TaskTypeStyle(
     sectionTitle: 'تأمينات بانتظار التسوية',
     icon: Icons.shield_outlined,
@@ -48,6 +54,7 @@ const _sectionOrder = <OperationsTaskType>[
   OperationsTaskType.arrivalToday,
   OperationsTaskType.outstandingBalance,
   OperationsTaskType.pendingDeposit,
+  OperationsTaskType.backupReminder,
 ];
 
 String _formatAmount(double amount) => '${amount.toStringAsFixed(2)} ر.س';
@@ -244,6 +251,11 @@ class _OperationsTasksPageState extends State<OperationsTasksPage> {
         bookings: bookings,
         payments: payments,
       );
+      final reminder = OperationsTaskService.backupReminder(
+        lastBackupAt: await _dbHelper.lastBackupAt(),
+        hasData: bookings.isNotEmpty || payments.isNotEmpty,
+      );
+      if (reminder != null) tasks.add(reminder);
       if (!mounted) return;
       setState(() {
         _tasks = tasks;

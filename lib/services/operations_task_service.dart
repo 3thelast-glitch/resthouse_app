@@ -1,7 +1,12 @@
 import '../database_helper.dart';
 import '../utils/money.dart';
 
-enum OperationsTaskType { pendingDeposit, outstandingBalance, arrivalToday }
+enum OperationsTaskType {
+  pendingDeposit,
+  outstandingBalance,
+  arrivalToday,
+  backupReminder,
+}
 
 class OperationsTask {
   const OperationsTask({
@@ -91,6 +96,29 @@ class OperationsTaskService {
     }
 
     return tasks;
+  }
+
+  /// A reminder task when the user has data worth protecting but no recent
+  /// backup export. Returns null when a backup is fresh enough (within
+  /// [maxAge], 30 days by default) or when there is no data yet.
+  static OperationsTask? backupReminder({
+    required DateTime? lastBackupAt,
+    required bool hasData,
+    DateTime? now,
+    Duration maxAge = const Duration(days: 30),
+  }) {
+    if (!hasData) return null;
+    final reference = now ?? DateTime.now();
+    if (lastBackupAt != null && reference.difference(lastBackupAt) < maxAge) {
+      return null;
+    }
+    return const OperationsTask(
+      id: 'backup-reminder',
+      type: OperationsTaskType.backupReminder,
+      bookingId: 0,
+      title: 'لا توجد نسخة احتياطية حديثة',
+      amount: 0,
+    );
   }
 
   static String _dateKey(DateTime date) {

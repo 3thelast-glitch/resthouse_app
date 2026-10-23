@@ -88,6 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ? outputPath
           : '$outputPath.json';
       await _writeStructuredBackup(normalizedPath);
+      await DatabaseHelper.instance.recordBackupExported();
 
       if (!mounted) return;
       await showDialog<void>(
