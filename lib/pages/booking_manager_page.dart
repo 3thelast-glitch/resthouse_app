@@ -61,7 +61,7 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
 
   // للتبديل في القائمة الجانبية بين الحجوزات والمستأجرين
   bool _showRentersTab = false;
-  String _bookingFilter = 'active'; // 'active' or 'archived'
+  String _bookingFilter = 'current'; // current | upcoming | ended | all
   String _searchQuery = '';
 
   @override
@@ -1430,12 +1430,12 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
   @override
   Widget build(BuildContext context) {
     final todayStr = DateTime.now().toString().split(' ')[0];
-    final activeBookingsCount = _bookings
-        .where((b) => BookingStatusService.isActive(b, todayStr))
+    int countLifecycle(BookingLifecycle lifecycle) => _bookings
+        .where((b) => BookingStatusService.lifecycleOf(b, todayStr) == lifecycle)
         .length;
-    final archivedBookingsCount = _bookings
-        .where((b) => !BookingStatusService.isActive(b, todayStr))
-        .length;
+    final currentBookingsCount = countLifecycle(BookingLifecycle.current);
+    final upcomingBookingsCount = countLifecycle(BookingLifecycle.upcoming);
+    final endedBookingsCount = countLifecycle(BookingLifecycle.ended);
     final hasDirectoryData = _bookings.isNotEmpty || _renters.isNotEmpty;
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     // Keep both Hijri and Gregorian day labels readable at large system text sizes.
@@ -1539,66 +1539,31 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                             border: Border.all(color: AppColors.divider),
                           ),
                           padding: const EdgeInsets.all(2),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () =>
-                                      setState(() => _bookingFilter = 'active'),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _bookingFilter == 'active'
-                                          ? AppColors.primary
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      'المؤكدة القادمة ($activeBookingsCount)',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: _bookingFilter == 'active'
-                                            ? Colors.white
-                                            : AppColors.secondaryText,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11.sp(context),
-                                      ),
-                                    ),
-                                  ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _buildSegmentButton(
+                                  'current',
+                                  'الحالية ($currentBookingsCount)',
                                 ),
-                              ),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () => setState(
-                                    () => _bookingFilter = 'archived',
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _bookingFilter == 'archived'
-                                          ? AppColors.primary
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      'السجل ($archivedBookingsCount)',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: _bookingFilter == 'archived'
-                                            ? Colors.white
-                                            : AppColors.secondaryText,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11.sp(context),
-                                      ),
-                                    ),
-                                  ),
+                                const SizedBox(width: 4),
+                                _buildSegmentButton(
+                                  'upcoming',
+                                  'المستقبلية ($upcomingBookingsCount)',
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                _buildSegmentButton(
+                                  'ended',
+                                  'المنتهية ($endedBookingsCount)',
+                                ),
+                                const SizedBox(width: 4),
+                                _buildSegmentButton(
+                                  'all',
+                                  'السجل (${_bookings.length})',
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -2131,6 +2096,29 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
     }
   }
 
+  Widget _buildSegmentButton(String value, String label) {
+    final selected = _bookingFilter == value;
+    return InkWell(
+      onTap: () => setState(() => _bookingFilter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.secondaryText,
+            fontWeight: FontWeight.bold,
+            fontSize: 11.sp(context),
+          ),
+        ),
+      ),
+    );
+  }
+
   // بناء قائمة الحجوزات العامة (مرتبة من الأحدث إلى الأقدم)
   Widget _buildBookingsList() {
     final todayStr = DateTime.now().toString().split(' ')[0];
@@ -2146,27 +2134,47 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           renter['full_name'].toString().toLowerCase().contains(
             normalizedQuery,
           );
-      final isActive = BookingStatusService.isActive(b, todayStr);
-      return (_bookingFilter == 'archived' ? !isActive : isActive) &&
-          matchesSearch;
+      if (!matchesSearch) return false;
+      return switch (_bookingFilter) {
+        'current' =>
+          BookingStatusService.lifecycleOf(b, todayStr) ==
+              BookingLifecycle.current,
+        'upcoming' =>
+          BookingStatusService.lifecycleOf(b, todayStr) ==
+              BookingLifecycle.upcoming,
+        'ended' =>
+          BookingStatusService.lifecycleOf(b, todayStr) ==
+              BookingLifecycle.ended,
+        _ => true,
+      };
     }).toList();
 
     if (filtered.isEmpty) {
       return Center(
         child: Text(
-          _bookingFilter == 'archived'
-              ? 'لا توجد حجوزات مؤرشفة'
-              : 'لا توجد حجوزات نشطة حالياً',
+          _bookingFilter == 'current'
+              ? 'لا توجد حجوزات جارية الآن'
+              : _bookingFilter == 'upcoming'
+              ? 'لا توجد حجوزات مستقبلية'
+              : _bookingFilter == 'ended'
+              ? 'لا توجد حجوزات منتهية'
+              : 'لا توجد حجوزات في السجل',
           style: const TextStyle(color: AppColors.secondaryText),
         ),
       );
     }
 
+    // ترتيب يخدم المتابعة: الحالية بمن يغادر أولاً، والمستقبلية بمن
+    // يصل أولاً، والمنتهية بالأحدث انتهاءً، والسجل بالأحدث بدءاً.
     final sorted = List<Map<String, dynamic>>.from(filtered)
-      ..sort(
-        (a, b) =>
-            b['start_date'].toString().compareTo(a['start_date'].toString()),
-      );
+      ..sort((a, b) => switch (_bookingFilter) {
+        'current' =>
+          a['end_date'].toString().compareTo(b['end_date'].toString()),
+        'upcoming' =>
+          a['start_date'].toString().compareTo(b['start_date'].toString()),
+        'ended' => b['end_date'].toString().compareTo(a['end_date'].toString()),
+        _ => b['start_date'].toString().compareTo(a['start_date'].toString()),
+      });
 
     return ListView.builder(
       itemCount: sorted.length,
@@ -2208,7 +2216,11 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (_bookingFilter == 'archived') ...[
+                          if (BookingStatusService.lifecycleOf(
+                                booking,
+                                todayStr,
+                              ) ==
+                              BookingLifecycle.ended) ...[
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -2373,7 +2385,9 @@ class _BookingManagerPageState extends State<BookingManagerPage> {
           ),
         );
 
-        if (_bookingFilter == 'archived') {
+        if (BookingStatusService.lifecycleOf(booking, todayStr) ==
+                BookingLifecycle.ended ||
+            booking['status'] == DatabaseHelper.statusCancelled) {
           return Opacity(opacity: 0.75, child: cardContent);
         }
         return cardContent;
